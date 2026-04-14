@@ -8,6 +8,7 @@ export { checkWinCondition } from './engine/win-condition.js';
 export { executeTurnStart } from './engine/game-loop.js';
 export { executePlayCard, executeAttack, executeEndTurn } from './engine/action-executor.js';
 export { GameEngine } from './engine/game-engine.js';
+export { EventBusImpl } from './engine/event-bus.js';
 
 // ─── Card definitions & emperor data ───────────────────────────────
 export {
