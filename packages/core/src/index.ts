@@ -1,2 +1,2 @@
-// @king-card/core - 游戏规则引擎
-export {};
+export { EventBus } from './engine/event-bus.js';
+export { DefaultRNG, SeededRNG } from './engine/rng.js';
