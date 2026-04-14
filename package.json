@@ -1,0 +1,19 @@
+{
+  "name": "king-card",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "eslint packages/",
+    "dev": "pnpm --filter ui-phaser dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "eslint": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "prettier": "^3.3.0",
+    "vitest": "^2.0.0"
+  },
+  "packageManager": "pnpm@10.33.0"
+}
