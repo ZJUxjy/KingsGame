@@ -30,6 +30,7 @@ export interface Card {
   keywords: Keyword[];
   effects: CardEffect[];
   heroSkill?: HeroSkill;
+  generalSkills?: GeneralSkill[];
 }
 
 export interface CardEffect {

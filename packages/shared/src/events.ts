@@ -43,6 +43,9 @@ export type GameEvent =
   | { type: 'HERO_SKILL_USED'; playerIndex: number; hero: HeroState }
   | { type: 'MINISTER_SKILL_USED'; playerIndex: number; ministerId: string }
   | { type: 'GENERAL_SKILL_USED'; instance: CardInstance }
+  // 帝王 / 文臣
+  | { type: 'EMPEROR_CHANGED'; playerIndex: number; oldEmperorId?: string; newEmperorId: string }
+  | { type: 'MINISTER_CHANGED'; playerIndex: number; ministerIndex: number }
   // 谋略
   | { type: 'STRATAGEM_ACTIVATED'; stratagem: ActiveStratagem }
   | { type: 'STRATAGEM_EXPIRED'; stratagem: ActiveStratagem }
