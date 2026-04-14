@@ -8,12 +8,18 @@ import {
   MinisterPanel,
   TurnIndicator,
 } from '../components/index.js';
-import type { Card, CardInstance, HeroState, Minister, GameState, GamePhase, Player } from '@king-card/shared';
+import type { Card, CardInstance, GameState, Player, EmperorData } from '@king-card/shared';
+import { GameEngine, CHINA_EMPEROR_DATA_LIST } from '@king-card/core';
+import { AnimationQueue } from '../animations/AnimationQueue.js';
+import { InputHandler } from '../input/InputHandler.js';
+import { HotSeatOverlay } from '../input/HotSeatOverlay.js';
+import { VictoryScreen } from '../input/VictoryScreen.js';
+import { buildDeck } from '../utils/deck-builder.js';
 
 /**
- * BattleScene - Core battlefield scene with zone container layout.
+ * BattleScene - Core battlefield scene with real GameEngine integration.
  *
- * Uses rendering components for each zone:
+ * Layout:
  *   enemyInfoZone:      y=0,    h=80    - Enemy HeroPanel, EnergyBar, MinisterPanel
  *   enemyBattlefield:   y=80,   h=180   - Enemy BoardZone
  *   turnInfoBar:        y=260,  h=40    - TurnIndicator
@@ -28,7 +34,7 @@ export class BattleScene extends Phaser.Scene {
   turnInfoBar!: Phaser.GameObjects.Container;
   playerBattlefieldZone!: Phaser.GameObjects.Container;
   playerInfoZone!: Phaser.GameObjects.Container;
-  handZone!: Phaser.GameObjects.Container;
+  handZoneContainer!: Phaser.GameObjects.Container;
 
   // Rendering components
   private enemyHeroPanel!: HeroPanel;
@@ -42,16 +48,41 @@ export class BattleScene extends Phaser.Scene {
   private playerMinisterPanel!: MinisterPanel;
   private handZoneComponent!: HandZone;
 
-  // Mock game state for testing (will be replaced with real engine in Task 16)
-  private mockState!: GameState;
+  // Game engine
+  private engine!: GameEngine;
+
+  // Animation & Input
+  private animationQueue!: AnimationQueue;
+  private inputHandler!: InputHandler;
+
+  // Overlays
+  private hotSeatOverlay!: HotSeatOverlay;
+  private victoryScreen!: VictoryScreen;
+
+  // Emperor data from MenuScene
+  private emperor1!: EmperorData;
+  private emperor2!: EmperorData;
 
   constructor() {
     super({ key: 'BattleScene' });
   }
 
   create(): void {
-    // Initialize mock state
-    this.initMockState();
+    // Read emperor data from registry
+    this.emperor1 = this.registry.get('player1EmperorData');
+    this.emperor2 = this.registry.get('player2EmperorData');
+
+    if (!this.emperor1 || !this.emperor2) {
+      console.error('Missing emperor data in registry, falling back to defaults');
+      this.emperor1 = CHINA_EMPEROR_DATA_LIST[0];
+      this.emperor2 = CHINA_EMPEROR_DATA_LIST[1];
+    }
+
+    // Create GameEngine
+    this.initEngine();
+
+    // Create animation queue
+    this.animationQueue = new AnimationQueue(this);
 
     // Background
     this.drawBackground();
@@ -64,11 +95,53 @@ export class BattleScene extends Phaser.Scene {
     this.createPlayerInfoZone();
     this.createHandZone();
 
-    // Populate components with mock data
+    // Create overlays
+    this.hotSeatOverlay = new HotSeatOverlay(this);
+    this.add.existing(this.hotSeatOverlay);
+
+    this.victoryScreen = new VictoryScreen(this);
+    this.add.existing(this.victoryScreen);
+
+    // Populate components with real game state
     this.refreshAllComponents();
 
-    // Set up drag interaction between hand and board
-    this.setupDragInteraction();
+    // Create input handler (wires all component callbacks)
+    this.inputHandler = new InputHandler(
+      this.engine,
+      this.animationQueue,
+      {
+        handZone: this.handZoneComponent,
+        playerBoard: this.playerBoardZone,
+        enemyBoard: this.enemyBoardZone,
+        playerHeroPanel: this.playerHeroPanel,
+        enemyHeroPanel: this.enemyHeroPanel,
+        playerMinisterPanel: this.playerMinisterPanel,
+        turnIndicator: this.turnIndicator,
+      },
+      this,
+      {
+        onRefreshUI: () => this.refreshAllComponents(),
+        onShowHotSeat: (nextPlayerName, onDismiss) => {
+          this.hotSeatOverlay.show(nextPlayerName, onDismiss);
+        },
+        onShowVictory: (winnerName, winnerIndex, winReason) => {
+          this.victoryScreen.show(winnerName, winnerIndex, winReason, () => {
+            this.victoryScreen.hide();
+            this.inputHandler.destroy();
+            this.animationQueue.clear();
+            this.scene.start('MenuScene');
+          });
+        },
+      },
+    );
+  }
+
+  // ─── Engine Initialization ─────────────────────────────────────────
+
+  private initEngine(): void {
+    const deck1 = buildDeck(this.emperor1);
+    const deck2 = buildDeck(this.emperor2);
+    this.engine = GameEngine.create(deck1, deck2, this.emperor1, this.emperor2);
   }
 
   // ─── Background ──────────────────────────────────────────────────
@@ -251,8 +324,8 @@ export class BattleScene extends Phaser.Scene {
     const w = GAME_WIDTH;
     const h = 160;
 
-    this.handZone = this.add.container(x, y);
-    this.handZone.setSize(w, h);
+    this.handZoneContainer = this.add.container(x, y);
+    this.handZoneContainer.setSize(w, h);
 
     // Zone background
     const zoneBg = this.add.graphics();
@@ -260,7 +333,7 @@ export class BattleScene extends Phaser.Scene {
     zoneBg.fillRect(0, 0, w, h);
     zoneBg.lineStyle(1, 0x5c6bc0, 0.3);
     zoneBg.lineBetween(0, 0, w, 0);
-    this.handZone.add(zoneBg);
+    this.handZoneContainer.add(zoneBg);
 
     // Zone label
     const label = this.add.text(w / 2, 5, '手 牌 区', {
@@ -268,286 +341,53 @@ export class BattleScene extends Phaser.Scene {
       color: '#555577',
       fontFamily: 'sans-serif',
     }).setOrigin(0.5, 0);
-    this.handZone.add(label);
+    this.handZoneContainer.add(label);
 
     // HandZone component
     this.handZoneComponent = new HandZone(this, 0, 20, w, h - 20);
-    this.handZone.add(this.handZoneComponent);
-  }
-
-  // ─── Drag interaction ────────────────────────────────────────────
-
-  private setupDragInteraction(): void {
-    this.handZoneComponent.onCardDragStart = (_card, _handIndex) => {
-      // Visual feedback only; engine calls happen on drag end
-    };
-
-    this.handZoneComponent.onCardDragEnd = (card, handIndex, worldX, worldY) => {
-      // Check if dropped on player battlefield
-      const boardLocalY = this.playerBattlefieldZone.y;
-      if (worldY >= boardLocalY && worldY <= boardLocalY + 180) {
-        const canPlace = this.playerBoardZone.showDragPreview(card, worldX, worldY);
-        if (canPlace) {
-          const insertionIndex = this.playerBoardZone.confirmPlacement(card);
-          // TODO: In Task 16, call engine.playCard() here
-          console.log(`[Mock] Place card "${card.name}" at board position ${insertionIndex}`);
-          this.playerBoardZone.hideDragPreview();
-          return;
-        }
-      }
-      // If not placed on board or board is full, animate card back
-      this.playerBoardZone.hideDragPreview();
-      this.handZoneComponent.animateCardBack(handIndex);
-    };
-
-    this.handZoneComponent.onCardClick = (card, handIndex) => {
-      // TODO: In Task 16, handle card click (e.g. select for targeting)
-      console.log(`[Mock] Clicked card "${card.name}" at hand index ${handIndex}`);
-    };
-
-    // Track pointer move for live drag preview on board
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.handZoneComponent.isDragging()) {
-        return;
-      }
-      // Show live preview while dragging over player board area
-      const boardLocalY = this.playerBattlefieldZone.y;
-      if (pointer.y >= boardLocalY && pointer.y <= boardLocalY + 180) {
-        // Get the currently dragged card from hand
-        // We can't easily get it here, so preview is handled on drag end
-      }
-    });
-
-    // End turn button
-    this.turnIndicator.onEndTurnClick = () => {
-      // TODO: In Task 16, call engine.endTurn()
-      console.log('[Mock] End turn clicked');
-      this.mockState.turnNumber++;
-      this.mockState.currentPlayerIndex = this.mockState.currentPlayerIndex === 0 ? 1 : 0;
-      this.refreshAllComponents();
-    };
+    this.handZoneContainer.add(this.handZoneComponent);
   }
 
   // ─── Component refresh ────────────────────────────────────────────
 
   /**
    * Refresh all components with current game state.
-   * This method will be called from the engine event bridge in Task 16.
+   * Maps the engine state to UI components based on the local player perspective.
    */
   refreshAllComponents(): void {
-    const state = this.mockState;
-    const player0 = state.players[0];
-    const player1 = state.players[1];
+    const state = this.engine.getGameState();
+    const localPlayerIndex = this.inputHandler ? this.inputHandler.getLocalPlayerIndex() : 0;
+    const enemyPlayerIndex = 1 - localPlayerIndex;
 
-    // Enemy (player 1) info
-    this.enemyHeroPanel.refresh(player1.hero, this.getEmperorName(player1));
-    this.enemyEnergyBar.refresh(player1.energyCrystal, player1.maxEnergy);
-    this.enemyMinisterPanel.refresh(player1.ministerPool, player1.activeMinisterIndex);
+    const localPlayer = state.players[localPlayerIndex];
+    const enemyPlayer = state.players[enemyPlayerIndex];
 
-    // Enemy battlefield
-    this.enemyBoardZone.refresh(player1.battlefield);
+    // Enemy info (top of screen)
+    this.enemyHeroPanel.refresh(enemyPlayer.hero, enemyPlayer.name);
+    this.enemyEnergyBar.refresh(enemyPlayer.energyCrystal, enemyPlayer.maxEnergy);
+    this.enemyMinisterPanel.refresh(enemyPlayer.ministerPool, enemyPlayer.activeMinisterIndex);
 
-    // Player (player 0) info
-    this.playerHeroPanel.refresh(player0.hero, this.getEmperorName(player0));
-    this.playerEnergyBar.refresh(player0.energyCrystal, player0.maxEnergy);
-    this.playerMinisterPanel.refresh(player0.ministerPool, player0.activeMinisterIndex);
+    // Enemy battlefield (top board)
+    this.enemyBoardZone.refresh(enemyPlayer.battlefield);
 
-    // Player battlefield
-    this.playerBoardZone.refresh(player0.battlefield);
+    // Player info (bottom of screen)
+    this.playerHeroPanel.refresh(localPlayer.hero, localPlayer.name);
+    this.playerEnergyBar.refresh(localPlayer.energyCrystal, localPlayer.maxEnergy);
+    this.playerMinisterPanel.refresh(localPlayer.ministerPool, localPlayer.activeMinisterIndex);
 
-    // Player hand
-    this.handZoneComponent.refresh(player0.hand);
+    // Player battlefield (bottom board)
+    this.playerBoardZone.refresh(localPlayer.battlefield);
+
+    // Player hand (face up)
+    this.handZoneComponent.refresh(localPlayer.hand);
 
     // Turn indicator
-    const currentPlayerName = state.currentPlayerIndex === 0 ? player0.name : player1.name;
+    const currentPlayerName = state.players[state.currentPlayerIndex].name;
     this.turnIndicator.refresh(
       state.turnNumber,
       currentPlayerName,
       state.phase,
-      state.currentPlayerIndex === 0,
+      state.currentPlayerIndex === localPlayerIndex,
     );
-  }
-
-  /**
-   * Get emperor name from player data (mock implementation).
-   */
-  private getEmperorName(player: Player): string {
-    // In Task 16, this will come from the actual emperor card in player data
-    return player.name || '帝王';
-  }
-
-  // ─── Mock State ──────────────────────────────────────────────────
-
-  private initMockState(): void {
-    // Create realistic mock card data for testing the UI
-    const mockCards: Card[] = [
-      {
-        id: 'mock_bingmayong', name: '兵马俑', civilization: 'CHINA',
-        type: 'MINION', rarity: 'COMMON', cost: 1, attack: 1, health: 1,
-        description: '秦始皇陵墓中的陶土战士。', keywords: [], effects: [],
-      },
-      {
-        id: 'mock_qinjun', name: '秦军步兵', civilization: 'CHINA',
-        type: 'MINION', rarity: 'COMMON', cost: 2, attack: 2, health: 2,
-        description: '动员：若本回合已使用>=2张牌，获得+1/+1。', keywords: ['MOBILIZE'], effects: [],
-      },
-      {
-        id: 'mock_qibing', name: '汉朝骑兵', civilization: 'CHINA',
-        type: 'MINION', rarity: 'COMMON', cost: 3, attack: 3, health: 2,
-        description: '冲锋。动员：若本回合已使用>=3张牌，抽一张牌。', keywords: ['CHARGE', 'MOBILIZE'], effects: [],
-      },
-      {
-        id: 'mock_shouwei', name: '长城守卫', civilization: 'CHINA',
-        type: 'MINION', rarity: 'RARE', cost: 4, attack: 2, health: 6,
-        description: '嘲讽。', keywords: ['TAUNT'], effects: [],
-      },
-      {
-        id: 'mock_tongling', name: '晋军统领', civilization: 'CHINA',
-        type: 'GENERAL', rarity: 'EPIC', cost: 5, attack: 4, health: 5,
-        description: '战吼：对随机敌方造成2点伤害。', keywords: ['BATTLECRY'], effects: [],
-      },
-    ];
-
-    // Create mock battlefield instances
-    const mockBattlefield0: CardInstance[] = [
-      this.createMockInstance(mockCards[0], 0, 0),
-      this.createMockInstance(mockCards[1], 0, 1),
-    ];
-
-    const mockBattlefield1: CardInstance[] = [
-      this.createMockInstance(mockCards[2], 1, 0),
-    ];
-
-    // Create mock hero state
-    const mockHero0: HeroState = {
-      health: 28,
-      maxHealth: 30,
-      armor: 2,
-      heroSkill: {
-        name: '召唤兵马俑',
-        description: '召唤一个1/1兵马俑',
-        cost: 1,
-        cooldown: 1,
-        effect: { trigger: 'ON_PLAY', type: 'SUMMON', params: { cardId: 'china_bingmayong' } },
-      },
-      skillUsedThisTurn: false,
-      skillCooldownRemaining: 0,
-    };
-
-    const mockHero1: HeroState = {
-      health: 30,
-      maxHealth: 30,
-      armor: 0,
-      heroSkill: {
-        name: '天威浩荡',
-        description: '所有友方生物获得+1/+1',
-        cost: 2,
-        cooldown: 2,
-        effect: { trigger: 'ON_PLAY', type: 'MODIFY_STAT', params: {} },
-      },
-      skillUsedThisTurn: true,
-      skillCooldownRemaining: 0,
-    };
-
-    // Create mock ministers
-    const mockMinisters: Minister[] = [
-      {
-        id: 'mock_lisi',
-        emperorId: 'mock_emperor',
-        name: '李斯',
-        type: 'STRATEGIST',
-        activeSkill: {
-          name: '焚书坑儒',
-          description: '随机弃掉对手一张手牌',
-          cost: 2,
-          effect: { trigger: 'ON_PLAY', type: 'RANDOM_DISCARD', params: { count: 1 } },
-        },
-        skillUsedThisTurn: false,
-        cooldown: 1,
-      },
-      {
-        id: 'mock_hanxin',
-        emperorId: 'mock_emperor',
-        name: '韩信',
-        type: 'WARRIOR',
-        activeSkill: {
-          name: '背水一战',
-          description: '一个友方生物获得+2/+2和冲锋',
-          cost: 3,
-          effect: { trigger: 'ON_PLAY', type: 'APPLY_BUFF', params: {} },
-        },
-        skillUsedThisTurn: true,
-        cooldown: 2,
-      },
-    ];
-
-    // Build full mock players
-    const mockPlayer0: Player = {
-      id: 'player0',
-      name: '秦始皇',
-      hero: mockHero0,
-      civilization: 'CHINA',
-      hand: mockCards,
-      handLimit: 10,
-      deck: [],
-      graveyard: [],
-      battlefield: mockBattlefield0,
-      activeStratagems: [],
-      costModifiers: [],
-      energyCrystal: 3,
-      maxEnergy: 4,
-      cannotDrawNextTurn: false,
-      ministerPool: mockMinisters,
-      activeMinisterIndex: 0,
-      boundCards: [],
-    };
-
-    const mockPlayer1: Player = {
-      id: 'player1',
-      name: '汉武帝',
-      hero: mockHero1,
-      civilization: 'CHINA',
-      hand: [mockCards[3]],
-      handLimit: 10,
-      deck: [],
-      graveyard: [],
-      battlefield: mockBattlefield1,
-      activeStratagems: [],
-      costModifiers: [],
-      energyCrystal: 5,
-      maxEnergy: 5,
-      cannotDrawNextTurn: false,
-      ministerPool: mockMinisters,
-      activeMinisterIndex: 0,
-      boundCards: [],
-    };
-
-    this.mockState = {
-      players: [mockPlayer0, mockPlayer1],
-      currentPlayerIndex: 0,
-      turnNumber: 4,
-      phase: 'MAIN' as GamePhase,
-      isGameOver: false,
-      winnerIndex: null,
-      winReason: null,
-    };
-  }
-
-  private createMockInstance(card: Card, ownerIndex: number, position: number): CardInstance {
-    return {
-      card,
-      instanceId: `inst_${card.id}_${position}_${ownerIndex}`,
-      ownerIndex: ownerIndex as 0 | 1,
-      currentAttack: card.attack ?? 0,
-      currentHealth: card.health ?? 0,
-      currentMaxHealth: card.health ?? 0,
-      remainingAttacks: position === 0 ? 0 : 1,
-      justPlayed: false,
-      sleepTurns: position === 0 ? 1 : 0,
-      garrisonTurns: 0,
-      usedGeneralSkills: 0,
-      buffs: [],
-      position,
-    };
   }
 }
