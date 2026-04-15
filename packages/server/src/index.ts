@@ -2,6 +2,8 @@ import express from "express";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import cors from "cors";
+import { GameManager } from "./gameManager.js";
+import { registerSocketHandlers } from "./socketHandler.js";
 
 const app = express();
 app.use(cors());
@@ -14,17 +16,13 @@ const io = new Server(httpServer, {
   },
 });
 
+const gameManager = new GameManager();
+
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
-
-  socket.on("ping", () => {
-    socket.emit("pong");
-  });
-});
+registerSocketHandlers(io, gameManager);
 
 const PORT = 3001;
 
