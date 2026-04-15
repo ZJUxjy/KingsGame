@@ -354,6 +354,10 @@ export function executeAttack(
     return error('MINION_CANNOT_ATTACK', `Attacker has no remaining attacks`);
   }
 
+  if (attacker.currentAttack <= 0) {
+    return error('MINION_CANNOT_ATTACK', 'Attacker must have positive attack to attack');
+  }
+
   const opponentIndex = 1 - state.currentPlayerIndex;
   const opponent = state.players[opponentIndex];
 
@@ -407,7 +411,7 @@ export function executeAttack(
   collectingBus.emit({ type: 'ATTACK_DECLARED', attacker, defender: target });
 
   // Calculate and apply damage
-  const damage = attacker.currentAttack;
+  const damage = Math.max(0, attacker.currentAttack);
 
   // Track target minion before damage for ON_KILL trigger
   let targetMinionBeforeDamage: CardInstance | undefined;
@@ -441,7 +445,7 @@ export function executeAttack(
   if (target.type === 'MINION') {
     const targetMinion = findMinion(state, target.instanceId);
     if (targetMinion && targetMinion.currentHealth > 0) {
-      const counterDamage = targetMinion.currentAttack;
+      const counterDamage = Math.max(0, targetMinion.currentAttack);
       const attackerRef: TargetRef = { type: 'MINION', instanceId: attackerInstanceId };
       mutator.damage(attackerRef, counterDamage);
     }
@@ -683,6 +687,128 @@ export function executeUseMinisterSkill(
     type: 'MINISTER_SKILL_USED',
     playerIndex,
     ministerId: minister.id,
+  });
+
+  return success(events);
+}
+
+// ─── executeUseGeneralSkill ────────────────────────────────────────
+
+export function executeUseGeneralSkill(
+  state: GameState,
+  eventBus: EventBus,
+  _rng: RNG,
+  playerIndex: number,
+  instanceId: string,
+  skillIndex: number,
+  target?: TargetRef,
+): EngineResult {
+  // ── Validation ──────────────────────────────────────────────────
+  if (state.phase !== 'MAIN') {
+    return error('INVALID_PHASE', `Cannot use general skill in phase ${state.phase}, expected MAIN`);
+  }
+
+  if (playerIndex !== state.currentPlayerIndex) {
+    return error('INVALID_PHASE', `Player ${playerIndex} is not the current player`);
+  }
+
+  const player = state.players[playerIndex];
+
+  // Find minion on battlefield by instanceId
+  const minion = findMinion(state, instanceId);
+  if (!minion) {
+    return error('INVALID_TARGET', `Minion ${instanceId} not found on battlefield`);
+  }
+
+  if (minion.card.type !== 'GENERAL') {
+    return error('INVALID_TARGET', `Minion ${instanceId} is not a general`);
+  }
+
+  if (!minion.card.generalSkills || minion.card.generalSkills.length === 0) {
+    return error('INVALID_TARGET', `General ${instanceId} has no general skills`);
+  }
+
+  if (skillIndex < 0 || skillIndex >= minion.card.generalSkills.length) {
+    return error('INVALID_TARGET', `Skill index ${skillIndex} is out of range`);
+  }
+
+  // Check bitmask: skill already used this turn?
+  const usedMask = 1 << skillIndex;
+  if (minion.usedGeneralSkills & usedMask) {
+    return error('SKILL_ON_COOLDOWN', `General skill at index ${skillIndex} already used this turn`);
+  }
+
+  const skill = minion.card.generalSkills[skillIndex];
+
+  if (player.energyCrystal < skill.cost) {
+    return error('INSUFFICIENT_ENERGY', `General skill costs ${skill.cost}, but player only has ${player.energyCrystal} energy`);
+  }
+
+  // Build synthetic skill card for effect resolution
+  const syntheticSkillCard: Card = {
+    id: `general_skill_${minion.card.id}_${skillIndex}`,
+    name: skill.name,
+    civilization: player.civilization,
+    type: 'GENERAL',
+    rarity: 'LEGENDARY',
+    cost: skill.cost,
+    description: skill.description,
+    keywords: [],
+    effects: [skill.effect],
+  };
+
+  // Resolve explicit minion target if required
+  const minionTargetRequirement = getExplicitMinionTargetRequirement(syntheticSkillCard);
+  const effectTarget = minionTargetRequirement
+    ? resolveExplicitMinionTarget(state, playerIndex, minionTargetRequirement, target)
+    : undefined;
+
+  if (minionTargetRequirement && !effectTarget) {
+    const targetLabel = minionTargetRequirement === 'FRIENDLY_MINION' ? 'friendly' : 'enemy';
+    return error('INVALID_TARGET', `General skill requires a ${targetLabel} minion target`);
+  }
+
+  // ── Execution ───────────────────────────────────────────────────
+  const events: GameEvent[] = [];
+  const collectingBus = createCollectingEventBus(eventBus, events);
+
+  // Mark skill as used via bitmask
+  minion.usedGeneralSkills |= usedMask;
+
+  // Spend energy if cost > 0
+  if (skill.cost > 0) {
+    player.energyCrystal -= skill.cost;
+    collectingBus.emit({
+      type: 'ENERGY_SPENT',
+      playerIndex,
+      amount: skill.cost,
+      remainingEnergy: player.energyCrystal,
+    });
+  }
+
+  // Create a synthetic CardInstance as source for effect resolution.
+  // Use the minion's actual instanceId so that findSourceOnBattlefield
+  // can locate it on the battlefield for self-targeting effects (MODIFY_STAT, etc.).
+  const effectCtx = createEffectContext(
+    state,
+    collectingBus,
+    _rng,
+    playerIndex,
+    createSyntheticSource(
+      syntheticSkillCard,
+      playerIndex,
+      minion.instanceId,
+    ),
+    effectTarget,
+  );
+
+  executeCardEffects('ON_PLAY', effectCtx);
+  resolveEffects('ON_PLAY', effectCtx);
+
+  // Emit GENERAL_SKILL_USED
+  collectingBus.emit({
+    type: 'GENERAL_SKILL_USED',
+    instance: minion,
   });
 
   return success(events);

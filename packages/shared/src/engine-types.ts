@@ -143,6 +143,7 @@ export interface CardInstance {
   card: Card;
   instanceId: string;
   ownerIndex: number;
+  baseKeywords?: Keyword[];
   currentAttack: number;
   currentHealth: number;
   currentMaxHealth: number;
@@ -201,7 +202,7 @@ export type ValidAction =
   | { type: 'ATTACK'; attackerInstanceId: string; targetInstanceId: string | 'HERO' }
   | { type: 'USE_HERO_SKILL'; targetIndex?: number }
   | { type: 'USE_MINISTER_SKILL'; targetIndex?: number }
-  | { type: 'USE_GENERAL_SKILL'; instanceId: string; targetIndex?: number }
+  | { type: 'USE_GENERAL_SKILL'; instanceId: string; skillIndex: number }
   | { type: 'SWITCH_MINISTER'; ministerIndex: number }
   | { type: 'END_TURN' };
 

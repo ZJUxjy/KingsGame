@@ -302,6 +302,34 @@ export function registerSocketHandlers(
       },
     );
 
+    // ── game:useGeneralSkill ──────────────────────────────────────
+
+    socket.on(
+      'game:useGeneralSkill',
+      (payload: { instanceId: string; skillIndex: number }) => {
+        const ctx = lookupPlayer(socket.id);
+        if (!ctx) {
+          socket.emit('game:error', { code: 'NO_GAME', message: 'Not in a game' });
+          return;
+        }
+        const { session, playerIndex } = ctx;
+
+        try {
+          const result = session.engine.useGeneralSkill(
+            playerIndex,
+            payload.instanceId,
+            payload.skillIndex,
+          );
+          handleEngineResult(socket, session, result);
+        } catch (err) {
+          socket.emit('game:error', {
+            code: 'INTERNAL',
+            message: err instanceof Error ? err.message : 'Internal error',
+          });
+        }
+      },
+    );
+
     // ── game:concede ─────────────────────────────────────────────
 
     socket.on('game:concede', () => {

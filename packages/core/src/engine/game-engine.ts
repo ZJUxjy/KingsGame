@@ -14,7 +14,7 @@ import { GAME_CONSTANTS } from '@king-card/shared';
 import { createGameState } from '../models/game.js';
 import { createStateMutator } from './state-mutator.js';
 import { executeTurnStart } from './game-loop.js';
-import { executePlayCard, executeAttack, executeEndTurn, executeUseHeroSkill, executeUseMinisterSkill, executeSwitchMinister } from './action-executor.js';
+import { executePlayCard, executeAttack, executeEndTurn, executeUseHeroSkill, executeUseMinisterSkill, executeSwitchMinister, executeUseGeneralSkill } from './action-executor.js';
 import { EventBusImpl } from './event-bus.js';
 import { DefaultRNG } from './rng.js';
 import { registerEmperorData } from './emperor-registry.js';
@@ -136,7 +136,7 @@ export class GameEngine {
     );
 
     for (const minion of player.battlefield) {
-      if (minion.remainingAttacks <= 0) continue;
+      if (minion.remainingAttacks <= 0 || minion.currentAttack <= 0) continue;
 
       const isStealthKill = minion.card.keywords.includes('STEALTH_KILL' as any);
       const canAttackHero =
@@ -200,6 +200,18 @@ export class GameEngine {
       }
     }
 
+    // 5.5. USE_GENERAL_SKILL
+    for (const minion of player.battlefield) {
+      if (minion.card.type !== 'GENERAL' || !minion.card.generalSkills) continue;
+      for (let si = 0; si < minion.card.generalSkills.length; si++) {
+        const skill = minion.card.generalSkills[si];
+        const usedMask = 1 << si;
+        if (minion.usedGeneralSkills & usedMask) continue;
+        if (skill.cost > player.energyCrystal) continue;
+        actions.push({ type: 'USE_GENERAL_SKILL', instanceId: minion.instanceId, skillIndex: si });
+      }
+    }
+
     // 6. END_TURN
     actions.push({ type: 'END_TURN' });
 
@@ -234,6 +246,10 @@ export class GameEngine {
 
   switchMinister(playerIndex: number, ministerIndex: number): EngineResult {
     return executeSwitchMinister(this.state, this.eventBus, playerIndex, ministerIndex);
+  }
+
+  useGeneralSkill(playerIndex: number, instanceId: string, skillIndex: number, target?: TargetRef): EngineResult {
+    return executeUseGeneralSkill(this.state, this.eventBus, this.rng, playerIndex, instanceId, skillIndex, target);
   }
 
   // ─── Event Subscription ────────────────────────────────────────────
