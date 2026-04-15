@@ -5,7 +5,13 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "lint": "eslint packages/",
-    "dev": "pnpm --filter ui-phaser dev"
+    "dev": "pnpm --filter @king-card/server dev",
+    "dev:client": "pnpm --filter @king-card/client dev",
+    "dev:all": "pnpm --parallel --filter @king-card/server --filter @king-card/client dev",
+    "test:server": "pnpm --filter @king-card/server test",
+    "test:client": "pnpm --filter @king-card/client test",
+    "build:server": "pnpm --filter @king-card/server build",
+    "build:client": "pnpm --filter @king-card/client build"
   },
   "devDependencies": {
     "typescript": "^5.5.0",
