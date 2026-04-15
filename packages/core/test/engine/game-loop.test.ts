@@ -312,6 +312,28 @@ describe('GameLoop', () => {
       expect(minion.currentHealth).toBe(6);
       expect(minion.currentMaxHealth).toBe(6);
     });
+
+    it('should buff a ready garrison unit exactly once when other friendly minions are present', () => {
+      const { state, bus } = setup();
+      resetInstanceCounter();
+
+      const garrisonMinion = createCardInstance(DATANG_JINGRUI, 0);
+      garrisonMinion.garrisonTurns = 1;
+
+      const otherFriendlyMinion = createCardInstance(makeMinionCard('support_minion'), 0);
+
+      state.players[0].battlefield.push(garrisonMinion, otherFriendlyMinion);
+
+      executeTurnStart(state, bus);
+
+      expect(garrisonMinion.garrisonTurns).toBe(0);
+      expect(garrisonMinion.currentAttack).toBe(6);
+      expect(garrisonMinion.currentHealth).toBe(6);
+      expect(garrisonMinion.currentMaxHealth).toBe(6);
+      expect(otherFriendlyMinion.currentAttack).toBe(1);
+      expect(otherFriendlyMinion.currentHealth).toBe(1);
+      expect(otherFriendlyMinion.currentMaxHealth).toBe(1);
+    });
   });
 
   // ── MAIN ───────────────────────────────────────────────────────
