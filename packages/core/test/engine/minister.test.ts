@@ -6,6 +6,7 @@ import {
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
 import { LISI, HANXIN, XIAOHE, CHENPING } from '../../../src/cards/definitions/china-ministers.js';
+import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
 import type { Card, GameState, Minister } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
@@ -96,7 +97,24 @@ function makeBaseGameState(): GameState {
   };
 }
 
+function makeMinionCard(id: string): Card {
+  return {
+    id,
+    name: id,
+    civilization: 'CHINA',
+    type: 'MINION',
+    rarity: 'COMMON',
+    cost: 1,
+    attack: 1,
+    health: 1,
+    description: 'Test minion',
+    keywords: [],
+    effects: [],
+  };
+}
+
 function setup() {
+  resetInstanceCounter();
   const bus = new EventBus();
   const state = makeBaseGameState();
   const rng = new SeededRNG(42);
@@ -141,6 +159,37 @@ describe('Minister Operations', () => {
         expect(ministerEvent.playerIndex).toBe(0);
         expect(ministerEvent.ministerId).toBe('china_lisi');
       }
+    }
+  });
+
+  it('should apply a targeted minister buff to the selected friendly minion', () => {
+    const { state, bus, rng } = setup();
+    state.players[0].activeMinisterIndex = 1;
+
+    const targetMinion = createCardInstance(makeMinionCard('friendly_target'), 0);
+    state.players[0].battlefield.push(targetMinion);
+
+    const result = executeUseMinisterSkill(
+      state,
+      bus,
+      rng,
+      0,
+      { type: 'MINION', instanceId: targetMinion.instanceId },
+    );
+
+    expect(result.success).toBe(true);
+    expect(state.players[0].ministerPool[1].skillUsedThisTurn).toBe(true);
+    expect(state.players[0].energyCrystal).toBe(3);
+    expect(targetMinion.currentAttack).toBe(3);
+    expect(targetMinion.currentHealth).toBe(2);
+    expect(targetMinion.currentMaxHealth).toBe(2);
+    expect(targetMinion.card.keywords).toContain('RUSH');
+
+    if (result.success) {
+      const ministerEvent = result.events.find((event) => event.type === 'MINISTER_SKILL_USED');
+      const buffEvent = result.events.find((event) => event.type === 'BUFF_APPLIED');
+      expect(ministerEvent).toBeDefined();
+      expect(buffEvent).toBeDefined();
     }
   });
 

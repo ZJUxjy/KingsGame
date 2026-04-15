@@ -34,6 +34,7 @@ export const HANXIN: Minister = {
       trigger: 'ON_PLAY',
       type: 'APPLY_BUFF',
       params: {
+        target: 'FRIENDLY_MINION',
         attackBonus: 2,
         healthBonus: 1,
         keywordsGranted: ['RUSH'],
@@ -78,6 +79,7 @@ export const CHENPING: Minister = {
       trigger: 'ON_PLAY',
       type: 'APPLY_BUFF',
       params: {
+        target: 'ENEMY_MINION',
         attackDelta: -100,
         type: 'TEMPORARY',
         remainingTurns: 1,

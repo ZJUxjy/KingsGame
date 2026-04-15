@@ -131,6 +131,44 @@ function resolveFriendlyMinionTarget(
   return minion;
 }
 
+function getExplicitMinionTargetRequirement(
+  card: Card,
+): 'FRIENDLY_MINION' | 'ENEMY_MINION' | undefined {
+  for (const effect of card.effects) {
+    if (effect.params.target === 'FRIENDLY_MINION' || effect.params.target === 'ENEMY_MINION') {
+      return effect.params.target;
+    }
+  }
+
+  return undefined;
+}
+
+function resolveExplicitMinionTarget(
+  state: GameState,
+  playerIndex: number,
+  targetRequirement: 'FRIENDLY_MINION' | 'ENEMY_MINION',
+  target?: TargetRef,
+): CardInstance | undefined {
+  if (!target || target.type !== 'MINION') {
+    return undefined;
+  }
+
+  const minion = findMinion(state, target.instanceId);
+  if (!minion) {
+    return undefined;
+  }
+
+  const expectedOwnerIndex = targetRequirement === 'FRIENDLY_MINION'
+    ? playerIndex
+    : 1 - playerIndex;
+
+  if (minion.ownerIndex !== expectedOwnerIndex) {
+    return undefined;
+  }
+
+  return minion;
+}
+
 // ─── executePlayCard ─────────────────────────────────────────────
 
 export function executePlayCard(
@@ -551,6 +589,7 @@ export function executeUseMinisterSkill(
   eventBus: EventBus,
   _rng: RNG,
   playerIndex: number,
+  target?: TargetRef,
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
   if (state.phase !== 'MAIN') {
@@ -584,6 +623,28 @@ export function executeUseMinisterSkill(
     return error('INSUFFICIENT_ENERGY', `Minister skill costs ${minister.activeSkill.cost}, but player only has ${player.energyCrystal} energy`);
   }
 
+  const syntheticSkillCard: Card = {
+    id: minister.id,
+    name: minister.name,
+    civilization: player.civilization,
+    type: 'MINION',
+    rarity: 'RARE',
+    cost: minister.activeSkill.cost,
+    description: minister.activeSkill.description,
+    keywords: [],
+    effects: [minister.activeSkill.effect],
+  };
+
+  const minionTargetRequirement = getExplicitMinionTargetRequirement(syntheticSkillCard);
+  const effectTarget = minionTargetRequirement
+    ? resolveExplicitMinionTarget(state, playerIndex, minionTargetRequirement, target)
+    : undefined;
+
+  if (minionTargetRequirement && !effectTarget) {
+    const targetLabel = minionTargetRequirement === 'FRIENDLY_MINION' ? 'friendly' : 'enemy';
+    return error('INVALID_TARGET', `Minister skill requires a ${targetLabel} minion target`);
+  }
+
   // ── Execution ───────────────────────────────────────────────────
   const events: GameEvent[] = [];
   const collectingBus = createCollectingEventBus(eventBus, events);
@@ -607,20 +668,11 @@ export function executeUseMinisterSkill(
     _rng,
     playerIndex,
     createSyntheticSource(
-      {
-        id: minister.id,
-        name: minister.name,
-        civilization: player.civilization,
-        type: 'MINION',
-        rarity: 'RARE',
-        cost: minister.activeSkill.cost,
-        description: minister.activeSkill.description,
-        keywords: [],
-        effects: [minister.activeSkill.effect],
-      },
+      syntheticSkillCard,
       playerIndex,
       `minister_${minister.id}_${Date.now()}`,
     ),
+    effectTarget,
   );
 
   executeCardEffects('ON_PLAY', effectCtx);

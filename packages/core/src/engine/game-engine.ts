@@ -228,8 +228,8 @@ export class GameEngine {
     return executeUseHeroSkill(this.state, this.eventBus, this.rng, playerIndex);
   }
 
-  useMinisterSkill(playerIndex: number): EngineResult {
-    return executeUseMinisterSkill(this.state, this.eventBus, this.rng, playerIndex);
+  useMinisterSkill(playerIndex: number, target?: TargetRef): EngineResult {
+    return executeUseMinisterSkill(this.state, this.eventBus, this.rng, playerIndex, target);
   }
 
   switchMinister(playerIndex: number, ministerIndex: number): EngineResult {
