@@ -5,6 +5,7 @@ import type {
   CardEffect,
   CardInstance,
   EffectContext,
+  TargetRef,
 } from '@king-card/shared';
 import { CHINA_ALL_CARDS } from '../definitions/index.js';
 
@@ -77,6 +78,49 @@ function resolveMinionTargets(
       return source ? [source] : [];
     }
   }
+}
+
+function resolveEffectTargets(
+  ctx: EffectContext,
+  params: Record<string, unknown>,
+): TargetRef[] {
+  const target = params.target;
+
+  if (target === 'HERO' || target === 'FRIENDLY_HERO') {
+    return [{ type: 'HERO', playerIndex: ctx.playerIndex }];
+  }
+
+  if (target === 'ENEMY_HERO') {
+    return [{ type: 'HERO', playerIndex: getOpponentIndex(ctx.playerIndex) }];
+  }
+
+  if (target === 'FRIENDLY_MINION' || target === 'ENEMY_MINION') {
+    if (!ctx.target) {
+      return [];
+    }
+
+    const expectedOwner = target === 'FRIENDLY_MINION'
+      ? ctx.playerIndex
+      : getOpponentIndex(ctx.playerIndex);
+
+    if (ctx.target.ownerIndex === expectedOwner) {
+      return [{ type: 'MINION', instanceId: ctx.target.instanceId }];
+    }
+
+    return [];
+  }
+
+  const minionTargets = resolveMinionTargets(ctx, params);
+  return minionTargets.map((minion) => ({ type: 'MINION', instanceId: minion.instanceId }));
+}
+
+function resolveMinionEffectTargets(
+  ctx: EffectContext,
+  params: Record<string, unknown>,
+): Array<Extract<TargetRef, { type: 'MINION' }>> {
+  return resolveEffectTargets(ctx, params).filter(
+    (target): target is Extract<TargetRef, { type: 'MINION' }> => target.type === 'MINION',
+  );
 }
 
 function createBuff(effect: CardEffect, source: CardInstance): Buff {
@@ -157,11 +201,20 @@ function applyModifyStatEffect(effect: CardEffect, ctx: EffectContext): void {
 }
 
 function applyBuffEffect(effect: CardEffect, ctx: EffectContext): void {
-  const targets = resolveMinionTargets(ctx, effect.params);
+  const targets = resolveMinionEffectTargets(ctx, effect.params);
   const buff = createBuff(effect, ctx.source);
 
   for (const target of targets) {
-    ctx.mutator.applyBuff({ type: 'MINION', instanceId: target.instanceId }, buff);
+    ctx.mutator.applyBuff(target, buff);
+  }
+}
+
+function applyDamageEffect(effect: CardEffect, ctx: EffectContext): void {
+  const amount = getNumericParam(effect.params, 'amount');
+  const targets = resolveEffectTargets(ctx, effect.params);
+
+  for (const target of targets) {
+    ctx.mutator.damage(target, amount);
   }
 }
 
@@ -234,6 +287,9 @@ export function executeCardEffects(trigger: CardEffect['trigger'], ctx: EffectCo
 
   for (const effect of effects) {
     switch (effect.type) {
+      case 'DAMAGE':
+        applyDamageEffect(effect, ctx);
+        break;
       case 'DRAW':
         ctx.mutator.drawCards(ctx.playerIndex, getNumericParam(effect.params, 'count', 1));
         break;
