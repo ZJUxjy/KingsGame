@@ -5,12 +5,16 @@ import type { SerializedGameState, ValidAction } from '../stores/gameStore.js';
 import type { WinReason } from '@king-card/shared';
 
 export function useGameSocket(): void {
+  const connected = useGameStore((s) => s.connected);
+
   useEffect(() => {
-    if (!socketService.isConnected()) {
+    let socket;
+
+    try {
+      socket = socketService.getSocket();
+    } catch {
       return;
     }
-
-    const socket = socketService.getSocket();
 
     const onConnect = () => {
       useGameStore.getState()._setConnected(true);
@@ -69,5 +73,5 @@ export function useGameSocket(): void {
       socket.off('game:over', onGameOver);
       socket.off('game:error', onGameError);
     };
-  }, []);
+  }, [connected]);
 }

@@ -184,7 +184,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // Internal
   _setConnected: (v: boolean) => {
-    set({ connected: v });
+    set({
+      connected: v,
+      validActions: v ? get().validActions : [],
+      selectedAttacker: v ? get().selectedAttacker : null,
+    });
   },
 
   _setGameId: (v: string | null) => {
@@ -196,7 +200,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   _setGameState: (v: SerializedGameState) => {
-    set({ gameState: v });
+    const playerIndex = get().playerIndex;
+    const isOpponentTurn =
+      playerIndex !== null && v.currentPlayerIndex !== playerIndex;
+
+    set({
+      gameState: v,
+      validActions: isOpponentTurn ? [] : get().validActions,
+      selectedAttacker: isOpponentTurn ? null : get().selectedAttacker,
+    });
   },
 
   _setValidActions: (v: ValidAction[]) => {
@@ -217,6 +229,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameState: state.gameState
         ? { ...state.gameState, isGameOver: true, winnerIndex, winReason: reason }
         : null,
+      validActions: [],
+      selectedAttacker: null,
       uiPhase: 'game-over',
     }));
   },
