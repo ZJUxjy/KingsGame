@@ -3,6 +3,7 @@ import type { TargetRef, WinReason, ValidAction } from '@king-card/shared';
 import type { GameSession } from './gameManager.js';
 import { GameManager } from './gameManager.js';
 import { serializeForPlayer } from './serialization.js';
+import { runAiTurn, AI_PLAYER_INDEX } from './aiPlayer.js';
 
 interface PlayerMapping {
   gameId: string;
@@ -210,6 +211,20 @@ export function registerSocketHandlers(
       try {
         const result = session.engine.endTurn();
         handleEngineResult(socket, session, result);
+
+        // If PvE and it's now AI's turn, run AI turn asynchronously
+        if (
+          result.success &&
+          session.mode === 'pve' &&
+          session.engine.getGameState().currentPlayerIndex === AI_PLAYER_INDEX &&
+          !session.engine.getGameState().isGameOver
+        ) {
+          runAiTurn(session.engine, AI_PLAYER_INDEX).then(() => {
+            if (!session.engine.getGameState().isGameOver) {
+              broadcastGameState(session.id);
+            }
+          });
+        }
       } catch (err) {
         socket.emit('game:error', {
           code: 'INTERNAL',
