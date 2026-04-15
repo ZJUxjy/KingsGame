@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { HeroPanel } from './HeroPanel.js';
 import { EnergyBar } from './EnergyBar.js';
@@ -6,6 +6,8 @@ import { MinisterPanel } from './MinisterPanel.js';
 import { TurnIndicator } from './TurnIndicator.js';
 import { Battlefield } from './Battlefield.js';
 import { HandZone } from './HandZone.js';
+import GameOverlay from './GameOverlay.js';
+import Toast from './Toast.js';
 
 export default function GameBoard() {
   // Store state
@@ -83,6 +85,17 @@ export default function GameBoard() {
       canAttackHero: attackHero,
     };
   }, [validActions, selectedAttacker]);
+
+  // Turn overlay state
+  const [overlayText, setOverlayText] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!gameState) return;
+    const text = isMyTurn() ? '你的回合' : '对方回合';
+    setOverlayText(text);
+    const timer = setTimeout(() => setOverlayText(null), 1500);
+    return () => clearTimeout(timer);
+  }, [gameState?.turnNumber]); // trigger on turn change
 
   // --- Handlers ---
 
@@ -164,6 +177,7 @@ export default function GameBoard() {
   const ministers = (me.ministerPool as any[]) ?? [];
 
   return (
+    <div className="min-w-[1024px]">
     <div className="h-screen flex flex-col max-w-[1280px] mx-auto bg-gradient-to-b from-gray-900 to-gray-950 overflow-hidden">
       {/* Enemy hero bar */}
       <div className="flex items-center justify-between px-4 h-[100px] shrink-0">
@@ -251,6 +265,13 @@ export default function GameBoard() {
           validPlayIndices={validPlayIndices}
         />
       </div>
+
+      {/* Turn transition overlay */}
+      <GameOverlay text={overlayText ?? ''} visible={overlayText !== null} />
+
+      {/* Error toast */}
+      <Toast />
+    </div>
     </div>
   );
 }
