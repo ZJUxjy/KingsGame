@@ -2,6 +2,7 @@ import { useGameStore } from './stores/gameStore.js';
 import { useGameSocket } from './hooks/useGameSocket.js';
 import Lobby from './components/lobby/Lobby.js';
 import HeroSelect from './components/lobby/HeroSelect.js';
+import PvpWaiting from './components/lobby/PvpWaiting.js';
 import GameBoard from './components/board/GameBoard.js';
 
 function GameOverScreen() {
@@ -39,6 +40,8 @@ export default function App() {
       return <Lobby />;
     case 'hero-select':
       return <HeroSelect />;
+    case 'pvp-waiting':
+      return <PvpWaiting />;
     case 'playing':
       return <GameBoard />;
     case 'game-over':

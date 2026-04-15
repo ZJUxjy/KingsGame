@@ -1,5 +1,7 @@
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
+import { useAnimations } from '../../hooks/useAnimations.js';
+import { audioService } from '../../services/audioService.js';
 import { HeroPanel } from './HeroPanel.js';
 import { EnergyBar } from './EnergyBar.js';
 import { MinisterPanel } from './MinisterPanel.js';
@@ -177,6 +179,20 @@ export default function GameBoard() {
   const [hoveredTarget, setHoveredTarget] = useState<HoveredTarget>(null);
   const [anchorCenters, setAnchorCenters] = useState<Record<string, ScreenPoint>>({});
 
+  // Animation state derived from game state diffs
+  const { animationMap, pendingRemovals } = useAnimations(gameState);
+
+  // Audio triggers based on animation events
+  useEffect(() => {
+    for (const anim of animationMap.values()) {
+      if (anim === 'animate-card-play') audioService.play('card-play');
+      else if (anim === 'animate-attack') audioService.play('attack');
+      else if (anim === 'animate-damage') audioService.play('damage');
+      else if (anim === 'animate-heal') audioService.play('heal');
+      else if (anim === 'animate-death') audioService.play('damage');
+    }
+  }, [animationMap]);
+
   const measureAnchors = useCallback(() => {
     const nextCenters: Record<string, ScreenPoint> = {};
     const elements = document.querySelectorAll<HTMLElement>('[data-anchor-id]');
@@ -201,6 +217,7 @@ export default function GameBoard() {
     if (!gameState) return;
     const text = isMyTurn() ? '你的回合' : '对方回合';
     setOverlayText(text);
+    audioService.play('turn-start');
     const timer = setTimeout(() => setOverlayText(null), 1500);
     return () => clearTimeout(timer);
   }, [gameState?.turnNumber]); // trigger on turn change
@@ -381,6 +398,12 @@ export default function GameBoard() {
   const { me, opponent } = gameState;
   const myTurn = isMyTurn();
 
+  // Merge dying minions back into battlefield for death animation
+  const myDying = pendingRemovals.filter((m: any) => m.ownerIndex === playerIndex);
+  const oppDying = pendingRemovals.filter((m: any) => m.ownerIndex !== playerIndex);
+  const myBattlefield = [...(me.battlefield as any[]), ...myDying];
+  const oppBattlefield = [...(opponent.battlefield as any[]), ...oppDying];
+
   // Extract hero data with defaults
   const myHero = me.hero as any;
   const oppHero = opponent.hero as any;
@@ -443,12 +466,13 @@ export default function GameBoard() {
       {/* Enemy battlefield */}
       <div className="h-[180px] shrink-0">
         <Battlefield
-          minions={opponent.battlefield as any[]}
+          minions={oppBattlefield}
           isOpponent
           onMinionClick={handleMinionClick}
           selectedAttackerId={selectedAttacker}
           validTargetIds={activeTargetIds}
           hoveredTargetId={hoveredTarget?.type === 'MINION' ? hoveredTarget.instanceId : null}
+          animationMap={animationMap}
           onTargetHover={(instanceId) => {
             setHoveredTarget(instanceId ? { type: 'MINION', instanceId } : null);
           }}
@@ -473,12 +497,13 @@ export default function GameBoard() {
       {/* Player battlefield */}
       <div className="h-[180px] shrink-0">
         <Battlefield
-          minions={me.battlefield as any[]}
+          minions={myBattlefield}
           onMinionClick={handleMinionClick}
           actionableIds={validAttackerIds}
           selectedAttackerId={selectedAttacker}
           validTargetIds={activeTargetIds}
           hoveredTargetId={hoveredTarget?.type === 'MINION' ? hoveredTarget.instanceId : null}
+          animationMap={animationMap}
           onTargetHover={(instanceId) => {
             setHoveredTarget(instanceId ? { type: 'MINION', instanceId } : null);
           }}

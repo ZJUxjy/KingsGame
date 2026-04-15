@@ -5,7 +5,7 @@ import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
 import { registerEmperorData, clearEmperorRegistry } from '../../../src/engine/emperor-registry.js';
 import { QIN_SHIHUANG, HAN_WUDI } from '../../../src/cards/definitions/china-emperors.js';
-import { LISI, HANXIN, XIAOHE, CHENPING } from '../../../src/cards/definitions/china-ministers.js';
+import { QIN_MINISTERS } from '../../../src/cards/definitions/china-ministers.js';
 import { HUOQUBING, WEIQING } from '../../../src/cards/definitions/china-generals.js';
 import { WUGUZHIHUO, FENSHU_KENGRU } from '../../../src/cards/definitions/china-sorceries.js';
 import type { Card, GameState, EmperorData, Minister } from '@king-card/shared';
@@ -119,7 +119,7 @@ function setup() {
   // Register EmperorData for QIN_SHIHUANG
   const qinData: EmperorData = {
     emperorCard: QIN_SHIHUANG,
-    ministers: [LISI, HANXIN, XIAOHE, CHENPING].map((m) => ({
+    ministers: QIN_MINISTERS.map((m) => ({
       ...m,
       skillUsedThisTurn: false,
       cooldown: 0,
@@ -163,7 +163,7 @@ describe('Emperor Switch', () => {
 
     expect(result.success).toBe(true);
     const player = state.players[0];
-    expect(player.ministerPool).toHaveLength(4);
+    expect(player.ministerPool).toHaveLength(QIN_MINISTERS.length);
     expect(player.ministerPool[0].name).toBe('李斯');
     expect(player.activeMinisterIndex).toBe(0);
   });

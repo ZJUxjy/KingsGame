@@ -7,7 +7,7 @@ import type {
   EffectContext,
   TargetRef,
 } from '@king-card/shared';
-import { CHINA_ALL_CARDS } from '../definitions/index.js';
+import { ALL_CARDS } from '../definitions/index.js';
 
 let buffCounter = 0;
 
@@ -16,7 +16,7 @@ export function resetBuffCounter(): void {
 }
 
 function findCardById(cardId: string): Card | undefined {
-  return CHINA_ALL_CARDS.find((card) => card.id === cardId);
+  return ALL_CARDS.find((card) => card.id === cardId);
 }
 
 function getOpponentIndex(playerIndex: number): 0 | 1 {

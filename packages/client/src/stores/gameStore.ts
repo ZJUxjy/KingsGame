@@ -55,7 +55,7 @@ export interface SerializedGameState {
   };
 }
 
-export type UiPhase = 'lobby' | 'hero-select' | 'playing' | 'game-over';
+export type UiPhase = 'lobby' | 'hero-select' | 'pvp-waiting' | 'playing' | 'game-over';
 
 export type PendingSkillAction =
   | { type: 'HERO' }
@@ -67,6 +67,7 @@ interface GameStore {
   connected: boolean;
   gameId: string | null;
   playerIndex: 0 | 1 | null;
+  gameMode: 'pve' | 'pvp';
 
   // Game state
   gameState: SerializedGameState | null;
@@ -84,6 +85,7 @@ interface GameStore {
   // Actions (emit to server)
   connect: (url: string) => void;
   joinGame: (emperorIndex: number) => void;
+  joinPvp: (emperorIndex: number) => void;
   playCard: (handIndex: number, boardPosition?: number) => void;
   attack: (attackerInstanceId: string, target: TargetRef) => void;
   endTurn: () => void;
@@ -107,6 +109,7 @@ interface GameStore {
   _setValidActions: (v: ValidAction[]) => void;
   _setError: (code: string, message: string) => void;
   _handleGameOver: (winnerIndex: number, reason: WinReason) => void;
+  _setGameMode: (mode: 'pve' | 'pvp') => void;
   _reset: () => void;
 }
 
@@ -115,6 +118,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   connected: false,
   gameId: null,
   playerIndex: null,
+  gameMode: 'pve' as const,
 
   // Game state
   gameState: null,
@@ -140,6 +144,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   joinGame: (emperorIndex: number) => {
     socketService.getSocket().emit('game:join', { emperorIndex });
+  },
+
+  joinPvp: (emperorIndex: number) => {
+    socketService.getSocket().emit('game:pvpJoin', { emperorIndex });
   },
 
   playCard: (handIndex: number, boardPosition?: number) => {
@@ -257,6 +265,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       connected: false,
       gameId: null,
       playerIndex: null,
+      gameMode: 'pve',
       gameState: null,
       validActions: [],
       uiPhase: 'lobby',
@@ -265,5 +274,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       error: null,
     });
     socketService.disconnect();
+  },
+
+  _setGameMode: (mode: 'pve' | 'pvp') => {
+    set({ gameMode: mode });
   },
 }));

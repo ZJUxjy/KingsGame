@@ -33,6 +33,7 @@ interface CardComponentProps {
   selected?: boolean;
   actionable?: boolean;
   validTarget?: boolean;
+  animationClass?: string;
   onClick?: () => void;
   onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
   onPointerEnter?: () => void;
@@ -47,6 +48,7 @@ export function CardComponent({
   selected,
   actionable,
   validTarget,
+  animationClass,
   onClick,
   onPointerDown,
   onPointerEnter,
@@ -78,6 +80,7 @@ export function CardComponent({
         ${selected ? 'ring-2 ring-yellow-400 scale-105' : ''}
         ${actionable ? 'shadow-[0_0_22px_rgba(74,222,128,0.55)] ring-1 ring-emerald-400/70' : ''}
         ${validTarget ? 'ring-2 ring-red-400 shadow-[0_0_26px_rgba(248,113,113,0.65)] animate-pulse' : ''}
+        ${animationClass ?? ''}
         ${className ?? ''}`}
       onClick={onClick}
       onPointerDown={onPointerDown}

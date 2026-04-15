@@ -1,0 +1,137 @@
+import { describe, it, expect } from 'vitest';
+import type { Card, Minister, EmperorData } from '@king-card/shared';
+import {
+  USA_MINIONS,
+  USA_STRATAGEMS,
+  USA_SORCERIES,
+  USA_EMPERORS,
+  USA_MINISTERS,
+  USA_GENERALS,
+  USA_ALL_CARDS,
+  EMPEROR_LINCOLN,
+  USA_EMPEROR_DATA_LIST,
+} from '../../../src/cards/definitions/index.js';
+
+describe('USA Card Definitions', () => {
+  // ─── Total count: 1 emperor + 3 ministers + 2 generals + 6 minions + 4 stratagems + 2 sorceries = 18 ───
+
+  it('should have exactly 18 entities (15 Card + 3 Minister)', () => {
+    const count = USA_MINIONS.length
+      + USA_STRATAGEMS.length
+      + USA_SORCERIES.length
+      + USA_EMPERORS.length
+      + USA_GENERALS.length
+      + USA_MINISTERS.length;
+    expect(count).toBe(18);
+  });
+
+  it('USA_ALL_CARDS should contain all 15 Card objects', () => {
+    expect(USA_ALL_CARDS).toHaveLength(15);
+  });
+
+  // ─── Unique IDs ───────────────────────────────────────────────────
+
+  it('all cards should have unique ids', () => {
+    const allIds: string[] = [
+      ...USA_ALL_CARDS.map((c) => c.id),
+      ...USA_MINISTERS.map((m) => m.id),
+    ];
+    const uniqueIds = new Set(allIds);
+    expect(uniqueIds.size).toBe(allIds.length);
+  });
+
+  // ─── Civilization ─────────────────────────────────────────────────
+
+  it('all Card objects should have civilization USA', () => {
+    for (const card of USA_ALL_CARDS) {
+      expect(card.civilization).toBe('USA');
+    }
+  });
+
+  // ─── ID format ────────────────────────────────────────────────────
+
+  it('all Card ids should follow usa_ prefix format', () => {
+    for (const card of USA_ALL_CARDS) {
+      expect(card.id).toMatch(/^usa_/);
+    }
+  });
+
+  it('all Minister ids should follow usa_ prefix format', () => {
+    for (const minister of USA_MINISTERS) {
+      expect(minister.id).toMatch(/^usa_/);
+    }
+  });
+
+  // ─── Card type counts ─────────────────────────────────────────────
+
+  describe('Card type counts', () => {
+    it('should have 1 emperor', () => { expect(USA_EMPERORS).toHaveLength(1); });
+    it('should have 2 generals', () => { expect(USA_GENERALS).toHaveLength(2); });
+    it('should have 6 minions', () => { expect(USA_MINIONS).toHaveLength(6); });
+    it('should have 4 stratagems', () => { expect(USA_STRATAGEMS).toHaveLength(4); });
+    it('should have 2 sorceries', () => { expect(USA_SORCERIES).toHaveLength(2); });
+  });
+
+  // ─── Ministers ─────────────────────────────────────────────────────
+
+  describe('Ministers', () => {
+    it('should have 3 ministers', () => { expect(USA_MINISTERS).toHaveLength(3); });
+
+    it('all ministers should have an activeSkill', () => {
+      for (const m of USA_MINISTERS) {
+        expect(m.activeSkill).toBeDefined();
+        expect(m.activeSkill.name).toBeTruthy();
+        expect(m.activeSkill.cost).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('all ministers should have cooldown >= 0', () => {
+      for (const m of USA_MINISTERS) {
+        expect(m.cooldown).toBeGreaterThanOrEqual(0);
+      }
+    });
+  });
+
+  // ─── EmperorData ──────────────────────────────────────────────────
+
+  describe('EmperorData', () => {
+    it('should have 1 emperor data entry', () => {
+      expect(USA_EMPEROR_DATA_LIST).toHaveLength(1);
+    });
+
+    for (const ed of USA_EMPEROR_DATA_LIST) {
+      describe(`EmperorData for ${ed.emperorCard.name}`, () => {
+        it('should have at least 3 ministers', () => {
+          expect(ed.ministers.length).toBeGreaterThanOrEqual(3);
+        });
+
+        it('should have 2 bound generals', () => {
+          expect(ed.boundGenerals).toHaveLength(2);
+        });
+
+        it('should have 2 bound sorceries', () => {
+          expect(ed.boundSorceries).toHaveLength(2);
+        });
+
+        it('ministers should reference valid IDs', () => {
+          for (const m of ed.ministers) {
+            expect(m.id).toMatch(/^usa_/);
+            expect(m.activeSkill).toBeDefined();
+          }
+        });
+
+        it('bound generals should be GENERAL type', () => {
+          for (const g of ed.boundGenerals) {
+            expect(g.type).toBe('GENERAL');
+          }
+        });
+
+        it('bound sorceries should be SORCERY type', () => {
+          for (const s of ed.boundSorceries) {
+            expect(s.type).toBe('SORCERY');
+          }
+        });
+      });
+    }
+  });
+});

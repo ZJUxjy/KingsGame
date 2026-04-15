@@ -6,6 +6,13 @@ export default function Lobby() {
 
   const handlePvE = () => {
     connect('http://localhost:3001');
+    useGameStore.getState()._setGameMode('pve');
+    setUiPhase('hero-select');
+  };
+
+  const handlePvP = () => {
+    connect('http://localhost:3001');
+    useGameStore.getState()._setGameMode('pvp');
     setUiPhase('hero-select');
   };
 
@@ -29,19 +36,19 @@ export default function Lobby() {
           <span className="text-sm text-gray-400">PvE</span>
         </button>
 
-        {/* PvP Mode Card (disabled) */}
+        {/* PvP Mode Card */}
         <button
-          disabled
-          title="即将开放"
-          className="w-72 h-48 rounded-2xl bg-gray-800 border-2 border-gray-600
+          onClick={handlePvP}
+          className="group w-72 h-48 rounded-2xl bg-gray-800 border-2 border-blue-600
                      flex flex-col items-center justify-center gap-4
-                     opacity-50 cursor-not-allowed"
+                     hover:bg-gray-700 hover:border-blue-400 hover:scale-105
+                     transition-all duration-200 cursor-pointer"
         >
           <span className="text-3xl">🤝</span>
-          <span className="text-2xl font-bold text-gray-400">
+          <span className="text-2xl font-bold text-blue-400">
             双人模式
           </span>
-          <span className="text-sm text-gray-500">即将开放</span>
+          <span className="text-sm text-gray-400">PvP</span>
         </button>
       </div>
     </div>

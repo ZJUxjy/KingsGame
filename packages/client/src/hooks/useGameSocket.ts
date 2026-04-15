@@ -56,6 +56,10 @@ export function useGameSocket(): void {
       useGameStore.getState()._setError(payload.code, payload.message);
     };
 
+    const onPvpWaiting = (_payload: { gameId: string }) => {
+      useGameStore.getState().setUiPhase('pvp-waiting');
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('game:joined', onGameJoined);
@@ -63,6 +67,7 @@ export function useGameSocket(): void {
     socket.on('game:validActions', onValidActions);
     socket.on('game:over', onGameOver);
     socket.on('game:error', onGameError);
+    socket.on('game:pvpWaiting', onPvpWaiting);
 
     return () => {
       socket.off('connect', onConnect);
@@ -72,6 +77,7 @@ export function useGameSocket(): void {
       socket.off('game:validActions', onValidActions);
       socket.off('game:over', onGameOver);
       socket.off('game:error', onGameError);
+      socket.off('game:pvpWaiting', onPvpWaiting);
     };
   }, [connected]);
 }

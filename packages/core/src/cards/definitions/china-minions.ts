@@ -11,9 +11,15 @@ export const BINGMAYONG: Card = {
   cost: 1,
   attack: 1,
   health: 1,
-  description: '秦始皇陵墓中的陶土战士。',
-  keywords: [],
-  effects: [],
+  description: '亡语：抽一张牌。',
+  keywords: ['DEATHRATTLE'],
+  effects: [
+    {
+      trigger: 'ON_DEATH',
+      type: 'DRAW',
+      params: { count: 1 },
+    },
+  ],
 };
 
 export const QINJUN_BUBING: Card = {

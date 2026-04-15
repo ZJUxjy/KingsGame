@@ -9,11 +9,17 @@ const EMPERORS = [
 
 export default function HeroSelect() {
   const joinGame = useGameStore((s) => s.joinGame);
+  const joinPvp = useGameStore((s) => s.joinPvp);
+  const gameMode = useGameStore((s) => s.gameMode);
   const [selected, setSelected] = useState<number | null>(null);
 
   const handleStart = () => {
     if (selected !== null) {
-      joinGame(selected);
+      if (gameMode === 'pvp') {
+        joinPvp(selected);
+      } else {
+        joinGame(selected);
+      }
     }
   };
 
@@ -53,7 +59,7 @@ export default function HeroSelect() {
                         : 'bg-gray-700 text-gray-500 cursor-not-allowed'
                     }`}
       >
-        开始对战
+        {gameMode === 'pvp' ? '匹配对手' : '开始对战'}
       </button>
     </div>
   );

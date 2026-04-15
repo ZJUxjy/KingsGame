@@ -200,4 +200,44 @@ describe('useGameSocket', () => {
     expect(useGameStore.getState().validActions).toEqual([]);
     expect(useGameStore.getState().selectedAttacker).toBeNull();
   });
+
+  it('sets uiPhase to pvp-waiting when game:pvpWaiting is received', () => {
+    renderHook(() => useGameSocket());
+
+    act(() => {
+      useGameStore.getState().connect('ws://test.example');
+    });
+
+    expect(mockSocket.on).toHaveBeenCalledWith('game:pvpWaiting', expect.any(Function));
+
+    act(() => {
+      getListener('game:pvpWaiting')({ gameId: 'pvp-room-1' });
+    });
+
+    expect(useGameStore.getState().uiPhase).toBe('pvp-waiting');
+  });
+
+  it('transitions from pvp-waiting to playing when game:joined is received', () => {
+    renderHook(() => useGameSocket());
+
+    act(() => {
+      useGameStore.getState().connect('ws://test.example');
+    });
+
+    act(() => {
+      getListener('game:pvpWaiting')({ gameId: 'pvp-room-1' });
+    });
+
+    expect(useGameStore.getState().uiPhase).toBe('pvp-waiting');
+
+    act(() => {
+      getListener('game:joined')({ gameId: 'pvp-room-1', playerIndex: 1 });
+    });
+
+    expect(useGameStore.getState()).toMatchObject({
+      gameId: 'pvp-room-1',
+      playerIndex: 1,
+      uiPhase: 'playing',
+    });
+  });
 });

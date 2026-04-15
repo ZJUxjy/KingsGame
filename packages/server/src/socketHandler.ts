@@ -1,5 +1,6 @@
 import type { Server, Socket } from 'socket.io';
 import type { TargetRef, WinReason, ValidAction } from '@king-card/shared';
+import type { GameEngine } from '@king-card/core';
 import type { GameSession } from './gameManager.js';
 import { GameManager } from './gameManager.js';
 import { serializeForPlayer } from './serialization.js';
@@ -36,7 +37,7 @@ export function registerSocketHandlers(
 
   function broadcastGameState(gameId: string): void {
     const session = gameManager.getGame(gameId);
-    if (!session) return;
+    if (!session || !session.engine) return;
 
     const state = session.engine.getGameState();
 
@@ -94,6 +95,7 @@ export function registerSocketHandlers(
     session: GameSession,
     playerIndex: 0 | 1,
   ): boolean {
+    if (!session.engine) return false;
     const state = session.engine.getGameState();
     if (state.currentPlayerIndex === playerIndex) {
       return true;
@@ -106,11 +108,22 @@ export function registerSocketHandlers(
     return false;
   }
 
+  /** Returns the engine or emits an error and returns null. */
+  function requireEngine(
+    socket: Socket,
+    session: GameSession,
+  ): GameEngine | null {
+    if (session.engine) return session.engine;
+    socket.emit('game:error', { code: 'NO_ENGINE', message: 'Game not started' });
+    return null;
+  }
+
   // ─── Helper: listen for GAME_OVER on an engine ────────────────
 
   function subscribeGameOver(
     session: GameSession,
   ): void {
+    if (!session.engine) return;
     session.engine.onEvent('GAME_OVER', (event) => {
       const gameOverEvent = event as {
         type: 'GAME_OVER';
@@ -119,6 +132,7 @@ export function registerSocketHandlers(
       };
 
       session.state = 'finished';
+      gameManager.destroyGame(session.id);
 
       // Notify both players
       for (let p = 0; p < 2; p++) {
@@ -168,6 +182,76 @@ export function registerSocketHandlers(
       }
     });
 
+    // ── game:pvpJoin ──────────────────────────────────────────────
+
+    socket.on('game:pvpJoin', (payload: { emperorIndex: number }) => {
+      try {
+        const { emperorIndex } = payload;
+
+        // Try to find a waiting PvP game
+        const waitingSession = gameManager.findWaitingPvpGame();
+
+        if (waitingSession) {
+          // Join as player 1
+          waitingSession.playerEmperorIndices[1] = emperorIndex;
+          gameManager.initializePvpEngine(waitingSession);
+
+          waitingSession.state = 'playing';
+          gameManager.setPlayerSocket(waitingSession.id, 1, socket.id);
+          socketMapping.set(socket.id, { gameId: waitingSession.id, playerIndex: 1 });
+
+          socket.join(waitingSession.id);
+          subscribeGameOver(waitingSession);
+
+          socket.emit('game:joined', {
+            gameId: waitingSession.id,
+            playerIndex: 1,
+          });
+
+          // Notify player 0 that the game has started
+          const player0SocketId = waitingSession.players[0];
+          if (player0SocketId) {
+            io.to(player0SocketId).emit('game:joined', {
+              gameId: waitingSession.id,
+              playerIndex: 0,
+            });
+          }
+
+          broadcastGameState(waitingSession.id);
+        } else {
+          // Create a new PvP room and wait
+          const session = gameManager.createPvpWaiting(emperorIndex);
+          gameManager.setPlayerSocket(session.id, 0, socket.id);
+          socketMapping.set(socket.id, { gameId: session.id, playerIndex: 0 });
+
+          socket.join(session.id);
+
+          socket.emit('game:pvpWaiting', {
+            gameId: session.id,
+          });
+        }
+      } catch (err) {
+        socket.emit('game:error', {
+          code: 'PVP_JOIN_FAILED',
+          message: err instanceof Error ? err.message : 'Failed to join PvP',
+        });
+      }
+    });
+
+    // ── game:pvpCancel ────────────────────────────────────────────
+
+    socket.on('game:pvpCancel', () => {
+      const mapping = socketMapping.get(socket.id);
+      if (!mapping) return;
+      const session = gameManager.getGame(mapping.gameId);
+      if (session && session.mode === 'pvp' && session.state === 'waiting') {
+        session.state = 'finished';
+        gameManager.destroyGame(mapping.gameId);
+        socketMapping.delete(socket.id);
+        socket.leave(mapping.gameId);
+      }
+    });
+
     // ── game:playCard ────────────────────────────────────────────
 
     socket.on(
@@ -183,9 +267,11 @@ export function registerSocketHandlers(
         if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
           return;
         }
+        const engine = requireEngine(socket, session);
+        if (!engine) return;
 
         try {
-          const result = session.engine.playCard(
+          const result = engine.playCard(
             playerIndex,
             payload.handIndex,
             payload.boardPosition,
@@ -218,6 +304,8 @@ export function registerSocketHandlers(
         if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
           return;
         }
+        const engine = requireEngine(socket, session);
+        if (!engine) return;
 
         try {
           const target: TargetRef =
@@ -225,7 +313,7 @@ export function registerSocketHandlers(
               ? { type: 'HERO', playerIndex: 1 - playerIndex }
               : { type: 'MINION', instanceId: payload.targetInstanceId };
 
-          const result = session.engine.attack(
+          const result = engine.attack(
             payload.attackerInstanceId,
             target,
           );
@@ -252,20 +340,22 @@ export function registerSocketHandlers(
       if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
         return;
       }
+      const engine = requireEngine(socket, session);
+      if (!engine) return;
 
       try {
-        const result = session.engine.endTurn();
+        const result = engine.endTurn();
         handleEngineResult(socket, session, result);
 
         // If PvE and it's now AI's turn, run AI turn asynchronously
         if (
           result.success &&
           session.mode === 'pve' &&
-          session.engine.getGameState().currentPlayerIndex === AI_PLAYER_INDEX &&
-          !session.engine.getGameState().isGameOver
+          engine.getGameState().currentPlayerIndex === AI_PLAYER_INDEX &&
+          !engine.getGameState().isGameOver
         ) {
-          runAiTurn(session.engine, AI_PLAYER_INDEX).then(() => {
-            if (!session.engine.getGameState().isGameOver) {
+          runAiTurn(engine, AI_PLAYER_INDEX).then(() => {
+            if (!engine.getGameState().isGameOver) {
               broadcastGameState(session.id);
             }
           });
@@ -291,9 +381,11 @@ export function registerSocketHandlers(
       if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
         return;
       }
+      const engine = requireEngine(socket, session);
+      if (!engine) return;
 
       try {
-        const result = session.engine.useHeroSkill(playerIndex, toTargetRef(payload?.target));
+        const result = engine.useHeroSkill(playerIndex, toTargetRef(payload?.target));
         handleEngineResult(socket, session, result);
       } catch (err) {
         socket.emit('game:error', {
@@ -316,9 +408,11 @@ export function registerSocketHandlers(
       if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
         return;
       }
+      const engine = requireEngine(socket, session);
+      if (!engine) return;
 
       try {
-        const result = session.engine.useMinisterSkill(playerIndex, toTargetRef(payload?.target));
+        const result = engine.useMinisterSkill(playerIndex, toTargetRef(payload?.target));
         handleEngineResult(socket, session, result);
       } catch (err) {
         socket.emit('game:error', {
@@ -343,9 +437,11 @@ export function registerSocketHandlers(
         if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
           return;
         }
+        const engine = requireEngine(socket, session);
+        if (!engine) return;
 
         try {
-          const result = session.engine.switchMinister(
+          const result = engine.switchMinister(
             playerIndex,
             payload.ministerIndex,
           );
@@ -374,9 +470,11 @@ export function registerSocketHandlers(
         if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
           return;
         }
+        const engine = requireEngine(socket, session);
+        if (!engine) return;
 
         try {
-          const result = session.engine.useGeneralSkill(
+          const result = engine.useGeneralSkill(
             playerIndex,
             payload.instanceId,
             payload.skillIndex,
@@ -415,6 +513,8 @@ export function registerSocketHandlers(
           });
         }
       }
+
+      gameManager.destroyGame(session.id);
     });
 
     // ── disconnect ───────────────────────────────────────────────
@@ -424,7 +524,6 @@ export function registerSocketHandlers(
       if (mapping) {
         const session = gameManager.getGame(mapping.gameId);
         if (session && session.state !== 'finished') {
-          // Clean up the game when a player disconnects
           session.state = 'finished';
           const opponentIndex = 1 - mapping.playerIndex;
           const opponentSocketId = session.players[opponentIndex];
@@ -434,6 +533,7 @@ export function registerSocketHandlers(
               reason: 'HERO_KILLED' as WinReason,
             });
           }
+          gameManager.destroyGame(mapping.gameId);
         }
         socketMapping.delete(socket.id);
       }

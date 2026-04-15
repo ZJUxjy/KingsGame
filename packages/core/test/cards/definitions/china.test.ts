@@ -15,19 +15,19 @@ import {
 } from '../../../src/cards/definitions/index.js';
 
 describe('China Card Definitions', () => {
-  // ─── Total count: 3 emperors + 4 ministers + 2 generals + 6 minions + 4 stratagems + 2 sorceries = 21 ───
+  // ─── Total count: 3 emperors + 9 ministers + 2 generals + 6 minions + 4 stratagems + 2 sorceries = 26 ───
 
-  it('should have exactly 21 cards (19 Card + 4 Minister = 23 entities, but cards = 6+4+2+3+2 = 17)', () => {
+  it('should have exactly 26 entities (17 Card + 9 Minister)', () => {
     // Card objects: 6 minions + 4 stratagems + 2 sorceries + 3 emperors + 2 generals = 17
-    // Minister objects: 4 (separate from Card)
-    // Total "cards" in the card sense: 17 Card instances + 4 Minister = 21 game entities
+    // Minister objects: 9 (3 per emperor, separate from Card)
+    // Total "cards" in the card sense: 17 Card instances + 9 Minister = 26 game entities
     const cardCount = CHINA_MINIONS.length
       + CHINA_STRATAGEMS.length
       + CHINA_SORCERIES.length
       + CHINA_EMPERORS.length
       + CHINA_GENERALS.length
       + CHINA_MINISTERS.length;
-    expect(cardCount).toBe(21);
+    expect(cardCount).toBe(26);
   });
 
   it('CHINA_ALL_CARDS should contain all 17 Card objects', () => {
@@ -186,11 +186,11 @@ describe('China Card Definitions', () => {
     });
   });
 
-  // ─── Minister Cards (4) ───────────────────────────────────────────
+  // ─── Minister Cards (9) ───────────────────────────────────────────
 
   describe('Ministers', () => {
-    it('should have exactly 4 ministers', () => {
-      expect(CHINA_MINISTERS).toHaveLength(4);
+    it('should have exactly 9 ministers', () => {
+      expect(CHINA_MINISTERS).toHaveLength(9);
     });
 
     it('all ministers should have an activeSkill', () => {
@@ -242,8 +242,8 @@ describe('China Card Definitions', () => {
 
     for (const emperorData of CHINA_EMPEROR_DATA_LIST) {
       describe(`EmperorData for ${emperorData.emperorCard.name}`, () => {
-        it('should have exactly 4 ministers', () => {
-          expect(emperorData.ministers).toHaveLength(4);
+        it('should have at least 3 ministers', () => {
+          expect(emperorData.ministers.length).toBeGreaterThanOrEqual(3);
         });
 
         it('should have exactly 2 bound generals', () => {
@@ -274,17 +274,49 @@ describe('China Card Definitions', () => {
         });
       });
     }
+
+    // ─── Emperor-specific minister differentiation ──────────────────
+    it('each emperor should have a unique minister pool', () => {
+      const qinIds = EMPEROR_QIN.ministers.map((m) => m.id).sort();
+      const hanIds = EMPEROR_HAN.ministers.map((m) => m.id).sort();
+      const tangIds = EMPEROR_TANG.ministers.map((m) => m.id).sort();
+
+      expect(qinIds).not.toEqual(hanIds);
+      expect(qinIds).not.toEqual(tangIds);
+      expect(hanIds).not.toEqual(tangIds);
+    });
+
+    it('no minister should appear in more than one emperor pool', () => {
+      const allMinisterIds = [
+        ...EMPEROR_QIN.ministers.map((m) => m.id),
+        ...EMPEROR_HAN.ministers.map((m) => m.id),
+        ...EMPEROR_TANG.ministers.map((m) => m.id),
+      ];
+      expect(new Set(allMinisterIds).size).toBe(allMinisterIds.length);
+    });
+
+    it('each emperor minister pool should cover multiple minister types', () => {
+      for (const emperorData of CHINA_EMPEROR_DATA_LIST) {
+        const types = new Set(emperorData.ministers.map((m) => m.type));
+        expect(types.size).toBeGreaterThanOrEqual(2);
+      }
+    });
   });
 
   // ─── Specific Card Checks ─────────────────────────────────────────
 
-  it('Bingmayong should be a 1-cost 1/1 with no keywords and no effects', () => {
+  it('Bingmayong should be a 1-cost 1/1 deathrattle minion that draws a card', () => {
     const card = CHINA_MINIONS.find((c) => c.id === 'china_bingmayong')!;
     expect(card.cost).toBe(1);
     expect(card.attack).toBe(1);
     expect(card.health).toBe(1);
-    expect(card.keywords).toHaveLength(0);
-    expect(card.effects).toHaveLength(0);
+    expect(card.keywords).toContain('DEATHRATTLE');
+    expect(card.effects).toHaveLength(1);
+    expect(card.effects[0]).toMatchObject({
+      trigger: 'ON_DEATH',
+      type: 'DRAW',
+      params: { count: 1 },
+    });
   });
 
   it('Qinjun Bubing should have MOBILIZE keyword', () => {

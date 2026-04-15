@@ -115,4 +115,47 @@ describe('GameManager', () => {
     expect(all).toHaveLength(1);
     expect(all[0].id).not.toBe(session.id);
   });
+
+  it('createPvpWaiting creates a session with no engine and player1 emperor = -1', () => {
+    const session = manager.createPvpWaiting(2);
+
+    expect(session.mode).toBe('pvp');
+    expect(session.state).toBe('waiting');
+    expect(session.playerEmperorIndices).toEqual([2, -1]);
+    expect(session.engine).toBeNull();
+  });
+
+  it('findWaitingPvpGame returns undefined when no waiting PvP games exist', () => {
+    manager.createGame('pve', 0);
+    expect(manager.findWaitingPvpGame()).toBeUndefined();
+  });
+
+  it('findWaitingPvpGame finds a waiting PvP game with player 0 assigned', () => {
+    const session = manager.createPvpWaiting(1);
+    manager.setPlayerSocket(session.id, 0, 'socket-host');
+
+    const found = manager.findWaitingPvpGame();
+    expect(found).toBeDefined();
+    expect(found!.id).toBe(session.id);
+  });
+
+  it('findWaitingPvpGame skips games where player 1 is already assigned', () => {
+    const session = manager.createPvpWaiting(1);
+    manager.setPlayerSocket(session.id, 0, 'socket-host');
+    manager.setPlayerSocket(session.id, 1, 'socket-guest');
+
+    expect(manager.findWaitingPvpGame()).toBeUndefined();
+  });
+
+  it('initializePvpEngine creates a working engine from both emperor indices', () => {
+    const session = manager.createPvpWaiting(0);
+    session.playerEmperorIndices[1] = 2;
+
+    manager.initializePvpEngine(session);
+
+    expect(session.engine).not.toBeNull();
+    const state = session.engine.getGameState();
+    expect(state.players[0].hand.length).toBeGreaterThan(0);
+    expect(state.players[1].hand.length).toBeGreaterThan(0);
+  });
 });

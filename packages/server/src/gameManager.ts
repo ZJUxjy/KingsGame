@@ -1,9 +1,9 @@
-import { GameEngine, CHINA_EMPEROR_DATA_LIST } from '@king-card/core';
+import { GameEngine, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
 import { buildDeck, AI_DECK_EMPEROR_INDEX } from './deckBuilder.js';
 
 export interface GameSession {
   id: string;
-  engine: GameEngine;
+  engine: GameEngine | null;
   players: [string | null, string | null];
   state: 'waiting' | 'playing' | 'finished';
   mode: 'pve' | 'pvp';
@@ -16,9 +16,9 @@ export class GameManager {
   createGame(mode: 'pve' | 'pvp', playerEmperorIndex: number): GameSession {
     const id = crypto.randomUUID();
 
-    const emperor1 = CHINA_EMPEROR_DATA_LIST[playerEmperorIndex];
+    const emperor1 = ALL_EMPEROR_DATA_LIST[playerEmperorIndex];
     const emperor2Index = mode === 'pve' ? AI_DECK_EMPEROR_INDEX : 0;
-    const emperor2 = CHINA_EMPEROR_DATA_LIST[emperor2Index];
+    const emperor2 = ALL_EMPEROR_DATA_LIST[emperor2Index];
 
     const deck1 = buildDeck(emperor1);
     const deck2 = buildDeck(emperor2);
@@ -36,6 +36,55 @@ export class GameManager {
 
     this.games.set(id, session);
     return session;
+  }
+
+  /**
+   * Create a PvP game with only player 0's emperor chosen.
+   * The engine is NOT created yet — it will be initialized when player 2 joins.
+   */
+  createPvpWaiting(player0EmperorIndex: number): GameSession {
+    const id = crypto.randomUUID();
+
+    const session: GameSession = {
+      id,
+      engine: null,
+      players: [null, null],
+      state: 'waiting',
+      mode: 'pvp',
+      playerEmperorIndices: [player0EmperorIndex, -1],
+    };
+
+    this.games.set(id, session);
+    return session;
+  }
+
+  /**
+   * Find a PvP game that is waiting for a second player.
+   */
+  findWaitingPvpGame(): GameSession | undefined {
+    for (const session of this.games.values()) {
+      if (session.mode === 'pvp' && session.state === 'waiting' && session.players[0] && !session.players[1]) {
+        return session;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Initialize the engine for a PvP game once both emperor indices are known.
+   */
+  initializePvpEngine(session: GameSession): void {
+    const idx0 = session.playerEmperorIndices[0];
+    const idx1 = session.playerEmperorIndices[1];
+    if (idx0 < 0 || idx0 >= ALL_EMPEROR_DATA_LIST.length ||
+        idx1 < 0 || idx1 >= ALL_EMPEROR_DATA_LIST.length) {
+      throw new Error(`Invalid emperor index: [${idx0}, ${idx1}]`);
+    }
+    const emperor1 = ALL_EMPEROR_DATA_LIST[idx0];
+    const emperor2 = ALL_EMPEROR_DATA_LIST[idx1];
+    const deck1 = buildDeck(emperor1);
+    const deck2 = buildDeck(emperor2);
+    session.engine = GameEngine.create(deck1, deck2, emperor1, emperor2);
   }
 
   getGame(gameId: string): GameSession | undefined {

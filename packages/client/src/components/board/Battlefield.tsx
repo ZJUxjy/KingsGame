@@ -9,6 +9,7 @@ interface BattlefieldProps {
   validTargetIds?: Set<string>;
   hoveredTargetId?: string | null;
   onTargetHover?: (instanceId: string | null) => void;
+  animationMap?: Map<string, string>;
 }
 
 export function Battlefield({
@@ -20,6 +21,7 @@ export function Battlefield({
   validTargetIds,
   hoveredTargetId,
   onTargetHover,
+  animationMap,
 }: BattlefieldProps) {
   const gap = minions.length >= 6 ? -18 : minions.length >= 5 ? -10 : minions.length >= 4 ? 0 : 14;
 
@@ -60,6 +62,7 @@ export function Battlefield({
                 selected={isSelected}
                 actionable={canAct}
                 validTarget={isHoveredTarget}
+                animationClass={animationMap?.get(minion.instanceId)}
                 onClick={() => onMinionClick?.(minion.instanceId, !isOpponent)}
               />
             </div>
