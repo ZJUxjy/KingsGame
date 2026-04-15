@@ -6,6 +6,7 @@ interface HeroPanelProps {
   skillName?: string;
   skillCost?: number;
   canUseSkill?: boolean;
+  skillPending?: boolean;
   isOpponent?: boolean;
   onSkillClick?: () => void;
 }
@@ -18,6 +19,7 @@ export function HeroPanel({
   skillName,
   skillCost,
   canUseSkill,
+  skillPending,
   isOpponent,
   onSkillClick,
 }: HeroPanelProps) {
@@ -55,7 +57,9 @@ export function HeroPanel({
           disabled={!canUseSkill}
           className={`px-3 py-1 rounded text-xs font-bold
             ${canUseSkill
-              ? 'bg-blue-600 hover:bg-blue-500 cursor-pointer'
+              ? skillPending
+                ? 'bg-blue-300 text-slate-900 cursor-pointer'
+                : 'bg-blue-600 hover:bg-blue-500 cursor-pointer'
               : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
         >
           {skillName} ({skillCost})

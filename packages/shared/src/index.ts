@@ -26,5 +26,6 @@ export type {
   EffectHandler,
   StateMutator,
   CardInstance,
+  SummonMinionResult,
 } from './engine-types.js';
 export type { GameEvent, EventBus, EngineResult, RNG } from './events.js';

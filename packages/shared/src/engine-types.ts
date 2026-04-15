@@ -143,6 +143,7 @@ export interface CardInstance {
   card: Card;
   instanceId: string;
   ownerIndex: number;
+  baseKeywords?: Keyword[];
   currentAttack: number;
   currentHealth: number;
   currentMaxHealth: number;
@@ -153,6 +154,11 @@ export interface CardInstance {
   usedGeneralSkills: number;
   buffs: Buff[];
   position?: number;
+}
+
+export interface SummonMinionResult {
+  instance: CardInstance | null;
+  error: import('./types.js').EngineErrorCode | null;
 }
 
 // ─── Player ──────────────────────────────────────────────────────
@@ -171,6 +177,7 @@ export interface Player {
   costModifiers: CostModifier[];
   energyCrystal: number;
   maxEnergy: number;
+  cardsPlayedThisTurn?: number;
   cannotDrawNextTurn: boolean;
   ministerPool: Minister[];
   activeMinisterIndex: number;
@@ -194,9 +201,9 @@ export interface GameState {
 export type ValidAction =
   | { type: 'PLAY_CARD'; handIndex: number; targetIndex?: number }
   | { type: 'ATTACK'; attackerInstanceId: string; targetInstanceId: string | 'HERO' }
-  | { type: 'USE_HERO_SKILL'; targetIndex?: number }
-  | { type: 'USE_MINISTER_SKILL'; targetIndex?: number }
-  | { type: 'USE_GENERAL_SKILL'; instanceId: string; targetIndex?: number }
+  | { type: 'USE_HERO_SKILL'; target?: import('./types.js').TargetRef }
+  | { type: 'USE_MINISTER_SKILL'; target?: import('./types.js').TargetRef }
+  | { type: 'USE_GENERAL_SKILL'; instanceId: string; skillIndex: number; target?: import('./types.js').TargetRef }
   | { type: 'SWITCH_MINISTER'; ministerIndex: number }
   | { type: 'END_TURN' };
 
@@ -237,7 +244,7 @@ export interface StateMutator {
   heal(target: import('./types.js').TargetRef, amount: number): import('./types.js').EngineErrorCode | null;
   drawCards(playerIndex: number, count: number): import('./types.js').EngineErrorCode | null;
   discardCard(playerIndex: number, handIndex: number): import('./types.js').EngineErrorCode | null;
-  summonMinion(card: Card, ownerIndex: number, position?: number): import('./types.js').EngineErrorCode | null;
+  summonMinion(card: Card, ownerIndex: number, position?: number): SummonMinionResult;
   destroyMinion(instanceId: string): import('./types.js').EngineErrorCode | null;
   modifyStat(target: import('./types.js').TargetRef, stat: 'attack' | 'health', delta: number): import('./types.js').EngineErrorCode | null;
   applyBuff(target: import('./types.js').TargetRef, buff: Buff): import('./types.js').EngineErrorCode | null;

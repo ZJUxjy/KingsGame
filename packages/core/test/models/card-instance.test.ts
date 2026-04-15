@@ -69,6 +69,21 @@ describe('createCardInstance', () => {
     expect(instance.buffs).toEqual([]);
   });
 
+  it('should clone mutable card fields so keyword changes stay on the instance', () => {
+    const sourceCard: Card = {
+      ...dummyCard,
+      id: 'keyword_source',
+      keywords: ['RUSH'],
+    };
+
+    const instance = createCardInstance(sourceCard, 0);
+    instance.card.keywords.push('TAUNT');
+
+    expect(instance.card).not.toBe(sourceCard);
+    expect(instance.card.keywords).toEqual(['RUSH', 'TAUNT']);
+    expect(sourceCard.keywords).toEqual(['RUSH']);
+  });
+
   it('should set sleepTurns to 0 for non-RESEARCH minion', () => {
     const instance = createCardInstance(dummyCard, 0);
     expect(instance.sleepTurns).toBe(0);

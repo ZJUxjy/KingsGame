@@ -14,10 +14,81 @@ import { GAME_CONSTANTS } from '@king-card/shared';
 import { createGameState } from '../models/game.js';
 import { createStateMutator } from './state-mutator.js';
 import { executeTurnStart } from './game-loop.js';
-import { executePlayCard, executeAttack, executeEndTurn, executeUseHeroSkill, executeUseMinisterSkill, executeSwitchMinister } from './action-executor.js';
+import { executePlayCard, executeAttack, executeEndTurn, executeUseHeroSkill, executeUseMinisterSkill, executeSwitchMinister, executeUseGeneralSkill } from './action-executor.js';
 import { EventBusImpl } from './event-bus.js';
 import { DefaultRNG } from './rng.js';
 import { registerEmperorData } from './emperor-registry.js';
+
+function getEffectiveCardCost(player: Player, card: Card): number {
+  return player.costModifiers.reduce(
+    (cost, modifier) => modifier.condition(card) ? modifier.modifier(cost) : cost,
+    card.cost,
+  );
+}
+
+function requiresFriendlyMinionTarget(card: Card): boolean {
+  return card.effects.some(
+    (effect) => effect.type === 'SUMMON' && effect.params.cloneOfInstanceId === 'TARGET',
+  );
+}
+
+function getExplicitMinionTargetRequirement(
+  card: Card,
+): 'FRIENDLY_MINION' | 'ENEMY_MINION' | undefined {
+  for (const effect of card.effects) {
+    if (effect.params.target === 'FRIENDLY_MINION' || effect.params.target === 'ENEMY_MINION') {
+      return effect.params.target;
+    }
+  }
+
+  return undefined;
+}
+
+function getSkillTargets(
+  state: GameState,
+  playerIndex: number,
+  card: Card,
+): TargetRef[] | null {
+  if (requiresFriendlyMinionTarget(card)) {
+    if (state.players[playerIndex].battlefield.length >= GAME_CONSTANTS.MAX_BOARD_SIZE) {
+      return [];
+    }
+
+    return state.players[playerIndex].battlefield.map((minion) => ({
+      type: 'MINION' as const,
+      instanceId: minion.instanceId,
+    }));
+  }
+
+  const targetRequirement = getExplicitMinionTargetRequirement(card);
+  if (!targetRequirement) {
+    return null;
+  }
+
+  const targetPlayer = targetRequirement === 'FRIENDLY_MINION'
+    ? state.players[playerIndex]
+    : state.players[1 - playerIndex];
+
+  return targetPlayer.battlefield.map((minion) => ({
+    type: 'MINION' as const,
+    instanceId: minion.instanceId,
+  }));
+}
+
+function pushTargetedSkillActions<T extends Extract<ValidAction, { target?: TargetRef }>>(
+  actions: ValidAction[],
+  baseAction: T,
+  targets: TargetRef[] | null,
+): void {
+  if (targets === null) {
+    actions.push(baseAction);
+    return;
+  }
+
+  for (const target of targets) {
+    actions.push({ ...baseAction, target });
+  }
+}
 
 // ─── GameEngine ─────────────────────────────────────────────────────
 
@@ -121,7 +192,7 @@ export class GameEngine {
     // 1. PLAY_CARD
     for (let i = 0; i < player.hand.length; i++) {
       const card = player.hand[i];
-      if (card.cost > player.energyCrystal) continue;
+      if (getEffectiveCardCost(player, card) > player.energyCrystal) continue;
 
       if (card.type === 'MINION' || card.type === 'GENERAL') {
         if (player.battlefield.length >= GAME_CONSTANTS.MAX_BOARD_SIZE) continue;
@@ -136,7 +207,7 @@ export class GameEngine {
     );
 
     for (const minion of player.battlefield) {
-      if (minion.remainingAttacks <= 0) continue;
+      if (minion.remainingAttacks <= 0 || minion.currentAttack <= 0) continue;
 
       const isStealthKill = minion.card.keywords.includes('STEALTH_KILL' as any);
       const canAttackHero =
@@ -175,7 +246,23 @@ export class GameEngine {
       player.hero.skillCooldownRemaining === 0 &&
       player.energyCrystal >= player.hero.heroSkill.cost
     ) {
-      actions.push({ type: 'USE_HERO_SKILL' });
+      const heroSkillCard: Card = {
+        id: `hero_skill_${player.id}`,
+        name: player.hero.heroSkill.name,
+        civilization: player.civilization,
+        type: 'EMPEROR',
+        rarity: 'LEGENDARY',
+        cost: player.hero.heroSkill.cost,
+        description: player.hero.heroSkill.description,
+        keywords: [],
+        effects: [player.hero.heroSkill.effect],
+      };
+
+      pushTargetedSkillActions(
+        actions,
+        { type: 'USE_HERO_SKILL' },
+        getSkillTargets(this.state, playerIndex, heroSkillCard),
+      );
     }
 
     // 4. USE_MINISTER_SKILL
@@ -187,7 +274,23 @@ export class GameEngine {
         minister.cooldown === 0 &&
         player.energyCrystal >= minister.activeSkill.cost
       ) {
-        actions.push({ type: 'USE_MINISTER_SKILL' });
+        const ministerSkillCard: Card = {
+          id: minister.id,
+          name: minister.name,
+          civilization: player.civilization,
+          type: 'MINION',
+          rarity: 'RARE',
+          cost: minister.activeSkill.cost,
+          description: minister.activeSkill.description,
+          keywords: [],
+          effects: [minister.activeSkill.effect],
+        };
+
+        pushTargetedSkillActions(
+          actions,
+          { type: 'USE_MINISTER_SKILL' },
+          getSkillTargets(this.state, playerIndex, ministerSkillCard),
+        );
       }
     }
 
@@ -197,6 +300,34 @@ export class GameEngine {
         if (i !== player.activeMinisterIndex) {
           actions.push({ type: 'SWITCH_MINISTER', ministerIndex: i });
         }
+      }
+    }
+
+    // 5.5. USE_GENERAL_SKILL
+    for (const minion of player.battlefield) {
+      if (minion.card.type !== 'GENERAL' || !minion.card.generalSkills) continue;
+      for (let si = 0; si < minion.card.generalSkills.length; si++) {
+        const skill = minion.card.generalSkills[si];
+        const usedMask = 1 << si;
+        if (minion.usedGeneralSkills & usedMask) continue;
+        if (skill.cost > player.energyCrystal) continue;
+        const generalSkillCard: Card = {
+          id: `general_skill_${minion.card.id}_${si}`,
+          name: skill.name,
+          civilization: player.civilization,
+          type: 'GENERAL',
+          rarity: 'LEGENDARY',
+          cost: skill.cost,
+          description: skill.description,
+          keywords: [],
+          effects: [skill.effect],
+        };
+
+        pushTargetedSkillActions(
+          actions,
+          { type: 'USE_GENERAL_SKILL', instanceId: minion.instanceId, skillIndex: si },
+          getSkillTargets(this.state, playerIndex, generalSkillCard),
+        );
       }
     }
 
@@ -224,16 +355,20 @@ export class GameEngine {
     return executeEndTurn(this.state, this.eventBus);
   }
 
-  useHeroSkill(playerIndex: number): EngineResult {
-    return executeUseHeroSkill(this.state, this.eventBus, this.rng, playerIndex);
+  useHeroSkill(playerIndex: number, target?: TargetRef): EngineResult {
+    return executeUseHeroSkill(this.state, this.eventBus, this.rng, playerIndex, target);
   }
 
-  useMinisterSkill(playerIndex: number): EngineResult {
-    return executeUseMinisterSkill(this.state, this.eventBus, this.rng, playerIndex);
+  useMinisterSkill(playerIndex: number, target?: TargetRef): EngineResult {
+    return executeUseMinisterSkill(this.state, this.eventBus, this.rng, playerIndex, target);
   }
 
   switchMinister(playerIndex: number, ministerIndex: number): EngineResult {
     return executeSwitchMinister(this.state, this.eventBus, playerIndex, ministerIndex);
+  }
+
+  useGeneralSkill(playerIndex: number, instanceId: string, skillIndex: number, target?: TargetRef): EngineResult {
+    return executeUseGeneralSkill(this.state, this.eventBus, this.rng, playerIndex, instanceId, skillIndex, target);
   }
 
   // ─── Event Subscription ────────────────────────────────────────────

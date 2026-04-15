@@ -248,6 +248,16 @@ describe('StateMutator', () => {
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
+    it('should return the actual summoned instance', () => {
+      const { state, mutator } = setup();
+
+      const result = mutator.summonMinion(dummyCard, 0);
+
+      expect(result.error).toBeNull();
+      expect(result.instance).toBe(state.players[0].battlefield[0]);
+      expect(result.instance?.instanceId).toBe(state.players[0].battlefield[0].instanceId);
+    });
+
     it('should insert at specified position', () => {
       const { state, mutator } = setup();
       resetInstanceCounter();

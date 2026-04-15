@@ -1,22 +1,57 @@
-import type { Card, CardInstance } from '@king-card/shared';
+import type { Card, CardEffect, CardInstance, GeneralSkill, HeroSkill } from '@king-card/shared';
 
 let instanceCounter = 0;
 
-export function createCardInstance(card: Card, ownerIndex: 0 | 1): CardInstance {
-  const hasRush = card.keywords.includes('RUSH');
-  const hasCharge = card.keywords.includes('CHARGE');
-  const hasAssassin = card.keywords.includes('ASSASSIN');
+function cloneCardEffect(effect: CardEffect): CardEffect {
+  return {
+    ...effect,
+    params: { ...effect.params },
+  };
+}
+
+function cloneHeroSkill(skill: HeroSkill | undefined): HeroSkill | undefined {
+  if (!skill) return undefined;
 
   return {
-    card,
+    ...skill,
+    effect: cloneCardEffect(skill.effect),
+  };
+}
+
+function cloneGeneralSkill(skill: GeneralSkill): GeneralSkill {
+  return {
+    ...skill,
+    effect: cloneCardEffect(skill.effect),
+  };
+}
+
+function cloneCard(card: Card): Card {
+  return {
+    ...card,
+    keywords: [...card.keywords],
+    effects: card.effects.map(cloneCardEffect),
+    heroSkill: cloneHeroSkill(card.heroSkill),
+    generalSkills: card.generalSkills?.map(cloneGeneralSkill),
+  };
+}
+
+export function createCardInstance(card: Card, ownerIndex: 0 | 1): CardInstance {
+  const instanceCard = cloneCard(card);
+  const hasRush = instanceCard.keywords.includes('RUSH');
+  const hasCharge = instanceCard.keywords.includes('CHARGE');
+  const hasAssassin = instanceCard.keywords.includes('ASSASSIN');
+
+  return {
+    card: instanceCard,
     instanceId: `${card.id}_${++instanceCounter}`,
     ownerIndex,
+    baseKeywords: [...instanceCard.keywords],
     currentAttack: card.attack ?? 0,
     currentHealth: card.health ?? 0,
     currentMaxHealth: card.health ?? 0,
     remainingAttacks: (hasRush || hasCharge || hasAssassin) ? 1 : 0,
     justPlayed: true,
-    sleepTurns: card.keywords.includes('RESEARCH') ? 1 : 0,
+    sleepTurns: instanceCard.keywords.includes('RESEARCH') ? 1 : 0,
     garrisonTurns: 0,
     usedGeneralSkills: 0,
     buffs: [],

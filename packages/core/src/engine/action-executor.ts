@@ -14,7 +14,7 @@ import { GAME_CONSTANTS } from '@king-card/shared';
 import { createStateMutator } from './state-mutator.js';
 import { checkWinCondition } from './win-condition.js';
 import { executeTurnStart } from './game-loop.js';
-import { resolveEffects } from '../cards/effects/index.js';
+import { executeCardEffects, resolveEffects } from '../cards/effects/index.js';
 import { getEmperorData } from './emperor-registry.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -67,6 +67,129 @@ function createCollectingEventBus(
   };
 }
 
+function createEffectEventBus(eventBus: EventBus): EffectContext['eventBus'] {
+  return {
+    emit(event: unknown): void {
+      eventBus.emit(event as GameEvent);
+    },
+    on(eventType: string, handler: (event: unknown) => void): () => void {
+      return eventBus.on(eventType, (event) => handler(event));
+    },
+    removeAllListeners(): void {
+      eventBus.removeAllListeners();
+    },
+  };
+}
+
+function createEffectContext(
+  state: GameState,
+  eventBus: EventBus,
+  rng: RNG,
+  playerIndex: number,
+  source: CardInstance,
+  target?: CardInstance,
+): EffectContext {
+  return {
+    state,
+    mutator: createStateMutator(state, eventBus),
+    source,
+    target,
+    playerIndex,
+    eventBus: createEffectEventBus(eventBus),
+    rng: rng as unknown as EffectContext['rng'],
+  };
+}
+
+function getEffectiveCardCost(player: GameState['players'][number], card: Card): number {
+  return player.costModifiers.reduce(
+    (cost, modifier) => modifier.condition(card) ? modifier.modifier(cost) : cost,
+    card.cost,
+  );
+}
+
+function createSyntheticSource(
+  card: Card,
+  playerIndex: number,
+  instanceId: string,
+): CardInstance {
+  return {
+    card,
+    instanceId,
+    ownerIndex: playerIndex as 0 | 1,
+    currentAttack: card.attack ?? 0,
+    currentHealth: card.health ?? 0,
+    currentMaxHealth: card.health ?? 0,
+    remainingAttacks: 0,
+    justPlayed: false,
+    sleepTurns: 0,
+    garrisonTurns: 0,
+    usedGeneralSkills: 0,
+    buffs: [],
+    position: undefined,
+  };
+}
+
+function requiresFriendlyMinionTarget(card: Card): boolean {
+  return card.effects.some(
+    (effect) => effect.type === 'SUMMON' && effect.params.cloneOfInstanceId === 'TARGET',
+  );
+}
+
+function resolveFriendlyMinionTarget(
+  state: GameState,
+  playerIndex: number,
+  target?: TargetRef,
+): CardInstance | undefined {
+  if (!target || target.type !== 'MINION') {
+    return undefined;
+  }
+
+  const minion = findMinion(state, target.instanceId);
+  if (!minion || minion.ownerIndex !== playerIndex) {
+    return undefined;
+  }
+
+  return minion;
+}
+
+function getExplicitMinionTargetRequirement(
+  card: Card,
+): 'FRIENDLY_MINION' | 'ENEMY_MINION' | undefined {
+  for (const effect of card.effects) {
+    if (effect.params.target === 'FRIENDLY_MINION' || effect.params.target === 'ENEMY_MINION') {
+      return effect.params.target;
+    }
+  }
+
+  return undefined;
+}
+
+function resolveExplicitMinionTarget(
+  state: GameState,
+  playerIndex: number,
+  targetRequirement: 'FRIENDLY_MINION' | 'ENEMY_MINION',
+  target?: TargetRef,
+): CardInstance | undefined {
+  if (!target || target.type !== 'MINION') {
+    return undefined;
+  }
+
+  const minion = findMinion(state, target.instanceId);
+  if (!minion) {
+    return undefined;
+  }
+
+  const expectedOwnerIndex = targetRequirement === 'FRIENDLY_MINION'
+    ? playerIndex
+    : 1 - playerIndex;
+
+  if (minion.ownerIndex !== expectedOwnerIndex) {
+    return undefined;
+  }
+
+  return minion;
+}
+
 // ─── executePlayCard ─────────────────────────────────────────────
 
 export function executePlayCard(
@@ -92,8 +215,9 @@ export function executePlayCard(
   }
 
   const card = player.hand[handIndex];
-  if (card.cost > player.energyCrystal) {
-    return error('INSUFFICIENT_ENERGY', `Card costs ${card.cost}, but player only has ${player.energyCrystal} energy`);
+  const effectiveCost = getEffectiveCardCost(player, card);
+  if (effectiveCost > player.energyCrystal) {
+    return error('INSUFFICIENT_ENERGY', `Card costs ${effectiveCost}, but player only has ${player.energyCrystal} energy`);
   }
 
   if (card.type === 'MINION' || card.type === 'GENERAL') {
@@ -109,102 +233,118 @@ export function executePlayCard(
 
   // Remove card from hand
   player.hand.splice(handIndex, 1);
+  player.cardsPlayedThisTurn = (player.cardsPlayedThisTurn ?? 0) + 1;
 
   // Spend energy
-  player.energyCrystal -= card.cost;
+  player.energyCrystal -= effectiveCost;
   collectingBus.emit({
     type: 'ENERGY_SPENT',
     playerIndex,
-    amount: card.cost,
+    amount: effectiveCost,
     remainingEnergy: player.energyCrystal,
   });
-
-  // Emit CARD_PLAYED
-  const instanceId = card.type === 'MINION' || card.type === 'GENERAL'
-    ? `${card.id}_${Date.now()}`
-    : undefined;
-  collectingBus.emit({ type: 'CARD_PLAYED', playerIndex, card, instanceId });
 
   if (card.type === 'MINION' || card.type === 'GENERAL') {
     // Summon to battlefield
     const summonResult = mutator.summonMinion(card, playerIndex as 0 | 1, targetBoardPosition);
-    if (summonResult) {
-      return error(summonResult, `Failed to summon minion: ${summonResult}`);
+    if (summonResult.error) {
+      return error(summonResult.error, `Failed to summon minion: ${summonResult.error}`);
     }
+
     // Trigger ON_PLAY effects (e.g. BATTLECRY)
-    const summonedMinion = state.players[playerIndex].battlefield.find(
-      (m) => m.card.id === card.id,
-    );
+    const summonedMinion = summonResult.instance;
+
+    collectingBus.emit({
+      type: 'CARD_PLAYED',
+      playerIndex,
+      card,
+      instanceId: summonedMinion?.instanceId,
+    });
+
     if (summonedMinion) {
-      const effectCtx: EffectContext = {
-        state,
-        mutator,
-        source: summonedMinion,
-        playerIndex,
-        eventBus: collectingBus as unknown as EffectContext['eventBus'],
-        rng: _rng as unknown as EffectContext['rng'],
-      };
+      const effectCtx = createEffectContext(state, collectingBus, _rng, playerIndex, summonedMinion);
+      executeCardEffects('ON_PLAY', effectCtx);
       resolveEffects('ON_PLAY', effectCtx);
     }
-  } else if (card.type === 'STRATAGEM' || card.type === 'SORCERY') {
-    // Phase 1: no specific effect processing
-  } else if (card.type === 'EMPEROR') {
-    const emperorData = getEmperorData(card.id);
-    if (!emperorData) {
-      // Emperor data not registered — skip emperor switch
-      // (should not happen in normal gameplay)
-    } else {
-      const oldEmperorId = player.hero.heroSkill
-        ? card.id // fallback: use new card id if no prior emperor
-        : undefined;
+  } else {
+    collectingBus.emit({ type: 'CARD_PLAYED', playerIndex, card });
 
-      // Derive old emperor id from the heroSkill that was set during init
-      // We store it on hero for tracking; if heroSkill exists, we can
-      // infer the old emperor from the boundCards (they were from previous emperor).
-      // For simplicity we emit the event with the new emperor id.
-
-      // 1. Hero replacement
-      const oldArmor = player.hero.armor;
-      player.hero = {
-        health: card.health ?? player.hero.health,
-        maxHealth: card.health ?? player.hero.maxHealth,
-        armor: oldArmor, // preserve armor
-        heroSkill: card.heroSkill!, // EMPEROR cards always have heroSkill
-        skillUsedThisTurn: true, // new emperor cannot use skill this turn
-        skillCooldownRemaining: card.heroSkill!.cooldown, // set cooldown
-      };
-
-      // 2. Minister replacement
-      player.ministerPool = emperorData.ministers.map((m) => ({
-        ...m,
-        skillUsedThisTurn: false,
-        cooldown: m.cooldown > 0 ? m.cooldown : 0, // keep original cooldown as initial cooldown
-      }));
-      if (player.ministerPool.length > 0) {
-        // Set the first minister's cooldown to 1 so it can't be used this turn
-        player.ministerPool[0].cooldown = 1;
-      }
-      player.activeMinisterIndex = player.ministerPool.length > 0 ? 0 : -1;
-
-      // 3. Remove old bound cards (no graveyard, no deathrattle)
-      player.boundCards = [];
-
-      // 4. Add new bound cards to hand
-      const newBoundCards = [...emperorData.boundGenerals, ...emperorData.boundSorceries];
-      for (const boundCard of newBoundCards) {
-        if (player.hand.length < player.handLimit) {
-          player.hand.push(boundCard);
-        }
-        // If hand is full, bound card is lost (not discarded to graveyard)
-      }
-      player.boundCards = newBoundCards;
-
-      // 5. Emit EMPEROR_CHANGED
-      collectingBus.emit({
-        type: 'EMPEROR_CHANGED',
+    if (card.type === 'STRATAGEM' || card.type === 'SORCERY') {
+      const effectCtx = createEffectContext(
+        state,
+        collectingBus,
+        _rng,
         playerIndex,
-        newEmperorId: card.id,
-      });
+        createSyntheticSource(card, playerIndex, `card_${card.id}_${Date.now()}`),
+      );
+      executeCardEffects('ON_PLAY', effectCtx);
+    } else if (card.type === 'EMPEROR') {
+      const emperorData = getEmperorData(card.id);
+      if (!emperorData) {
+        // Emperor data not registered — skip emperor switch
+        // (should not happen in normal gameplay)
+      } else {
+        const oldEmperorId = player.hero.heroSkill
+          ? card.id // fallback: use new card id if no prior emperor
+          : undefined;
+
+        // Derive old emperor id from the heroSkill that was set during init
+        // We store it on hero for tracking; if heroSkill exists, we can
+        // infer the old emperor from the boundCards (they were from previous emperor).
+        // For simplicity we emit the event with the new emperor id.
+
+        // 1. Hero replacement
+        const oldArmor = player.hero.armor;
+        player.hero = {
+          health: card.health ?? player.hero.health,
+          maxHealth: card.health ?? player.hero.maxHealth,
+          armor: oldArmor, // preserve armor
+          heroSkill: card.heroSkill!, // EMPEROR cards always have heroSkill
+          skillUsedThisTurn: true, // new emperor cannot use skill this turn
+          skillCooldownRemaining: card.heroSkill!.cooldown, // set cooldown
+        };
+
+        // 2. Minister replacement
+        player.ministerPool = emperorData.ministers.map((m) => ({
+          ...m,
+          skillUsedThisTurn: false,
+          cooldown: m.cooldown > 0 ? m.cooldown : 0, // keep original cooldown as initial cooldown
+        }));
+        if (player.ministerPool.length > 0) {
+          // Set the first minister's cooldown to 1 so it can't be used this turn
+          player.ministerPool[0].cooldown = 1;
+        }
+        player.activeMinisterIndex = player.ministerPool.length > 0 ? 0 : -1;
+
+        // 3. Remove old bound cards (no graveyard, no deathrattle)
+        player.boundCards = [];
+
+        // 4. Add new bound cards to hand
+        const newBoundCards = [...emperorData.boundGenerals, ...emperorData.boundSorceries];
+        for (const boundCard of newBoundCards) {
+          if (player.hand.length < player.handLimit) {
+            player.hand.push(boundCard);
+          }
+          // If hand is full, bound card is lost (not discarded to graveyard)
+        }
+        player.boundCards = newBoundCards;
+
+        // 5. Emit EMPEROR_CHANGED
+        collectingBus.emit({
+          type: 'EMPEROR_CHANGED',
+          playerIndex,
+          newEmperorId: card.id,
+        });
+
+        const effectCtx = createEffectContext(
+          state,
+          collectingBus,
+          _rng,
+          playerIndex,
+          createSyntheticSource(card, playerIndex, `emperor_${card.id}_${Date.now()}`),
+        );
+        executeCardEffects('ON_PLAY', effectCtx);
+      }
     }
   }
 
@@ -235,6 +375,10 @@ export function executeAttack(
 
   if (attacker.remainingAttacks <= 0) {
     return error('MINION_CANNOT_ATTACK', `Attacker has no remaining attacks`);
+  }
+
+  if (attacker.currentAttack <= 0) {
+    return error('MINION_CANNOT_ATTACK', 'Attacker must have positive attack to attack');
   }
 
   const opponentIndex = 1 - state.currentPlayerIndex;
@@ -290,7 +434,7 @@ export function executeAttack(
   collectingBus.emit({ type: 'ATTACK_DECLARED', attacker, defender: target });
 
   // Calculate and apply damage
-  const damage = attacker.currentAttack;
+  const damage = Math.max(0, attacker.currentAttack);
 
   // Track target minion before damage for ON_KILL trigger
   let targetMinionBeforeDamage: CardInstance | undefined;
@@ -310,7 +454,7 @@ export function executeAttack(
         source: attacker,
         target: targetMinionBeforeDamage,
         playerIndex: attacker.ownerIndex,
-        eventBus: collectingBus as unknown as EffectContext['eventBus'],
+        eventBus: createEffectEventBus(collectingBus),
         rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
       };
       resolveEffects('ON_KILL', effectCtx);
@@ -324,7 +468,7 @@ export function executeAttack(
   if (target.type === 'MINION') {
     const targetMinion = findMinion(state, target.instanceId);
     if (targetMinion && targetMinion.currentHealth > 0) {
-      const counterDamage = targetMinion.currentAttack;
+      const counterDamage = Math.max(0, targetMinion.currentAttack);
       const attackerRef: TargetRef = { type: 'MINION', instanceId: attackerInstanceId };
       mutator.damage(attackerRef, counterDamage);
     }
@@ -371,6 +515,7 @@ export function executeUseHeroSkill(
   eventBus: EventBus,
   _rng: RNG,
   playerIndex: number,
+  target?: TargetRef,
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
   if (state.phase !== 'MAIN') {
@@ -400,10 +545,46 @@ export function executeUseHeroSkill(
     return error('INSUFFICIENT_ENERGY', `Hero skill costs ${heroSkill.cost}, but player only has ${player.energyCrystal} energy`);
   }
 
+  const syntheticSkillCard: Card = {
+    id: `hero_skill_${player.id}`,
+    name: heroSkill.name,
+    civilization: player.civilization,
+    type: 'EMPEROR',
+    rarity: 'LEGENDARY',
+    cost: heroSkill.cost,
+    description: heroSkill.description,
+    keywords: [],
+    effects: [heroSkill.effect],
+  };
+
+  const requiresCloneTarget = requiresFriendlyMinionTarget(syntheticSkillCard);
+  const minionTargetRequirement = getExplicitMinionTargetRequirement(syntheticSkillCard);
+
+  if (requiresCloneTarget && player.battlefield.length >= GAME_CONSTANTS.MAX_BOARD_SIZE) {
+    return error('BOARD_FULL', `Battlefield is full (max ${GAME_CONSTANTS.MAX_BOARD_SIZE})`);
+  }
+
+  const cloneTarget = requiresCloneTarget
+    ? resolveFriendlyMinionTarget(state, playerIndex, target)
+    : undefined;
+  const explicitTarget = minionTargetRequirement
+    ? resolveExplicitMinionTarget(state, playerIndex, minionTargetRequirement, target)
+    : undefined;
+
+  const effectTarget = cloneTarget ?? explicitTarget;
+
+  if (requiresCloneTarget && !cloneTarget) {
+    return error('INVALID_TARGET', 'Hero skill requires a friendly minion target');
+  }
+
+  if (minionTargetRequirement && !explicitTarget) {
+    const targetLabel = minionTargetRequirement === 'FRIENDLY_MINION' ? 'friendly' : 'enemy';
+    return error('INVALID_TARGET', `Hero skill requires a ${targetLabel} minion target`);
+  }
+
   // ── Execution ───────────────────────────────────────────────────
   const events: GameEvent[] = [];
   const collectingBus = createCollectingEventBus(eventBus, events);
-  const mutator = createStateMutator(state, collectingBus);
 
   // Mark skill as used
   player.hero.skillUsedThisTurn = true;
@@ -419,41 +600,20 @@ export function executeUseHeroSkill(
   });
 
   // Create a synthetic CardInstance as source for effect resolution
-  const syntheticSource: CardInstance = {
-    card: {
-      id: `hero_skill_${player.id}`,
-      name: heroSkill.name,
-      civilization: player.civilization,
-      type: 'EMPEROR',
-      rarity: 'LEGENDARY',
-      cost: heroSkill.cost,
-      description: heroSkill.description,
-      keywords: [],
-      effects: [heroSkill.effect],
-    },
-    instanceId: `hero_skill_${player.id}_${Date.now()}`,
-    ownerIndex: playerIndex as 0 | 1,
-    currentAttack: 0,
-    currentHealth: player.hero.health,
-    currentMaxHealth: player.hero.maxHealth,
-    remainingAttacks: 0,
-    justPlayed: false,
-    sleepTurns: 0,
-    garrisonTurns: 0,
-    usedGeneralSkills: 0,
-    buffs: [],
-    position: undefined,
-  };
-
-  const effectCtx: EffectContext = {
+  const effectCtx = createEffectContext(
     state,
-    mutator,
-    source: syntheticSource,
+    collectingBus,
+    _rng,
     playerIndex,
-    eventBus: collectingBus as unknown as EffectContext['eventBus'],
-    rng: _rng as unknown as EffectContext['rng'],
-  };
+    createSyntheticSource(
+      syntheticSkillCard,
+      playerIndex,
+      `hero_skill_${player.id}_${Date.now()}`,
+    ),
+    effectTarget,
+  );
 
+  executeCardEffects('ON_PLAY', effectCtx);
   resolveEffects('ON_PLAY', effectCtx);
 
   // Emit HERO_SKILL_USED
@@ -473,6 +633,7 @@ export function executeUseMinisterSkill(
   eventBus: EventBus,
   _rng: RNG,
   playerIndex: number,
+  target?: TargetRef,
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
   if (state.phase !== 'MAIN') {
@@ -506,10 +667,31 @@ export function executeUseMinisterSkill(
     return error('INSUFFICIENT_ENERGY', `Minister skill costs ${minister.activeSkill.cost}, but player only has ${player.energyCrystal} energy`);
   }
 
+  const syntheticSkillCard: Card = {
+    id: minister.id,
+    name: minister.name,
+    civilization: player.civilization,
+    type: 'MINION',
+    rarity: 'RARE',
+    cost: minister.activeSkill.cost,
+    description: minister.activeSkill.description,
+    keywords: [],
+    effects: [minister.activeSkill.effect],
+  };
+
+  const minionTargetRequirement = getExplicitMinionTargetRequirement(syntheticSkillCard);
+  const effectTarget = minionTargetRequirement
+    ? resolveExplicitMinionTarget(state, playerIndex, minionTargetRequirement, target)
+    : undefined;
+
+  if (minionTargetRequirement && !effectTarget) {
+    const targetLabel = minionTargetRequirement === 'FRIENDLY_MINION' ? 'friendly' : 'enemy';
+    return error('INVALID_TARGET', `Minister skill requires a ${targetLabel} minion target`);
+  }
+
   // ── Execution ───────────────────────────────────────────────────
   const events: GameEvent[] = [];
   const collectingBus = createCollectingEventBus(eventBus, events);
-  const mutator = createStateMutator(state, collectingBus);
 
   // Mark skill as used
   minister.skillUsedThisTurn = true;
@@ -524,41 +706,20 @@ export function executeUseMinisterSkill(
   });
 
   // Create a synthetic CardInstance as source for effect resolution
-  const syntheticSource: CardInstance = {
-    card: {
-      id: minister.id,
-      name: minister.name,
-      civilization: player.civilization,
-      type: 'MINION',
-      rarity: 'RARE',
-      cost: minister.activeSkill.cost,
-      description: minister.activeSkill.description,
-      keywords: [],
-      effects: [minister.activeSkill.effect],
-    },
-    instanceId: `minister_${minister.id}_${Date.now()}`,
-    ownerIndex: playerIndex as 0 | 1,
-    currentAttack: 0,
-    currentHealth: 0,
-    currentMaxHealth: 0,
-    remainingAttacks: 0,
-    justPlayed: false,
-    sleepTurns: 0,
-    garrisonTurns: 0,
-    usedGeneralSkills: 0,
-    buffs: [],
-    position: undefined,
-  };
-
-  const effectCtx: EffectContext = {
+  const effectCtx = createEffectContext(
     state,
-    mutator,
-    source: syntheticSource,
+    collectingBus,
+    _rng,
     playerIndex,
-    eventBus: collectingBus as unknown as EffectContext['eventBus'],
-    rng: _rng as unknown as EffectContext['rng'],
-  };
+    createSyntheticSource(
+      syntheticSkillCard,
+      playerIndex,
+      `minister_${minister.id}_${Date.now()}`,
+    ),
+    effectTarget,
+  );
 
+  executeCardEffects('ON_PLAY', effectCtx);
   resolveEffects('ON_PLAY', effectCtx);
 
   // Emit MINISTER_SKILL_USED
@@ -566,6 +727,144 @@ export function executeUseMinisterSkill(
     type: 'MINISTER_SKILL_USED',
     playerIndex,
     ministerId: minister.id,
+  });
+
+  return success(events);
+}
+
+// ─── executeUseGeneralSkill ────────────────────────────────────────
+
+export function executeUseGeneralSkill(
+  state: GameState,
+  eventBus: EventBus,
+  _rng: RNG,
+  playerIndex: number,
+  instanceId: string,
+  skillIndex: number,
+  target?: TargetRef,
+): EngineResult {
+  // ── Validation ──────────────────────────────────────────────────
+  if (state.phase !== 'MAIN') {
+    return error('INVALID_PHASE', `Cannot use general skill in phase ${state.phase}, expected MAIN`);
+  }
+
+  if (playerIndex !== state.currentPlayerIndex) {
+    return error('INVALID_PHASE', `Player ${playerIndex} is not the current player`);
+  }
+
+  const player = state.players[playerIndex];
+
+  // Find minion on battlefield by instanceId
+  const minion = findMinion(state, instanceId);
+  if (!minion) {
+    return error('INVALID_TARGET', `Minion ${instanceId} not found on battlefield`);
+  }
+
+  if (minion.card.type !== 'GENERAL') {
+    return error('INVALID_TARGET', `Minion ${instanceId} is not a general`);
+  }
+
+  if (!minion.card.generalSkills || minion.card.generalSkills.length === 0) {
+    return error('INVALID_TARGET', `General ${instanceId} has no general skills`);
+  }
+
+  if (skillIndex < 0 || skillIndex >= minion.card.generalSkills.length) {
+    return error('INVALID_TARGET', `Skill index ${skillIndex} is out of range`);
+  }
+
+  // Check bitmask: skill already used this turn?
+  const usedMask = 1 << skillIndex;
+  if (minion.usedGeneralSkills & usedMask) {
+    return error('SKILL_ON_COOLDOWN', `General skill at index ${skillIndex} already used this turn`);
+  }
+
+  const skill = minion.card.generalSkills[skillIndex];
+
+  if (player.energyCrystal < skill.cost) {
+    return error('INSUFFICIENT_ENERGY', `General skill costs ${skill.cost}, but player only has ${player.energyCrystal} energy`);
+  }
+
+  // Build synthetic skill card for effect resolution
+  const syntheticSkillCard: Card = {
+    id: `general_skill_${minion.card.id}_${skillIndex}`,
+    name: skill.name,
+    civilization: player.civilization,
+    type: 'GENERAL',
+    rarity: 'LEGENDARY',
+    cost: skill.cost,
+    description: skill.description,
+    keywords: [],
+    effects: [skill.effect],
+  };
+
+  const requiresCloneTarget = requiresFriendlyMinionTarget(syntheticSkillCard);
+
+  if (requiresCloneTarget && player.battlefield.length >= GAME_CONSTANTS.MAX_BOARD_SIZE) {
+    return error('BOARD_FULL', `Battlefield is full (max ${GAME_CONSTANTS.MAX_BOARD_SIZE})`);
+  }
+
+  const cloneTarget = requiresCloneTarget
+    ? resolveFriendlyMinionTarget(state, playerIndex, target)
+    : undefined;
+
+  if (requiresCloneTarget && !cloneTarget) {
+    return error('INVALID_TARGET', 'General skill requires a friendly minion target');
+  }
+
+  // Resolve explicit minion target if required
+  const minionTargetRequirement = getExplicitMinionTargetRequirement(syntheticSkillCard);
+  const explicitTarget = minionTargetRequirement
+    ? resolveExplicitMinionTarget(state, playerIndex, minionTargetRequirement, target)
+    : undefined;
+
+  const effectTarget = cloneTarget ?? explicitTarget;
+
+  if (minionTargetRequirement && !explicitTarget) {
+    const targetLabel = minionTargetRequirement === 'FRIENDLY_MINION' ? 'friendly' : 'enemy';
+    return error('INVALID_TARGET', `General skill requires a ${targetLabel} minion target`);
+  }
+
+  // ── Execution ───────────────────────────────────────────────────
+  const events: GameEvent[] = [];
+  const collectingBus = createCollectingEventBus(eventBus, events);
+
+  // Mark skill as used via bitmask
+  minion.usedGeneralSkills |= usedMask;
+
+  // Spend energy if cost > 0
+  if (skill.cost > 0) {
+    player.energyCrystal -= skill.cost;
+    collectingBus.emit({
+      type: 'ENERGY_SPENT',
+      playerIndex,
+      amount: skill.cost,
+      remainingEnergy: player.energyCrystal,
+    });
+  }
+
+  // Create a synthetic CardInstance as source for effect resolution.
+  // Use the minion's actual instanceId so that findSourceOnBattlefield
+  // can locate it on the battlefield for self-targeting effects (MODIFY_STAT, etc.).
+  const effectCtx = createEffectContext(
+    state,
+    collectingBus,
+    _rng,
+    playerIndex,
+    createSyntheticSource(
+      syntheticSkillCard,
+      playerIndex,
+      minion.instanceId,
+    ),
+    effectTarget,
+  );
+
+  executeCardEffects('ON_PLAY', effectCtx);
+  resolveEffects('ON_PLAY', effectCtx);
+
+  // Emit GENERAL_SKILL_USED
+  collectingBus.emit({
+    type: 'GENERAL_SKILL_USED',
+    instance: minion,
   });
 
   return success(events);

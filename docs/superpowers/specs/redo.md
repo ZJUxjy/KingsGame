@@ -1,5 +1,22 @@
 # React Frontend Refactoring Design
 
+## 2026-04-15 Review Remediation Status
+
+Status: Implemented in `review-remediation` worktree and validated with full workspace test/build.
+
+Completed items:
+- Client socket listeners now register correctly even when the app mounts before the socket connection is created.
+- Client store now clears stale combat and skill-selection state on disconnect, turn handoff, and game over.
+- `CardInstance` no longer mutates shared card definition objects for runtime buffs and keyword changes.
+- Declarative card effects now execute in live gameplay for the currently used China card pool, including turn-start triggers and targeted hero/minister/general skills.
+- `USE_GENERAL_SKILL`, targeted hero skill, and targeted minister skill actions now flow end-to-end through core, server, AI, and client UI.
+- Persistent stratagem cost reduction now affects both rules validation and serialized hand costs, and expires cleanly with the stratagem.
+- Mobilize-style `CONDITIONAL_BUFF` effects now use real "cards played this turn" runtime state instead of unrelated battlefield-count heuristics.
+
+Validation snapshot:
+- `corepack pnpm -r run test` passed.
+- `corepack pnpm -r run build` passed.
+
 **Date**: 2025-04-15
 **Status**: Approved
 **Scope**: Replace Phaser 3 UI with React + Node.js server architecture

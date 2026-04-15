@@ -8,6 +8,7 @@ import type {
   GameEvent,
   EngineErrorCode,
   StateMutator,
+  SummonMinionResult,
   Keyword,
 } from '@king-card/shared';
 import { createCardInstance } from '../models/card-instance.js';
@@ -162,11 +163,11 @@ export function createStateMutator(
     },
 
     // ── summonMinion ──────────────────────────────────────────────
-    summonMinion(card: Card, ownerIndex: number, position?: number): EngineErrorCode | null {
+    summonMinion(card: Card, ownerIndex: number, position?: number): SummonMinionResult {
       const player = state.players[ownerIndex];
-      if (!player) return 'INVALID_TARGET';
+      if (!player) return { instance: null, error: 'INVALID_TARGET' };
 
-      if (player.battlefield.length >= 7) return 'BOARD_FULL';
+      if (player.battlefield.length >= 7) return { instance: null, error: 'BOARD_FULL' };
 
       const instance = createCardInstance(card, ownerIndex as 0 | 1);
       instance.position = position ?? player.battlefield.length;
@@ -183,7 +184,7 @@ export function createStateMutator(
       });
 
       emit(eventBus, { type: 'MINION_SUMMONED', instance });
-      return null;
+      return { instance, error: null };
     },
 
     // ── destroyMinion ─────────────────────────────────────────────
@@ -263,13 +264,26 @@ export function createStateMutator(
       minion.currentAttack -= removed.attackBonus;
       minion.currentMaxHealth -= removed.maxHealthBonus;
       minion.currentHealth -= removed.healthBonus;
+      if (minion.currentHealth > minion.currentMaxHealth) {
+        minion.currentHealth = minion.currentMaxHealth;
+      }
 
       // Remove granted keywords
       for (const kw of removed.keywordsGranted) {
-        minion.card.keywords = minion.card.keywords.filter((k) => k !== kw);
+        const grantedByBaseCard = minion.baseKeywords?.includes(kw) ?? false;
+        const grantedByRemainingBuff = minion.buffs.some((buff) => buff.keywordsGranted.includes(kw));
+
+        if (!grantedByBaseCard && !grantedByRemainingBuff) {
+          minion.card.keywords = minion.card.keywords.filter((k) => k !== kw);
+        }
       }
 
       emit(eventBus, { type: 'BUFF_REMOVED', target: minion, buff: removed });
+
+      if (minion.currentHealth <= 0) {
+        return createStateMutator(state, eventBus).destroyMinion(target.instanceId);
+      }
+
       return null;
     },
 

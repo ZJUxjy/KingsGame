@@ -151,13 +151,8 @@ describe('GARRISON effect handler', () => {
       garrisonTurns: 0,
     });
 
-    const source = makeCardInstance({
-      instanceId: 'source',
-      card: makeCard('source_card', []),
-    });
-
     const ctx = makeEffectContext({
-      source,
+      source: garrisonMinion,
       mutator: {
         ...ctx_mutator_base(),
         modifyStat(target, stat, delta) {
@@ -194,13 +189,8 @@ describe('GARRISON effect handler', () => {
       garrisonTurns: 1, // Still counting down
     });
 
-    const source = makeCardInstance({
-      instanceId: 'source',
-      card: makeCard('source_card', []),
-    });
-
     const ctx = makeEffectContext({
-      source,
+      source: garrisonMinion,
       mutator: {
         ...ctx_mutator_base(),
         modifyStat(target, stat, delta) {
@@ -226,13 +216,8 @@ describe('GARRISON effect handler', () => {
       garrisonTurns: 0,
     });
 
-    const source = makeCardInstance({
-      instanceId: 'source',
-      card: makeCard('source_card', []),
-    });
-
     const ctx = makeEffectContext({
-      source,
+      source: normalMinion,
       mutator: {
         ...ctx_mutator_base(),
         modifyStat(target, stat, delta) {

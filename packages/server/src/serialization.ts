@@ -5,14 +5,22 @@ import type {
 import type { SerializedGameState, SerializedPlayer, HiddenCard } from './types.js';
 
 function serializePlayer(player: Player, hideHand: boolean): SerializedPlayer {
+  const visibleHand = hideHand
+    ? player.hand.map(() => ({ hidden: true as const }))
+    : player.hand.map((card) => ({
+      ...card,
+      cost: player.costModifiers.reduce(
+        (cost, modifier) => modifier.condition(card) ? modifier.modifier(cost) : cost,
+        card.cost,
+      ),
+    }));
+
   return {
     id: player.id,
     name: player.name,
     civilization: player.civilization,
     hero: player.hero,
-    hand: hideHand
-      ? player.hand.map(() => ({ hidden: true as const }))
-      : player.hand,
+    hand: visibleHand,
     battlefield: player.battlefield,
     energyCrystal: player.energyCrystal,
     maxEnergy: player.maxEnergy,

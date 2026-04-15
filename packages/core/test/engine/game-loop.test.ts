@@ -3,6 +3,7 @@ import { executeTurnStart } from '../../../src/engine/game-loop.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
 import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
+import { DATANG_JINGRUI } from '../../../src/cards/definitions/china-minions.js';
 import type { Card, GameState, EmperorData, Minister } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
@@ -244,6 +245,18 @@ describe('GameLoop', () => {
     it('should decrement stratagem remainingTurns and remove expired ones', () => {
       const { state, bus } = setup();
       resetStratagemCounter();
+      state.players[0].costModifiers = [
+        {
+          sourceId: 'stratagem_1',
+          modifier: (cost) => Math.max(0, cost - 1),
+          condition: () => true,
+        },
+        {
+          sourceId: 'stratagem_2',
+          modifier: (cost) => Math.max(0, cost - 2),
+          condition: () => true,
+        },
+      ];
       state.players[0].activeStratagems = [
         {
           card: makeMinionCard('strat_1'),
@@ -268,6 +281,8 @@ describe('GameLoop', () => {
 
       expect(state.players[0].activeStratagems).toHaveLength(1);
       expect(state.players[0].activeStratagems[0].remainingTurns).toBe(2);
+      expect(state.players[0].costModifiers).toHaveLength(1);
+      expect(state.players[0].costModifiers[0].sourceId).toBe('stratagem_2');
       expect(events).toHaveLength(1);
     });
 
@@ -286,6 +301,52 @@ describe('GameLoop', () => {
       // game-loop only decrements garrisonTurns; the buff is applied
       // by the GARRISON effect handler (ON_TURN_START)
       expect(minion.garrisonTurns).toBe(0);
+    });
+
+    it('should emit TURN_START and trigger battlefield ON_TURN_START garrison effects', () => {
+      const { state, bus } = setup();
+      resetInstanceCounter();
+      const minion = createCardInstance(DATANG_JINGRUI, 0);
+      minion.garrisonTurns = 1;
+      state.players[0].battlefield.push(minion);
+
+      const turnStartEvents: unknown[] = [];
+      bus.on('TURN_START', (event) => turnStartEvents.push(event));
+
+      executeTurnStart(state, bus);
+
+      expect(turnStartEvents).toHaveLength(1);
+      expect(turnStartEvents[0]).toMatchObject({
+        type: 'TURN_START',
+        playerIndex: 0,
+        turnNumber: 1,
+      });
+      expect(minion.garrisonTurns).toBe(0);
+      expect(minion.currentAttack).toBe(6);
+      expect(minion.currentHealth).toBe(6);
+      expect(minion.currentMaxHealth).toBe(6);
+    });
+
+    it('should buff a ready garrison unit exactly once when other friendly minions are present', () => {
+      const { state, bus } = setup();
+      resetInstanceCounter();
+
+      const garrisonMinion = createCardInstance(DATANG_JINGRUI, 0);
+      garrisonMinion.garrisonTurns = 1;
+
+      const otherFriendlyMinion = createCardInstance(makeMinionCard('support_minion'), 0);
+
+      state.players[0].battlefield.push(garrisonMinion, otherFriendlyMinion);
+
+      executeTurnStart(state, bus);
+
+      expect(garrisonMinion.garrisonTurns).toBe(0);
+      expect(garrisonMinion.currentAttack).toBe(6);
+      expect(garrisonMinion.currentHealth).toBe(6);
+      expect(garrisonMinion.currentMaxHealth).toBe(6);
+      expect(otherFriendlyMinion.currentAttack).toBe(1);
+      expect(otherFriendlyMinion.currentHealth).toBe(1);
+      expect(otherFriendlyMinion.currentMaxHealth).toBe(1);
     });
   });
 

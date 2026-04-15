@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+  executeAttack,
+  executeEndTurn,
   executeUseMinisterSkill,
   executeSwitchMinister,
 } from '../../../src/engine/action-executor.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
 import { LISI, HANXIN, XIAOHE, CHENPING } from '../../../src/cards/definitions/china-ministers.js';
+import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
 import type { Card, GameState, Minister } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
@@ -96,7 +99,24 @@ function makeBaseGameState(): GameState {
   };
 }
 
+function makeMinionCard(id: string): Card {
+  return {
+    id,
+    name: id,
+    civilization: 'CHINA',
+    type: 'MINION',
+    rarity: 'COMMON',
+    cost: 1,
+    attack: 1,
+    health: 1,
+    description: 'Test minion',
+    keywords: [],
+    effects: [],
+  };
+}
+
 function setup() {
+  resetInstanceCounter();
   const bus = new EventBus();
   const state = makeBaseGameState();
   const rng = new SeededRNG(42);
@@ -108,20 +128,162 @@ function setup() {
 describe('Minister Operations', () => {
   it('should successfully use minister skill', () => {
     const { state, bus, rng } = setup();
+    state.players[0].deck.push({
+      id: 'draw_target',
+      name: 'Draw Target',
+      civilization: 'CHINA',
+      type: 'MINION',
+      rarity: 'COMMON',
+      cost: 1,
+      attack: 1,
+      health: 1,
+      description: 'A card to draw',
+      keywords: [],
+      effects: [],
+    });
+
     // Active minister is LISI (index 0), cost 1
     const result = executeUseMinisterSkill(state, bus, rng, 0);
 
     expect(result.success).toBe(true);
     expect(state.players[0].ministerPool[0].skillUsedThisTurn).toBe(true);
     expect(state.players[0].energyCrystal).toBe(4); // 5 - 1
+    expect(state.players[0].hand).toHaveLength(1);
+    expect(state.players[0].hand[0].id).toBe('draw_target');
+    expect(state.players[0].deck).toHaveLength(0);
 
     if (result.success) {
       const ministerEvent = result.events.find(e => e.type === 'MINISTER_SKILL_USED');
+      const drawEvent = result.events.find(e => e.type === 'CARD_DRAWN');
       expect(ministerEvent).toBeDefined();
+      expect(drawEvent).toBeDefined();
       if (ministerEvent && ministerEvent.type === 'MINISTER_SKILL_USED') {
         expect(ministerEvent.playerIndex).toBe(0);
         expect(ministerEvent.ministerId).toBe('china_lisi');
       }
+    }
+  });
+
+  it('should apply a targeted minister buff to the selected friendly minion', () => {
+    const { state, bus, rng } = setup();
+    state.players[0].activeMinisterIndex = 1;
+
+    const targetMinion = createCardInstance(makeMinionCard('friendly_target'), 0);
+    state.players[0].battlefield.push(targetMinion);
+
+    const result = executeUseMinisterSkill(
+      state,
+      bus,
+      rng,
+      0,
+      { type: 'MINION', instanceId: targetMinion.instanceId },
+    );
+
+    expect(result.success).toBe(true);
+    expect(state.players[0].ministerPool[1].skillUsedThisTurn).toBe(true);
+    expect(state.players[0].energyCrystal).toBe(3);
+    expect(targetMinion.currentAttack).toBe(3);
+    expect(targetMinion.currentHealth).toBe(2);
+    expect(targetMinion.currentMaxHealth).toBe(2);
+    expect(targetMinion.card.keywords).toContain('RUSH');
+
+    if (result.success) {
+      const ministerEvent = result.events.find((event) => event.type === 'MINISTER_SKILL_USED');
+      const buffEvent = result.events.find((event) => event.type === 'BUFF_APPLIED');
+      expect(ministerEvent).toBeDefined();
+      expect(buffEvent).toBeDefined();
+    }
+  });
+
+  it('should prevent a Chenping-targeted enemy minion from attacking while the buff is active', () => {
+    const { state, bus, rng } = setup();
+    state.players[0].activeMinisterIndex = 3;
+
+    const friendlyTarget = createCardInstance(makeMinionCard('friendly_target'), 0);
+    const enemyAttacker = createCardInstance(makeMinionCard('enemy_attacker'), 1);
+    enemyAttacker.justPlayed = false;
+    enemyAttacker.remainingAttacks = 1;
+
+    state.players[0].battlefield.push(friendlyTarget);
+    state.players[1].battlefield.push(enemyAttacker);
+
+    const skillResult = executeUseMinisterSkill(
+      state,
+      bus,
+      rng,
+      0,
+      { type: 'MINION', instanceId: enemyAttacker.instanceId },
+    );
+
+    expect(skillResult.success).toBe(true);
+    expect(enemyAttacker.currentAttack).toBeLessThanOrEqual(0);
+
+    state.currentPlayerIndex = 1;
+
+    const attackResult = executeAttack(state, bus, enemyAttacker.instanceId, {
+      type: 'MINION',
+      instanceId: friendlyTarget.instanceId,
+    });
+
+    expect(attackResult.success).toBe(false);
+    if (!attackResult.success) {
+      expect(attackResult.errorCode).toBe('MINION_CANNOT_ATTACK');
+    }
+    expect(friendlyTarget.currentHealth).toBe(1);
+  });
+
+  it('should expire temporary minister buffs at the next turn start before the next player acts', () => {
+    const { state, bus, rng } = setup();
+    state.players[0].deck.push(makeMinionCard('p1_draw'));
+    state.players[1].deck.push(makeMinionCard('p2_draw'));
+    state.players[0].activeMinisterIndex = 1;
+
+    const targetCard: Card = {
+      id: 'rush_target',
+      name: 'Rush Target',
+      civilization: 'CHINA',
+      type: 'MINION',
+      rarity: 'COMMON',
+      cost: 1,
+      attack: 1,
+      health: 1,
+      description: 'Already has rush',
+      keywords: ['RUSH'],
+      effects: [],
+    };
+    const targetMinion = createCardInstance(targetCard, 0);
+    targetMinion.justPlayed = false;
+    state.players[0].battlefield.push(targetMinion);
+
+    const skillResult = executeUseMinisterSkill(
+      state,
+      bus,
+      rng,
+      0,
+      { type: 'MINION', instanceId: targetMinion.instanceId },
+    );
+
+    expect(skillResult.success).toBe(true);
+    expect(targetMinion.currentAttack).toBe(3);
+    expect(targetMinion.currentHealth).toBe(2);
+    expect(targetMinion.currentMaxHealth).toBe(2);
+    expect(targetMinion.card.keywords).toContain('RUSH');
+    expect(targetMinion.buffs).toHaveLength(1);
+
+    const endTurnResult = executeEndTurn(state, bus);
+
+    expect(endTurnResult.success).toBe(true);
+    expect(state.currentPlayerIndex).toBe(1);
+    expect(state.phase).toBe('MAIN');
+    expect(targetMinion.currentAttack).toBe(1);
+    expect(targetMinion.currentHealth).toBe(1);
+    expect(targetMinion.currentMaxHealth).toBe(1);
+    expect(targetMinion.card.keywords).toContain('RUSH');
+    expect(targetMinion.buffs).toHaveLength(0);
+
+    if (endTurnResult.success) {
+      const buffRemovedEvent = endTurnResult.events.find((event) => event.type === 'BUFF_REMOVED');
+      expect(buffRemovedEvent).toBeDefined();
     }
   });
 

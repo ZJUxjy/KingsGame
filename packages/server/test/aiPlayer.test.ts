@@ -82,6 +82,7 @@ function createMockEngine(gameState: GameState): GameEngine {
     endTurn: vi.fn(),
     useHeroSkill: vi.fn(),
     useMinisterSkill: vi.fn(),
+    useGeneralSkill: vi.fn(),
   } as unknown as GameEngine;
 }
 
@@ -158,7 +159,7 @@ describe('aiPlayer', () => {
     await vi.advanceTimersByTimeAsync(1500);
 
     expect(engine.useHeroSkill).toHaveBeenCalledTimes(1);
-    expect(engine.useHeroSkill).toHaveBeenCalledWith(1);
+    expect(engine.useHeroSkill).toHaveBeenCalledWith(1, undefined);
     expect(engine.endTurn).toHaveBeenCalledTimes(1);
 
     await promise;

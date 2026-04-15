@@ -53,13 +53,46 @@ export async function runAiTurn(engine: GameEngine, playerIndex: number): Promis
 
   // 3. Use hero skill if available
   actions = engine.getValidActions(playerIndex);
-  if (actions.some(a => a.type === 'USE_HERO_SKILL')) {
+  const heroSkillAction = actions.find(
+    (action): action is Extract<ValidAction, { type: 'USE_HERO_SKILL' }> => action.type === 'USE_HERO_SKILL',
+  );
+  if (heroSkillAction) {
     if (isGameOver(engine)) return;
-    engine.useHeroSkill(playerIndex);
+    engine.useHeroSkill(playerIndex, heroSkillAction.target);
     await delay(AI_ACTION_DELAY);
   }
 
-  // 4. End turn
+  // 4. Use minister skill if available
+  actions = engine.getValidActions(playerIndex);
+  const ministerSkillAction = actions.find(
+    (action): action is Extract<ValidAction, { type: 'USE_MINISTER_SKILL' }> => action.type === 'USE_MINISTER_SKILL',
+  );
+  if (ministerSkillAction) {
+    if (isGameOver(engine)) return;
+    engine.useMinisterSkill(playerIndex, ministerSkillAction.target);
+    await delay(AI_ACTION_DELAY);
+  }
+
+  // 5. Use each available general skill once.
+  actions = engine.getValidActions(playerIndex);
+  const generalSkillActions = actions.filter(
+    (action): action is Extract<ValidAction, { type: 'USE_GENERAL_SKILL' }> => action.type === 'USE_GENERAL_SKILL',
+  );
+  const usedSkills = new Set<string>();
+
+  for (const action of generalSkillActions) {
+    const skillKey = `${action.instanceId}:${action.skillIndex}`;
+    if (usedSkills.has(skillKey)) {
+      continue;
+    }
+
+    if (isGameOver(engine)) return;
+    engine.useGeneralSkill(playerIndex, action.instanceId, action.skillIndex, action.target);
+    usedSkills.add(skillKey);
+    await delay(AI_ACTION_DELAY);
+  }
+
+  // 6. End turn
   if (isGameOver(engine)) return;
   engine.endTurn();
 }

@@ -20,7 +20,7 @@ const mobilizeHandler: EffectHandler = {
 
     // Find the effect params for mobilize
     const effect = source.card.effects.find(
-      (e) => e.type === 'MOBILIZE' || e.trigger === 'ON_PLAY',
+      (e) => e.type === 'MOBILIZE' && e.trigger === 'ON_PLAY',
     );
     const params = effect?.params ?? {};
     const threshold = (params.mobilizeThreshold as number) ?? 2;

@@ -1,7 +1,70 @@
-import type { GameState, GameEvent } from '@king-card/shared';
+import type { GameState, GameEvent, EffectContext } from '@king-card/shared';
 import { GAME_CONSTANTS } from '@king-card/shared';
 import { createStateMutator } from './state-mutator.js';
 import { checkWinCondition } from './win-condition.js';
+import { executeCardEffects, resolveEffects } from '../cards/effects/index.js';
+
+const turnStartRng: EffectContext['rng'] = {
+  nextInt(min: number): number {
+    return min;
+  },
+  next(): number {
+    return 0;
+  },
+  pick<T>(arr: T[]): T {
+    return arr[0]!;
+  },
+  shuffle<T>(arr: T[]): T[] {
+    return [...arr];
+  },
+};
+
+function createEffectEventBus(
+  eventBus: { emit: (event: GameEvent) => void },
+): EffectContext['eventBus'] {
+  return {
+    emit(event: unknown): void {
+      eventBus.emit(event as GameEvent);
+    },
+    on(): () => void {
+      return () => {};
+    },
+    removeAllListeners(): void {
+      // Turn-start execution only needs emit.
+    },
+  };
+}
+
+function expireTemporaryBuffs(
+  state: GameState,
+  eventBus: { emit: (event: GameEvent) => void },
+): void {
+  const mutator = createStateMutator(state, eventBus);
+
+  for (const player of state.players) {
+    for (const minion of [...player.battlefield]) {
+      for (const buff of [...minion.buffs]) {
+        if (buff.type !== 'TEMPORARY' || typeof buff.remainingTurns !== 'number') {
+          continue;
+        }
+
+        buff.remainingTurns -= 1;
+        if (buff.remainingTurns > 0) {
+          continue;
+        }
+
+        mutator.removeBuff({ type: 'MINION', instanceId: minion.instanceId }, buff.id);
+
+        const stillExists = state.players[minion.ownerIndex]?.battlefield.some(
+          (candidate) => candidate.instanceId === minion.instanceId,
+        );
+        if (!stillExists) {
+          break;
+        }
+      }
+    }
+  }
+}
 
 // ─── Turn Start ─────────────────────────────────────────────────────
 
@@ -12,6 +75,7 @@ import { checkWinCondition } from './win-condition.js';
 export function executeTurnStart(state: GameState, eventBus: { emit: (event: GameEvent) => void }): void {
   const player = state.players[state.currentPlayerIndex];
   const mutator = createStateMutator(state, eventBus);
+  player.cardsPlayedThisTurn = 0;
 
   // ── Phase 1: ENERGY_GAIN ──────────────────────────────────────────
   state.phase = 'ENERGY_GAIN';
@@ -33,6 +97,11 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
   });
 
   state.turnNumber += 1;
+  eventBus.emit({
+    type: 'TURN_START',
+    playerIndex: state.currentPlayerIndex,
+    turnNumber: state.turnNumber,
+  });
 
   // ── Phase 2: DRAW ─────────────────────────────────────────────────
   state.phase = 'DRAW';
@@ -47,12 +116,18 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
   state.phase = 'UPKEEP';
   eventBus.emit({ type: 'PHASE_CHANGE', phase: 'UPKEEP', previousPhase: 'DRAW' });
 
-  // 3a. Stratagem countdown
+  // 3a. Temporary buff countdown
+  expireTemporaryBuffs(state, eventBus);
+
+  // 3b. Stratagem countdown
   const expiredStratagems: typeof player.activeStratagems = [];
   for (const stratagem of player.activeStratagems) {
     stratagem.remainingTurns -= 1;
     if (stratagem.remainingTurns <= 0) {
       expiredStratagems.push(stratagem);
+      player.costModifiers = player.costModifiers.filter(
+        (modifier) => modifier.sourceId !== stratagem.instanceId,
+      );
       eventBus.emit({ type: 'STRATAGEM_EXPIRED', stratagem });
     }
   }
@@ -60,7 +135,7 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
     (s) => !expiredStratagems.includes(s),
   );
 
-  // 3b. Garrison countdown: decrement garrisonTurns.
+  // 3c. Garrison countdown: decrement garrisonTurns.
   // The actual stat buff is applied by the GARRISON effect handler (ON_TURN_START).
   for (const minion of player.battlefield) {
     if (minion.garrisonTurns > 0) {
@@ -68,7 +143,7 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
     }
   }
 
-  // 3c. Sleep wakeup: when sleepTurns reaches 0, enable one attack
+  // 3d. Sleep wakeup: when sleepTurns reaches 0, enable one attack
   for (const minion of player.battlefield) {
     if (minion.sleepTurns > 0) {
       minion.sleepTurns -= 1;
@@ -76,6 +151,20 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
         minion.remainingAttacks = 1;
       }
     }
+  }
+
+  for (const minion of [...player.battlefield]) {
+    const effectCtx: EffectContext = {
+      state,
+      mutator,
+      source: minion,
+      playerIndex: state.currentPlayerIndex,
+      eventBus: createEffectEventBus(eventBus),
+      rng: turnStartRng,
+    };
+
+    executeCardEffects('ON_TURN_START', effectCtx);
+    resolveEffects('ON_TURN_START', effectCtx);
   }
 
   // ── Phase 4: MAIN ─────────────────────────────────────────────────
