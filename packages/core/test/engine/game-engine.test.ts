@@ -3,6 +3,7 @@ import { GameEngine } from '../../../src/engine/game-engine.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
 import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
 import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
+import { TANG_TAIZONG } from '../../../src/cards/definitions/china-emperors.js';
 import type { Card, EmperorData, Minister } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────────
@@ -161,6 +162,68 @@ describe('GameEngine', () => {
       const playCardActions = actions.filter((a) => a.type === 'PLAY_CARD');
       // No cards should be playable due to insufficient energy
       expect(playCardActions.length).toBe(0);
+    });
+
+    it('should enumerate targeted hero and minister skill actions per legal minion target', () => {
+      const engine = createTestEngine();
+      const state = engine.getGameState();
+
+      state.players[0].hero.heroSkill = {
+        name: 'Clone Ally',
+        description: 'Clone a friendly minion',
+        cost: 0,
+        cooldown: 0,
+        effect: {
+          trigger: 'ON_PLAY',
+          type: 'SUMMON',
+          params: { cloneOfInstanceId: 'TARGET' },
+        },
+      };
+      state.players[0].activeMinisterIndex = 0;
+      state.players[0].ministerPool[0].activeSkill = {
+        name: 'Buff Ally',
+        description: 'Buff a friendly minion',
+        cost: 0,
+        effect: {
+          trigger: 'ON_PLAY',
+          type: 'APPLY_BUFF',
+          params: { target: 'FRIENDLY_MINION', attackBonus: 1, type: 'TEMPORARY', remainingTurns: 1 },
+        },
+      };
+
+      const targetA = createCardInstance(makeMinionCard({ id: 'target_a' }), 0);
+      const targetB = createCardInstance(makeMinionCard({ id: 'target_b' }), 0);
+      state.players[0].battlefield.push(targetA, targetB);
+
+      const actions = engine.getValidActions(state.currentPlayerIndex);
+      const heroActions = actions.filter((action) => action.type === 'USE_HERO_SKILL');
+      const ministerActions = actions.filter((action) => action.type === 'USE_MINISTER_SKILL');
+
+      expect(heroActions).toHaveLength(2);
+      expect(heroActions).toEqual([
+        { type: 'USE_HERO_SKILL', target: { type: 'MINION', instanceId: targetA.instanceId } },
+        { type: 'USE_HERO_SKILL', target: { type: 'MINION', instanceId: targetB.instanceId } },
+      ]);
+      expect(ministerActions).toHaveLength(2);
+      expect(ministerActions).toEqual([
+        { type: 'USE_MINISTER_SKILL', target: { type: 'MINION', instanceId: targetA.instanceId } },
+        { type: 'USE_MINISTER_SKILL', target: { type: 'MINION', instanceId: targetB.instanceId } },
+      ]);
+    });
+
+    it('should not enumerate Tang Taizong clone hero skill actions when battlefield is full', () => {
+      const engine = createTestEngine();
+      const state = engine.getGameState();
+
+      state.players[0].hero.heroSkill = TANG_TAIZONG.heroSkill!;
+      for (let i = 0; i < 7; i += 1) {
+        state.players[0].battlefield.push(createCardInstance(makeMinionCard({ id: `full_${i}` }), 0));
+      }
+
+      const actions = engine.getValidActions(state.currentPlayerIndex);
+      const heroSkillActions = actions.filter((action) => action.type === 'USE_HERO_SKILL');
+
+      expect(heroSkillActions).toHaveLength(0);
     });
   });
 

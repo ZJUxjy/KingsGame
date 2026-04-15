@@ -9,6 +9,7 @@ interface MinisterPanelProps {
   }[];
   activeIndex: number;
   canUseSkill?: boolean;
+  skillPending?: boolean;
   canSwitch?: boolean;
   onSkillClick?: () => void;
   onSwitch?: (ministerIndex: number) => void;
@@ -25,6 +26,7 @@ export function MinisterPanel({
   ministers,
   activeIndex,
   canUseSkill,
+  skillPending,
   canSwitch,
   onSkillClick,
   onSwitch,
@@ -50,7 +52,9 @@ export function MinisterPanel({
           disabled={!canUseSkill}
           className={`px-2 py-0.5 rounded text-[10px] font-bold
             ${canUseSkill
-              ? 'bg-amber-700 hover:bg-amber-600 cursor-pointer'
+              ? skillPending
+                ? 'bg-amber-500 text-black cursor-pointer'
+                : 'bg-amber-700 hover:bg-amber-600 cursor-pointer'
               : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
         >
           {active.activeSkill.name} ({active.activeSkill.cost})

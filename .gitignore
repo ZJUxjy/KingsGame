@@ -33,6 +33,7 @@ node_modules/
 # Build outputs (if any)
 dist/
 build/
+*.tsbuildinfo
 
 # Local git worktrees
 .worktrees/

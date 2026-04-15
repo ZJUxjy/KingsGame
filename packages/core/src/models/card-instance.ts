@@ -45,6 +45,7 @@ export function createCardInstance(card: Card, ownerIndex: 0 | 1): CardInstance 
     card: instanceCard,
     instanceId: `${card.id}_${++instanceCounter}`,
     ownerIndex,
+    baseKeywords: [...instanceCard.keywords],
     currentAttack: card.attack ?? 0,
     currentHealth: card.health ?? 0,
     currentMaxHealth: card.health ?? 0,

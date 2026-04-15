@@ -222,4 +222,22 @@ describe('serializeForPlayer', () => {
     expect(serialized.me.activeMinisterIndex).toBe(state.players[0].activeMinisterIndex);
     expect(serialized.opponent.activeMinisterIndex).toBe(state.players[1].activeMinisterIndex);
   });
+
+  it('serializes effective hand costs when cost modifiers are active', () => {
+    const engine = createTestEngine();
+    const state = engine.getGameState();
+    const card = state.players[0].hand[0];
+
+    state.players[0].costModifiers.push({
+      sourceId: 'test_modifier',
+      modifier: (cost) => Math.max(0, cost - 1),
+      condition: () => true,
+    });
+
+    const serialized = serializeForPlayer(state, 0);
+    const serializedCard = serialized.me.hand[0] as Card;
+
+    expect(serializedCard.id).toBe(card.id);
+    expect(serializedCard.cost).toBe(Math.max(0, card.cost - 1));
+  });
 });

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import type { GamePhase, WinReason, TargetRef } from '@king-card/shared';
+import type { GamePhase, ValidAction, WinReason, TargetRef } from '@king-card/shared';
 import { socketService } from '../services/socketService.js';
+
+export type { ValidAction } from '@king-card/shared';
 
 // These types mirror what the server sends
 export interface SerializedGameState {
@@ -53,12 +55,12 @@ export interface SerializedGameState {
   };
 }
 
-export interface ValidAction {
-  type: string;
-  [key: string]: unknown;
-}
-
 export type UiPhase = 'lobby' | 'hero-select' | 'playing' | 'game-over';
+
+export type PendingSkillAction =
+  | { type: 'HERO' }
+  | { type: 'MINISTER' }
+  | { type: 'GENERAL'; instanceId: string; skillIndex: number };
 
 interface GameStore {
   // Connection
@@ -73,6 +75,7 @@ interface GameStore {
   // UI state
   uiPhase: UiPhase;
   selectedAttacker: string | null;
+  pendingSkillAction: PendingSkillAction | null;
   error: string | null;
 
   // Computed
@@ -84,13 +87,15 @@ interface GameStore {
   playCard: (handIndex: number, boardPosition?: number) => void;
   attack: (attackerInstanceId: string, target: TargetRef) => void;
   endTurn: () => void;
-  useHeroSkill: () => void;
-  useMinisterSkill: () => void;
+  useHeroSkill: (target?: TargetRef) => void;
+  useMinisterSkill: (target?: TargetRef) => void;
+  useGeneralSkill: (instanceId: string, skillIndex: number, target?: TargetRef) => void;
   switchMinister: (ministerIndex: number) => void;
   concede: () => void;
 
   // UI actions
   setSelectedAttacker: (id: string | null) => void;
+  setPendingSkillAction: (action: PendingSkillAction | null) => void;
   clearError: () => void;
   setUiPhase: (phase: UiPhase) => void;
 
@@ -118,6 +123,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // UI state
   uiPhase: 'lobby',
   selectedAttacker: null,
+  pendingSkillAction: null,
   error: null,
 
   // Computed
@@ -153,12 +159,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
     socketService.getSocket().emit('game:endTurn');
   },
 
-  useHeroSkill: () => {
-    socketService.getSocket().emit('game:useHeroSkill');
+  useHeroSkill: (target?: TargetRef) => {
+    socketService.getSocket().emit('game:useHeroSkill', { target });
   },
 
-  useMinisterSkill: () => {
-    socketService.getSocket().emit('game:useMinisterSkill');
+  useMinisterSkill: (target?: TargetRef) => {
+    socketService.getSocket().emit('game:useMinisterSkill', { target });
+  },
+
+  useGeneralSkill: (instanceId: string, skillIndex: number, target?: TargetRef) => {
+    socketService.getSocket().emit('game:useGeneralSkill', { instanceId, skillIndex, target });
   },
 
   switchMinister: (ministerIndex: number) => {
@@ -171,7 +181,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // UI actions
   setSelectedAttacker: (id: string | null) => {
-    set({ selectedAttacker: id });
+    set({ selectedAttacker: id, pendingSkillAction: null });
+  },
+
+  setPendingSkillAction: (action: PendingSkillAction | null) => {
+    set({ pendingSkillAction: action, selectedAttacker: action ? null : get().selectedAttacker });
   },
 
   clearError: () => {
@@ -188,6 +202,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       connected: v,
       validActions: v ? get().validActions : [],
       selectedAttacker: v ? get().selectedAttacker : null,
+      pendingSkillAction: v ? get().pendingSkillAction : null,
     });
   },
 
@@ -208,6 +223,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameState: v,
       validActions: isOpponentTurn ? [] : get().validActions,
       selectedAttacker: isOpponentTurn ? null : get().selectedAttacker,
+      pendingSkillAction: null,
     });
   },
 
@@ -231,6 +247,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         : null,
       validActions: [],
       selectedAttacker: null,
+      pendingSkillAction: null,
       uiPhase: 'game-over',
     }));
   },
@@ -244,6 +261,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       validActions: [],
       uiPhase: 'lobby',
       selectedAttacker: null,
+      pendingSkillAction: null,
       error: null,
     });
     socketService.disconnect();

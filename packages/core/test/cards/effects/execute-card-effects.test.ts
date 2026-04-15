@@ -264,4 +264,91 @@ describe('executeCardEffects', () => {
     expect(friendlyTarget.currentHealth).toBe(3);
     expect(friendlyTarget.buffs).toHaveLength(0);
   });
+
+  it('should apply CONDITIONAL_BUFF when enough cards were played this turn', () => {
+    const { state, bus, mutator } = setup();
+    state.players[0].cardsPlayedThisTurn = 2;
+
+    const source = createCardInstance(
+      makeMinionCard({
+        id: 'mobilize_source',
+        effects: [
+          {
+            trigger: 'ON_PLAY',
+            type: 'CONDITIONAL_BUFF',
+            params: {
+              mobilizeThreshold: 2,
+              attackBonus: 1,
+              healthBonus: 1,
+            },
+          },
+        ],
+      }),
+      0,
+    );
+    state.players[0].battlefield.push(source);
+
+    const ctx: EffectContext = {
+      state,
+      mutator,
+      source,
+      playerIndex: 0,
+      eventBus: bus,
+      rng: {
+        nextInt: (min) => min,
+        next: () => 0,
+        pick: (arr) => arr[0]!,
+        shuffle: (arr) => [...arr],
+      },
+    };
+
+    executeCardEffects('ON_PLAY', ctx);
+
+    expect(source.currentAttack).toBe(3);
+    expect(source.currentHealth).toBe(4);
+    expect(source.buffs).toHaveLength(1);
+    expect(source.buffs[0].type).toBe('PERMANENT');
+  });
+
+  it('should draw from CONDITIONAL_BUFF effects that unlock on threshold', () => {
+    const { state, bus, mutator } = setup();
+    state.players[0].cardsPlayedThisTurn = 3;
+    state.players[0].deck.push(makeMinionCard({ id: 'draw_target' }));
+
+    const source = createCardInstance(
+      makeMinionCard({
+        id: 'mobilize_draw_source',
+        effects: [
+          {
+            trigger: 'ON_PLAY',
+            type: 'CONDITIONAL_BUFF',
+            params: {
+              mobilizeThreshold: 3,
+              drawCount: 1,
+            },
+          },
+        ],
+      }),
+      0,
+    );
+
+    const ctx: EffectContext = {
+      state,
+      mutator,
+      source,
+      playerIndex: 0,
+      eventBus: bus,
+      rng: {
+        nextInt: (min) => min,
+        next: () => 0,
+        pick: (arr) => arr[0]!,
+        shuffle: (arr) => [...arr],
+      },
+    };
+
+    executeCardEffects('ON_PLAY', ctx);
+
+    expect(state.players[0].hand).toHaveLength(1);
+    expect(state.players[0].hand[0].id).toBe('draw_target');
+  });
 });

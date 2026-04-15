@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SerializedGameState, ValidAction } from './gameStore.js';
+import type { TargetRef } from '@king-card/shared';
 
-const { mockSocketService } = vi.hoisted(() => ({
+const { emit, mockSocketService } = vi.hoisted(() => ({
+  emit: vi.fn(),
   mockSocketService: {
     connect: vi.fn(),
     disconnect: vi.fn(),
-    getSocket: vi.fn(() => ({ emit: vi.fn() })),
+    getSocket: vi.fn(() => ({ emit })),
     isConnected: vi.fn(() => false),
   },
 }));
@@ -78,7 +80,7 @@ describe('gameStore', () => {
   });
 
   it('clears stale validActions and selectedAttacker when a new game state shows it is the opponent turn', () => {
-    const staleActions: ValidAction[] = [{ type: 'ATTACK', attackerInstanceId: 'attacker-1' }];
+    const staleActions: ValidAction[] = [{ type: 'ATTACK', attackerInstanceId: 'attacker-1', targetInstanceId: 'HERO' }];
 
     useGameStore.setState({
       playerIndex: 0,
@@ -98,7 +100,7 @@ describe('gameStore', () => {
   it('clears stale combat UI state when the client disconnects', () => {
     useGameStore.setState({
       connected: true,
-      validActions: [{ type: 'ATTACK', attackerInstanceId: 'attacker-1' }],
+      validActions: [{ type: 'ATTACK', attackerInstanceId: 'attacker-1', targetInstanceId: 'HERO' }],
       selectedAttacker: 'attacker-1',
     });
 
@@ -112,7 +114,7 @@ describe('gameStore', () => {
   it('clears stale combat UI state when the game ends', () => {
     useGameStore.setState({
       gameState: createGameState(),
-      validActions: [{ type: 'ATTACK', attackerInstanceId: 'attacker-1' }],
+      validActions: [{ type: 'ATTACK', attackerInstanceId: 'attacker-1', targetInstanceId: 'HERO' }],
       selectedAttacker: 'attacker-1',
     });
 
@@ -126,5 +128,24 @@ describe('gameStore', () => {
     });
     expect(useGameStore.getState().validActions).toEqual([]);
     expect(useGameStore.getState().selectedAttacker).toBeNull();
+  });
+
+  it('emits targeted skill payloads and tracks pending skill state locally', () => {
+    const target: TargetRef = { type: 'MINION', instanceId: 'target-1' };
+
+    useGameStore.getState().setPendingSkillAction({ type: 'GENERAL', instanceId: 'general-1', skillIndex: 2 });
+    expect(useGameStore.getState().pendingSkillAction).toEqual({ type: 'GENERAL', instanceId: 'general-1', skillIndex: 2 });
+
+    useGameStore.getState().useHeroSkill(target);
+    useGameStore.getState().useMinisterSkill(target);
+    useGameStore.getState().useGeneralSkill('general-1', 2, target);
+
+    expect(emit).toHaveBeenNthCalledWith(1, 'game:useHeroSkill', { target });
+    expect(emit).toHaveBeenNthCalledWith(2, 'game:useMinisterSkill', { target });
+    expect(emit).toHaveBeenNthCalledWith(3, 'game:useGeneralSkill', {
+      instanceId: 'general-1',
+      skillIndex: 2,
+      target,
+    });
   });
 });

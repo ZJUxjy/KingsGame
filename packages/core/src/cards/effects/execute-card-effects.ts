@@ -147,6 +147,14 @@ function createBuff(effect: CardEffect, source: CardInstance): Buff {
   };
 }
 
+function createPersistentBuff(effect: CardEffect, source: CardInstance): Buff {
+  return {
+    ...createBuff(effect, source),
+    type: 'PERMANENT',
+    remainingTurns: undefined,
+  };
+}
+
 function resolveSummonCard(effect: CardEffect, ctx: EffectContext): Card | undefined {
   const { cardId, cloneOfInstanceId } = effect.params;
 
@@ -265,6 +273,23 @@ function applyActivateStratagemEffect(effect: CardEffect, ctx: EffectContext): v
 
   if (Array.isArray(effect.params.appliedEffects)) {
     activeStratagem.appliedEffects = effect.params.appliedEffects as AppliedEffect[];
+
+    for (const appliedEffect of activeStratagem.appliedEffects) {
+      if (appliedEffect.type !== 'COST_MODIFIER') {
+        continue;
+      }
+
+      const costReduction = getNumericParam(appliedEffect.params, 'costReduction');
+      if (costReduction <= 0) {
+        continue;
+      }
+
+      ctx.state.players[ctx.playerIndex].costModifiers.push({
+        sourceId: activeStratagem.instanceId,
+        modifier: (baseCost) => Math.max(0, baseCost - costReduction),
+        condition: () => true,
+      });
+    }
   }
 }
 
@@ -279,6 +304,35 @@ function applyGarrisonMarkEffect(effect: CardEffect, ctx: EffectContext): void {
       instance: target,
       turns: garrisonTurns,
     });
+  }
+}
+
+function applyConditionalBuffEffect(effect: CardEffect, ctx: EffectContext): void {
+  const threshold = getNumericParam(effect.params, 'mobilizeThreshold');
+  const cardsPlayedThisTurn = ctx.state.players[ctx.playerIndex].cardsPlayedThisTurn ?? 0;
+
+  if (cardsPlayedThisTurn < threshold) {
+    return;
+  }
+
+  const source = findSourceOnBattlefield(ctx);
+  if (source) {
+    const attackBonus = getNumericParam(effect.params, 'attackBonus');
+    const healthBonus = getNumericParam(effect.params, 'healthBonus');
+    const hasKeywords = Array.isArray(effect.params.keywordsGranted)
+      && effect.params.keywordsGranted.some((keyword) => typeof keyword === 'string');
+
+    if (attackBonus !== 0 || healthBonus !== 0 || hasKeywords) {
+      ctx.mutator.applyBuff(
+        { type: 'MINION', instanceId: source.instanceId },
+        createPersistentBuff(effect, ctx.source),
+      );
+    }
+  }
+
+  const drawCount = getNumericParam(effect.params, 'drawCount');
+  if (drawCount > 0) {
+    ctx.mutator.drawCards(ctx.playerIndex, drawCount);
   }
 }
 
@@ -321,6 +375,9 @@ export function executeCardEffects(trigger: CardEffect['trigger'], ctx: EffectCo
         break;
       case 'GARRISON_MARK':
         applyGarrisonMarkEffect(effect, ctx);
+        break;
+      case 'CONDITIONAL_BUFF':
+        applyConditionalBuffEffect(effect, ctx);
         break;
       default:
         break;

@@ -51,6 +51,7 @@ export function createPlayer(
     costModifiers: [],
     energyCrystal: 0,
     maxEnergy: 0,
+    cardsPlayedThisTurn: 0,
     cannotDrawNextTurn: false,
     ministerPool: startingEmperor.ministers.map((m) => ({
       ...m,

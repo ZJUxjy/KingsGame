@@ -245,6 +245,18 @@ describe('GameLoop', () => {
     it('should decrement stratagem remainingTurns and remove expired ones', () => {
       const { state, bus } = setup();
       resetStratagemCounter();
+      state.players[0].costModifiers = [
+        {
+          sourceId: 'stratagem_1',
+          modifier: (cost) => Math.max(0, cost - 1),
+          condition: () => true,
+        },
+        {
+          sourceId: 'stratagem_2',
+          modifier: (cost) => Math.max(0, cost - 2),
+          condition: () => true,
+        },
+      ];
       state.players[0].activeStratagems = [
         {
           card: makeMinionCard('strat_1'),
@@ -269,6 +281,8 @@ describe('GameLoop', () => {
 
       expect(state.players[0].activeStratagems).toHaveLength(1);
       expect(state.players[0].activeStratagems[0].remainingTurns).toBe(2);
+      expect(state.players[0].costModifiers).toHaveLength(1);
+      expect(state.players[0].costModifiers[0].sourceId).toBe('stratagem_2');
       expect(events).toHaveLength(1);
     });
 

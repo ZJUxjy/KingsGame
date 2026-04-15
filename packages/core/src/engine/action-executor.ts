@@ -67,6 +67,20 @@ function createCollectingEventBus(
   };
 }
 
+function createEffectEventBus(eventBus: EventBus): EffectContext['eventBus'] {
+  return {
+    emit(event: unknown): void {
+      eventBus.emit(event as GameEvent);
+    },
+    on(eventType: string, handler: (event: unknown) => void): () => void {
+      return eventBus.on(eventType, (event) => handler(event));
+    },
+    removeAllListeners(): void {
+      eventBus.removeAllListeners();
+    },
+  };
+}
+
 function createEffectContext(
   state: GameState,
   eventBus: EventBus,
@@ -81,9 +95,16 @@ function createEffectContext(
     source,
     target,
     playerIndex,
-    eventBus: eventBus as unknown as EffectContext['eventBus'],
+    eventBus: createEffectEventBus(eventBus),
     rng: rng as unknown as EffectContext['rng'],
   };
+}
+
+function getEffectiveCardCost(player: GameState['players'][number], card: Card): number {
+  return player.costModifiers.reduce(
+    (cost, modifier) => modifier.condition(card) ? modifier.modifier(cost) : cost,
+    card.cost,
+  );
 }
 
 function createSyntheticSource(
@@ -194,8 +215,9 @@ export function executePlayCard(
   }
 
   const card = player.hand[handIndex];
-  if (card.cost > player.energyCrystal) {
-    return error('INSUFFICIENT_ENERGY', `Card costs ${card.cost}, but player only has ${player.energyCrystal} energy`);
+  const effectiveCost = getEffectiveCardCost(player, card);
+  if (effectiveCost > player.energyCrystal) {
+    return error('INSUFFICIENT_ENERGY', `Card costs ${effectiveCost}, but player only has ${player.energyCrystal} energy`);
   }
 
   if (card.type === 'MINION' || card.type === 'GENERAL') {
@@ -211,13 +233,14 @@ export function executePlayCard(
 
   // Remove card from hand
   player.hand.splice(handIndex, 1);
+  player.cardsPlayedThisTurn = (player.cardsPlayedThisTurn ?? 0) + 1;
 
   // Spend energy
-  player.energyCrystal -= card.cost;
+  player.energyCrystal -= effectiveCost;
   collectingBus.emit({
     type: 'ENERGY_SPENT',
     playerIndex,
-    amount: card.cost,
+    amount: effectiveCost,
     remainingEnergy: player.energyCrystal,
   });
 
@@ -431,7 +454,7 @@ export function executeAttack(
         source: attacker,
         target: targetMinionBeforeDamage,
         playerIndex: attacker.ownerIndex,
-        eventBus: collectingBus as unknown as EffectContext['eventBus'],
+        eventBus: createEffectEventBus(collectingBus),
         rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
       };
       resolveEffects('ON_KILL', effectCtx);
@@ -534,12 +557,29 @@ export function executeUseHeroSkill(
     effects: [heroSkill.effect],
   };
 
-  const effectTarget = requiresFriendlyMinionTarget(syntheticSkillCard)
+  const requiresCloneTarget = requiresFriendlyMinionTarget(syntheticSkillCard);
+  const minionTargetRequirement = getExplicitMinionTargetRequirement(syntheticSkillCard);
+
+  if (requiresCloneTarget && player.battlefield.length >= GAME_CONSTANTS.MAX_BOARD_SIZE) {
+    return error('BOARD_FULL', `Battlefield is full (max ${GAME_CONSTANTS.MAX_BOARD_SIZE})`);
+  }
+
+  const cloneTarget = requiresCloneTarget
     ? resolveFriendlyMinionTarget(state, playerIndex, target)
     : undefined;
+  const explicitTarget = minionTargetRequirement
+    ? resolveExplicitMinionTarget(state, playerIndex, minionTargetRequirement, target)
+    : undefined;
 
-  if (requiresFriendlyMinionTarget(syntheticSkillCard) && !effectTarget) {
+  const effectTarget = cloneTarget ?? explicitTarget;
+
+  if (requiresCloneTarget && !cloneTarget) {
     return error('INVALID_TARGET', 'Hero skill requires a friendly minion target');
+  }
+
+  if (minionTargetRequirement && !explicitTarget) {
+    const targetLabel = minionTargetRequirement === 'FRIENDLY_MINION' ? 'friendly' : 'enemy';
+    return error('INVALID_TARGET', `Hero skill requires a ${targetLabel} minion target`);
   }
 
   // ── Execution ───────────────────────────────────────────────────
@@ -757,13 +797,29 @@ export function executeUseGeneralSkill(
     effects: [skill.effect],
   };
 
+  const requiresCloneTarget = requiresFriendlyMinionTarget(syntheticSkillCard);
+
+  if (requiresCloneTarget && player.battlefield.length >= GAME_CONSTANTS.MAX_BOARD_SIZE) {
+    return error('BOARD_FULL', `Battlefield is full (max ${GAME_CONSTANTS.MAX_BOARD_SIZE})`);
+  }
+
+  const cloneTarget = requiresCloneTarget
+    ? resolveFriendlyMinionTarget(state, playerIndex, target)
+    : undefined;
+
+  if (requiresCloneTarget && !cloneTarget) {
+    return error('INVALID_TARGET', 'General skill requires a friendly minion target');
+  }
+
   // Resolve explicit minion target if required
   const minionTargetRequirement = getExplicitMinionTargetRequirement(syntheticSkillCard);
-  const effectTarget = minionTargetRequirement
+  const explicitTarget = minionTargetRequirement
     ? resolveExplicitMinionTarget(state, playerIndex, minionTargetRequirement, target)
     : undefined;
 
-  if (minionTargetRequirement && !effectTarget) {
+  const effectTarget = cloneTarget ?? explicitTarget;
+
+  if (minionTargetRequirement && !explicitTarget) {
     const targetLabel = minionTargetRequirement === 'FRIENDLY_MINION' ? 'friendly' : 'enemy';
     return error('INVALID_TARGET', `General skill requires a ${targetLabel} minion target`);
   }

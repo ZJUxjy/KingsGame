@@ -10,6 +10,22 @@ interface PlayerMapping {
   playerIndex: 0 | 1;
 }
 
+function toTargetRef(target: TargetRef | undefined): TargetRef | undefined {
+  if (!target) {
+    return undefined;
+  }
+
+  if (target.type === 'MINION') {
+    return { type: 'MINION', instanceId: target.instanceId };
+  }
+
+  if (target.type === 'HERO') {
+    return { type: 'HERO', playerIndex: target.playerIndex };
+  }
+
+  return undefined;
+}
+
 export function registerSocketHandlers(
   io: Server,
   gameManager: GameManager,
@@ -235,7 +251,7 @@ export function registerSocketHandlers(
 
     // ── game:useHeroSkill ────────────────────────────────────────
 
-    socket.on('game:useHeroSkill', () => {
+    socket.on('game:useHeroSkill', (payload?: { target?: TargetRef }) => {
       const ctx = lookupPlayer(socket.id);
       if (!ctx) {
         socket.emit('game:error', { code: 'NO_GAME', message: 'Not in a game' });
@@ -244,7 +260,7 @@ export function registerSocketHandlers(
       const { session, playerIndex } = ctx;
 
       try {
-        const result = session.engine.useHeroSkill(playerIndex);
+        const result = session.engine.useHeroSkill(playerIndex, toTargetRef(payload?.target));
         handleEngineResult(socket, session, result);
       } catch (err) {
         socket.emit('game:error', {
@@ -256,7 +272,7 @@ export function registerSocketHandlers(
 
     // ── game:useMinisterSkill ────────────────────────────────────
 
-    socket.on('game:useMinisterSkill', () => {
+    socket.on('game:useMinisterSkill', (payload?: { target?: TargetRef }) => {
       const ctx = lookupPlayer(socket.id);
       if (!ctx) {
         socket.emit('game:error', { code: 'NO_GAME', message: 'Not in a game' });
@@ -265,7 +281,7 @@ export function registerSocketHandlers(
       const { session, playerIndex } = ctx;
 
       try {
-        const result = session.engine.useMinisterSkill(playerIndex);
+        const result = session.engine.useMinisterSkill(playerIndex, toTargetRef(payload?.target));
         handleEngineResult(socket, session, result);
       } catch (err) {
         socket.emit('game:error', {
@@ -306,7 +322,7 @@ export function registerSocketHandlers(
 
     socket.on(
       'game:useGeneralSkill',
-      (payload: { instanceId: string; skillIndex: number }) => {
+      (payload: { instanceId: string; skillIndex: number; target?: TargetRef }) => {
         const ctx = lookupPlayer(socket.id);
         if (!ctx) {
           socket.emit('game:error', { code: 'NO_GAME', message: 'Not in a game' });
@@ -319,6 +335,7 @@ export function registerSocketHandlers(
             playerIndex,
             payload.instanceId,
             payload.skillIndex,
+            toTargetRef(payload.target),
           );
           handleEngineResult(socket, session, result);
         } catch (err) {

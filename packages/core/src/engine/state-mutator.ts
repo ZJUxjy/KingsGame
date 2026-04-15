@@ -264,13 +264,26 @@ export function createStateMutator(
       minion.currentAttack -= removed.attackBonus;
       minion.currentMaxHealth -= removed.maxHealthBonus;
       minion.currentHealth -= removed.healthBonus;
+      if (minion.currentHealth > minion.currentMaxHealth) {
+        minion.currentHealth = minion.currentMaxHealth;
+      }
 
       // Remove granted keywords
       for (const kw of removed.keywordsGranted) {
-        minion.card.keywords = minion.card.keywords.filter((k) => k !== kw);
+        const grantedByBaseCard = minion.baseKeywords?.includes(kw) ?? false;
+        const grantedByRemainingBuff = minion.buffs.some((buff) => buff.keywordsGranted.includes(kw));
+
+        if (!grantedByBaseCard && !grantedByRemainingBuff) {
+          minion.card.keywords = minion.card.keywords.filter((k) => k !== kw);
+        }
       }
 
       emit(eventBus, { type: 'BUFF_REMOVED', target: minion, buff: removed });
+
+      if (minion.currentHealth <= 0) {
+        return createStateMutator(state, eventBus).destroyMinion(target.instanceId);
+      }
+
       return null;
     },
 

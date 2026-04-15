@@ -177,6 +177,7 @@ export interface Player {
   costModifiers: CostModifier[];
   energyCrystal: number;
   maxEnergy: number;
+  cardsPlayedThisTurn?: number;
   cannotDrawNextTurn: boolean;
   ministerPool: Minister[];
   activeMinisterIndex: number;
@@ -200,9 +201,9 @@ export interface GameState {
 export type ValidAction =
   | { type: 'PLAY_CARD'; handIndex: number; targetIndex?: number }
   | { type: 'ATTACK'; attackerInstanceId: string; targetInstanceId: string | 'HERO' }
-  | { type: 'USE_HERO_SKILL'; targetIndex?: number }
-  | { type: 'USE_MINISTER_SKILL'; targetIndex?: number }
-  | { type: 'USE_GENERAL_SKILL'; instanceId: string; skillIndex: number }
+  | { type: 'USE_HERO_SKILL'; target?: import('./types.js').TargetRef }
+  | { type: 'USE_MINISTER_SKILL'; target?: import('./types.js').TargetRef }
+  | { type: 'USE_GENERAL_SKILL'; instanceId: string; skillIndex: number; target?: import('./types.js').TargetRef }
   | { type: 'SWITCH_MINISTER'; ministerIndex: number }
   | { type: 'END_TURN' };
 

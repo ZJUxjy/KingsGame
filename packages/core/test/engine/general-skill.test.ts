@@ -323,6 +323,52 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
 
       expect(generalSkillActions).toHaveLength(0);
     });
+
+    it('should enumerate targeted general skills once per legal target', () => {
+      const engine = createTestEngine();
+      const state = engine.getGameState();
+
+      const generalCard = makeGeneralCard({
+        id: 'gen_targeted',
+        generalSkills: [
+          {
+            name: 'Targeted Strike',
+            description: 'Deal 3 damage to an enemy minion',
+            cost: 0,
+            usesPerTurn: 1,
+            effect: {
+              trigger: 'ON_PLAY',
+              type: 'DAMAGE',
+              params: { target: 'ENEMY_MINION', amount: 3 },
+            },
+          },
+        ],
+      });
+      const instance = createCardInstance(generalCard, 0);
+      instance.justPlayed = false;
+      state.players[0].battlefield.push(instance);
+      const enemyA = createCardInstance(makeMinionCard('enemy_a'), 1);
+      const enemyB = createCardInstance(makeMinionCard('enemy_b'), 1);
+      state.players[1].battlefield.push(enemyA, enemyB);
+
+      const actions = engine.getValidActions(state.currentPlayerIndex);
+      const generalSkillActions = actions.filter((a) => a.type === 'USE_GENERAL_SKILL');
+
+      expect(generalSkillActions).toEqual([
+        {
+          type: 'USE_GENERAL_SKILL',
+          instanceId: instance.instanceId,
+          skillIndex: 0,
+          target: { type: 'MINION', instanceId: enemyA.instanceId },
+        },
+        {
+          type: 'USE_GENERAL_SKILL',
+          instanceId: instance.instanceId,
+          skillIndex: 0,
+          target: { type: 'MINION', instanceId: enemyB.instanceId },
+        },
+      ]);
+    });
   });
 
   // ── executeUseGeneralSkill ──────────────────────────────────────

@@ -5,7 +5,7 @@ import { createCardInstance, resetInstanceCounter } from '../../../src/models/ca
 import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
 import { WUGUZHIHUO } from '../../../src/cards/definitions/china-sorceries.js';
-import { BINGFA_SANSHILIUJI } from '../../../src/cards/definitions/china-stratagems.js';
+import { BINGFA_SANSHILIUJI, MINGXIU_ZHANDAO } from '../../../src/cards/definitions/china-stratagems.js';
 import { TANG_TAIZONG } from '../../../src/cards/definitions/china-emperors.js';
 import type { Card, GameState, CardInstance } from '@king-card/shared';
 
@@ -311,6 +311,27 @@ describe('ActionExecutor', () => {
         expect(drawnEvents).toHaveLength(2);
       }
     });
+
+    it('should apply active cost modifiers when validating and spending card cost', () => {
+      const { state, bus, rng } = setup();
+      state.players[0].energyCrystal = 3;
+      state.players[0].hand.push(MINGXIU_ZHANDAO);
+
+      const stratagemResult = executePlayCard(state, bus, rng, 0, 0);
+      expect(stratagemResult.success).toBe(true);
+      expect(state.players[0].costModifiers).toHaveLength(1);
+
+      state.players[0].hand.push(makeMinionCard({ id: 'discounted_minion', cost: 2 }));
+
+      const result = executePlayCard(state, bus, rng, 0, 0);
+
+      expect(result.success).toBe(true);
+      expect(state.players[0].energyCrystal).toBe(0);
+      if (result.success) {
+        const energySpentEvents = result.events.filter((event) => event.type === 'ENERGY_SPENT');
+        expect(energySpentEvents.at(-1)).toMatchObject({ amount: 1, remainingEnergy: 0 });
+      }
+    });
   });
 
   // ── executeAttack ──────────────────────────────────────────────
@@ -459,6 +480,35 @@ describe('ActionExecutor', () => {
 
   // ── executeUseHeroSkill ───────────────────────────────────────
   describe('executeUseHeroSkill', () => {
+    it('should apply explicit ENEMY_MINION hero skill targeting when a target is provided', () => {
+      const { state, bus, rng } = setup();
+      state.players[0].hero.heroSkill = {
+        name: 'Targeted Bolt',
+        description: 'Deal 4 damage to an enemy minion',
+        cost: 1,
+        cooldown: 0,
+        effect: {
+          trigger: 'ON_PLAY',
+          type: 'DAMAGE',
+          params: { target: 'ENEMY_MINION', amount: 4 },
+        },
+      };
+
+      const enemyMinion = addMinionToBattlefield(state, 1, {
+        id: 'enemy_target',
+        health: 6,
+      });
+
+      const result = executeUseHeroSkill(state, bus, rng, 0, {
+        type: 'MINION',
+        instanceId: enemyMinion.instanceId,
+      });
+
+      expect(result.success).toBe(true);
+      expect(enemyMinion.currentHealth).toBe(2);
+      expect(state.players[0].energyCrystal).toBe(4);
+    });
+
     it('should summon a 1/1 clone of the targeted friendly minion for Tang Taizong', () => {
       const { state, bus, rng } = setup();
       state.players[0].hero.heroSkill = TANG_TAIZONG.heroSkill!;
@@ -491,6 +541,29 @@ describe('ActionExecutor', () => {
         expect(summonedEvent).toBeDefined();
         expect(skillEvent).toBeDefined();
       }
+    });
+
+    it('should fail Tang Taizong clone hero skill when battlefield is full', () => {
+      const { state, bus, rng } = setup();
+      state.players[0].hero.heroSkill = TANG_TAIZONG.heroSkill!;
+
+      for (let i = 0; i < 7; i += 1) {
+        addMinionToBattlefield(state, 0, { id: `full_${i}` });
+      }
+      const target = state.players[0].battlefield[0];
+
+      const result = executeUseHeroSkill(state, bus, rng, 0, {
+        type: 'MINION',
+        instanceId: target.instanceId,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.errorCode).toBe('BOARD_FULL');
+      }
+      expect(state.players[0].battlefield).toHaveLength(7);
+      expect(state.players[0].energyCrystal).toBe(5);
+      expect(state.players[0].hero.skillUsedThisTurn).toBe(false);
     });
   });
 });

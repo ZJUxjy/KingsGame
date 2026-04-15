@@ -149,7 +149,7 @@ describe('useGameSocket', () => {
     expect(useGameStore.getState().connected).toBe(true);
 
     const validActions: ValidAction[] = [
-      { type: 'ATTACK', attackerInstanceId: 'attacker-1' },
+      { type: 'ATTACK', attackerInstanceId: 'attacker-1', targetInstanceId: 'HERO' },
     ];
     const opponentTurnState = createGameState({ currentPlayerIndex: 1 });
 
