@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { executePlayCard, executeAttack, executeEndTurn } from '../../../src/engine/action-executor.js';
+import { executePlayCard, executeAttack, executeEndTurn, executeUseHeroSkill } from '../../../src/engine/action-executor.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
 import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
+import { WUGUZHIHUO } from '../../../src/cards/definitions/china-sorceries.js';
+import { BINGFA_SANSHILIUJI } from '../../../src/cards/definitions/china-stratagems.js';
+import { TANG_TAIZONG } from '../../../src/cards/definitions/china-emperors.js';
 import type { Card, GameState, CardInstance } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
@@ -239,6 +242,75 @@ describe('ActionExecutor', () => {
       expect(state.players[0].battlefield[0].currentAttack).toBe(4);
       expect(state.players[0].battlefield[0].currentHealth).toBe(5);
     });
+
+    it('should emit CARD_PLAYED with the summoned minion instance id', () => {
+      const { state, bus, rng } = setup();
+      const card = makeMinionCard({ id: 'minion_event', cost: 1 });
+      state.players[0].hand.push(card);
+
+      const result = executePlayCard(state, bus, rng, 0, 0);
+
+      expect(result.success).toBe(true);
+      if (!result.success) {
+        return;
+      }
+
+      const playedEvent = result.events.find((event) => event.type === 'CARD_PLAYED');
+      const summonedEvent = result.events.find((event) => event.type === 'MINION_SUMMONED');
+
+      expect(playedEvent).toEqual({
+        type: 'CARD_PLAYED',
+        playerIndex: 0,
+        card,
+        instanceId: state.players[0].battlefield[0].instanceId,
+      });
+      expect(summonedEvent).toEqual({
+        type: 'MINION_SUMMONED',
+        instance: state.players[0].battlefield[0],
+      });
+      expect(playedEvent?.instanceId).toBe(summonedEvent?.instance.instanceId);
+    });
+
+    it('should execute declared ON_PLAY effects when playing a SORCERY card', () => {
+      const { state, bus, rng } = setup();
+      state.players[0].hand.push(WUGUZHIHUO);
+
+      const friendlyMinion = addMinionToBattlefield(state, 0, { id: 'friendly_target' });
+      const enemyMinion = addMinionToBattlefield(state, 1, { id: 'enemy_target' });
+
+      const result = executePlayCard(state, bus, rng, 0, 0);
+
+      expect(result.success).toBe(true);
+      expect(state.players[0].battlefield).not.toContain(friendlyMinion);
+      expect(state.players[1].battlefield).not.toContain(enemyMinion);
+      expect(state.players[0].graveyard).toContain(friendlyMinion.card);
+      expect(state.players[1].graveyard).toContain(enemyMinion.card);
+
+      if (result.success) {
+        const destroyedEvents = result.events.filter((event) => event.type === 'MINION_DESTROYED');
+        expect(destroyedEvents).toHaveLength(2);
+      }
+    });
+
+    it('should execute declared ON_PLAY effects when playing a STRATAGEM card', () => {
+      const { state, bus, rng } = setup();
+      state.players[0].hand.push(BINGFA_SANSHILIUJI);
+      state.players[0].deck.push(
+        makeMinionCard({ id: 'draw_1' }),
+        makeMinionCard({ id: 'draw_2' }),
+      );
+
+      const result = executePlayCard(state, bus, rng, 0, 0);
+
+      expect(result.success).toBe(true);
+      expect(state.players[0].hand.map((card) => card.id)).toEqual(['draw_1', 'draw_2']);
+      expect(state.players[0].deck).toHaveLength(0);
+
+      if (result.success) {
+        const drawnEvents = result.events.filter((event) => event.type === 'CARD_DRAWN');
+        expect(drawnEvents).toHaveLength(2);
+      }
+    });
   });
 
   // ── executeAttack ──────────────────────────────────────────────
@@ -382,6 +454,43 @@ describe('ActionExecutor', () => {
       expect(state.currentPlayerIndex).toBe(1);
       expect(state.phase).toBe('MAIN');
       expect(state.turnNumber).toBe(2);
+    });
+  });
+
+  // ── executeUseHeroSkill ───────────────────────────────────────
+  describe('executeUseHeroSkill', () => {
+    it('should summon a 1/1 clone of the targeted friendly minion for Tang Taizong', () => {
+      const { state, bus, rng } = setup();
+      state.players[0].hero.heroSkill = TANG_TAIZONG.heroSkill!;
+
+      const target = addMinionToBattlefield(state, 0, {
+        id: 'clone_source',
+        attack: 7,
+        health: 8,
+      });
+
+      const result = executeUseHeroSkill(state, bus, rng, 0, {
+        type: 'MINION',
+        instanceId: target.instanceId,
+      });
+
+      expect(result.success).toBe(true);
+      expect(state.players[0].energyCrystal).toBe(2);
+      expect(state.players[0].battlefield).toHaveLength(2);
+
+      const clone = state.players[0].battlefield[1];
+      expect(clone.card.id).toBe(target.card.id);
+      expect(clone.currentAttack).toBe(1);
+      expect(clone.currentHealth).toBe(1);
+      expect(clone.currentMaxHealth).toBe(1);
+
+      if (result.success) {
+        const summonedEvent = result.events.find((event) => event.type === 'MINION_SUMMONED');
+        const skillEvent = result.events.find((event) => event.type === 'HERO_SKILL_USED');
+
+        expect(summonedEvent).toBeDefined();
+        expect(skillEvent).toBeDefined();
+      }
     });
   });
 });

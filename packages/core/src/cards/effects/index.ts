@@ -4,6 +4,7 @@ export {
   getRegisteredHandlers,
   clearEffectHandlers,
 } from './registry.js';
+export { executeCardEffects } from './execute-card-effects.js';
 
 // ─── Import keyword handlers (triggers registration) ────────────
 

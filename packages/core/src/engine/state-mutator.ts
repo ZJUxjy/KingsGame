@@ -8,6 +8,7 @@ import type {
   GameEvent,
   EngineErrorCode,
   StateMutator,
+  SummonMinionResult,
   Keyword,
 } from '@king-card/shared';
 import { createCardInstance } from '../models/card-instance.js';
@@ -162,11 +163,11 @@ export function createStateMutator(
     },
 
     // ── summonMinion ──────────────────────────────────────────────
-    summonMinion(card: Card, ownerIndex: number, position?: number): EngineErrorCode | null {
+    summonMinion(card: Card, ownerIndex: number, position?: number): SummonMinionResult {
       const player = state.players[ownerIndex];
-      if (!player) return 'INVALID_TARGET';
+      if (!player) return { instance: null, error: 'INVALID_TARGET' };
 
-      if (player.battlefield.length >= 7) return 'BOARD_FULL';
+      if (player.battlefield.length >= 7) return { instance: null, error: 'BOARD_FULL' };
 
       const instance = createCardInstance(card, ownerIndex as 0 | 1);
       instance.position = position ?? player.battlefield.length;
@@ -183,7 +184,7 @@ export function createStateMutator(
       });
 
       emit(eventBus, { type: 'MINION_SUMMONED', instance });
-      return null;
+      return { instance, error: null };
     },
 
     // ── destroyMinion ─────────────────────────────────────────────

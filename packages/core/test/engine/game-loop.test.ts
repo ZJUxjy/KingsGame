@@ -3,6 +3,7 @@ import { executeTurnStart } from '../../../src/engine/game-loop.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
 import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
+import { DATANG_JINGRUI } from '../../../src/cards/definitions/china-minions.js';
 import type { Card, GameState, EmperorData, Minister } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
@@ -286,6 +287,30 @@ describe('GameLoop', () => {
       // game-loop only decrements garrisonTurns; the buff is applied
       // by the GARRISON effect handler (ON_TURN_START)
       expect(minion.garrisonTurns).toBe(0);
+    });
+
+    it('should emit TURN_START and trigger battlefield ON_TURN_START garrison effects', () => {
+      const { state, bus } = setup();
+      resetInstanceCounter();
+      const minion = createCardInstance(DATANG_JINGRUI, 0);
+      minion.garrisonTurns = 1;
+      state.players[0].battlefield.push(minion);
+
+      const turnStartEvents: unknown[] = [];
+      bus.on('TURN_START', (event) => turnStartEvents.push(event));
+
+      executeTurnStart(state, bus);
+
+      expect(turnStartEvents).toHaveLength(1);
+      expect(turnStartEvents[0]).toMatchObject({
+        type: 'TURN_START',
+        playerIndex: 0,
+        turnNumber: 1,
+      });
+      expect(minion.garrisonTurns).toBe(0);
+      expect(minion.currentAttack).toBe(6);
+      expect(minion.currentHealth).toBe(6);
+      expect(minion.currentMaxHealth).toBe(6);
     });
   });
 

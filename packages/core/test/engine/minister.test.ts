@@ -108,16 +108,35 @@ function setup() {
 describe('Minister Operations', () => {
   it('should successfully use minister skill', () => {
     const { state, bus, rng } = setup();
+    state.players[0].deck.push({
+      id: 'draw_target',
+      name: 'Draw Target',
+      civilization: 'CHINA',
+      type: 'MINION',
+      rarity: 'COMMON',
+      cost: 1,
+      attack: 1,
+      health: 1,
+      description: 'A card to draw',
+      keywords: [],
+      effects: [],
+    });
+
     // Active minister is LISI (index 0), cost 1
     const result = executeUseMinisterSkill(state, bus, rng, 0);
 
     expect(result.success).toBe(true);
     expect(state.players[0].ministerPool[0].skillUsedThisTurn).toBe(true);
     expect(state.players[0].energyCrystal).toBe(4); // 5 - 1
+    expect(state.players[0].hand).toHaveLength(1);
+    expect(state.players[0].hand[0].id).toBe('draw_target');
+    expect(state.players[0].deck).toHaveLength(0);
 
     if (result.success) {
       const ministerEvent = result.events.find(e => e.type === 'MINISTER_SKILL_USED');
+      const drawEvent = result.events.find(e => e.type === 'CARD_DRAWN');
       expect(ministerEvent).toBeDefined();
+      expect(drawEvent).toBeDefined();
       if (ministerEvent && ministerEvent.type === 'MINISTER_SKILL_USED') {
         expect(ministerEvent.playerIndex).toBe(0);
         expect(ministerEvent.ministerId).toBe('china_lisi');

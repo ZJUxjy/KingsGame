@@ -1,7 +1,23 @@
-import type { GameState, GameEvent } from '@king-card/shared';
+import type { EventBus, GameState, GameEvent, EffectContext } from '@king-card/shared';
 import { GAME_CONSTANTS } from '@king-card/shared';
 import { createStateMutator } from './state-mutator.js';
 import { checkWinCondition } from './win-condition.js';
+import { executeCardEffects, resolveEffects } from '../cards/effects/index.js';
+
+const turnStartRng: EffectContext['rng'] = {
+  nextInt(min: number): number {
+    return min;
+  },
+  next(): number {
+    return 0;
+  },
+  pick<T>(arr: T[]): T {
+    return arr[0]!;
+  },
+  shuffle<T>(arr: T[]): T[] {
+    return [...arr];
+  },
+};
 
 // ─── Turn Start ─────────────────────────────────────────────────────
 
@@ -33,6 +49,11 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
   });
 
   state.turnNumber += 1;
+  eventBus.emit({
+    type: 'TURN_START',
+    playerIndex: state.currentPlayerIndex,
+    turnNumber: state.turnNumber,
+  });
 
   // ── Phase 2: DRAW ─────────────────────────────────────────────────
   state.phase = 'DRAW';
@@ -76,6 +97,20 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
         minion.remainingAttacks = 1;
       }
     }
+  }
+
+  for (const minion of [...player.battlefield]) {
+    const effectCtx: EffectContext = {
+      state,
+      mutator,
+      source: minion,
+      playerIndex: state.currentPlayerIndex,
+      eventBus: eventBus as EventBus,
+      rng: turnStartRng,
+    };
+
+    executeCardEffects('ON_TURN_START', effectCtx);
+    resolveEffects('ON_TURN_START', effectCtx);
   }
 
   // ── Phase 4: MAIN ─────────────────────────────────────────────────
