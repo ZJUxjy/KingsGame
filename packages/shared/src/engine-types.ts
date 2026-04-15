@@ -155,6 +155,11 @@ export interface CardInstance {
   position?: number;
 }
 
+export interface SummonMinionResult {
+  instance: CardInstance | null;
+  error: import('./types.js').EngineErrorCode | null;
+}
+
 // ─── Player ──────────────────────────────────────────────────────
 
 export interface Player {
@@ -237,7 +242,7 @@ export interface StateMutator {
   heal(target: import('./types.js').TargetRef, amount: number): import('./types.js').EngineErrorCode | null;
   drawCards(playerIndex: number, count: number): import('./types.js').EngineErrorCode | null;
   discardCard(playerIndex: number, handIndex: number): import('./types.js').EngineErrorCode | null;
-  summonMinion(card: Card, ownerIndex: number, position?: number): import('./types.js').EngineErrorCode | null;
+  summonMinion(card: Card, ownerIndex: number, position?: number): SummonMinionResult;
   destroyMinion(instanceId: string): import('./types.js').EngineErrorCode | null;
   modifyStat(target: import('./types.js').TargetRef, stat: 'attack' | 'health', delta: number): import('./types.js').EngineErrorCode | null;
   applyBuff(target: import('./types.js').TargetRef, buff: Buff): import('./types.js').EngineErrorCode | null;
