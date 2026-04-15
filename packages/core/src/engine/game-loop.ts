@@ -39,7 +39,7 @@ function expireTemporaryBuffs(
   state: GameState,
   eventBus: { emit: (event: GameEvent) => void },
 ): void {
-  const mutator = createStateMutator(state, eventBus);
+  const mutator = createStateMutator(state, eventBus, turnStartRng);
 
   for (const player of state.players) {
     for (const minion of [...player.battlefield]) {
@@ -74,7 +74,7 @@ function expireTemporaryBuffs(
  */
 export function executeTurnStart(state: GameState, eventBus: { emit: (event: GameEvent) => void }): void {
   const player = state.players[state.currentPlayerIndex];
-  const mutator = createStateMutator(state, eventBus);
+  const mutator = createStateMutator(state, eventBus, turnStartRng);
   player.cardsPlayedThisTurn = 0;
 
   // ── Phase 1: ENERGY_GAIN ──────────────────────────────────────────

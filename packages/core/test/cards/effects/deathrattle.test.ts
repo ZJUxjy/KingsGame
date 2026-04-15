@@ -5,6 +5,11 @@ import {
   getRegisteredHandlers,
   clearEffectHandlers,
 } from '../../../src/cards/effects/index.js';
+import { deathrattleHandler } from '../../../src/cards/effects/deathrattle.js';
+import { createStateMutator } from '../../../src/engine/state-mutator.js';
+import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
+import { EventBus } from '../../../src/engine/event-bus.js';
+import { BINGMAYONG } from '../../../src/cards/definitions/china-minions.js';
 import type { EffectContext, EffectHandler, CardInstance } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
@@ -141,6 +146,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
 describe('DEATHRATTLE effect handler', () => {
   beforeEach(() => {
     clearEffectHandlers();
+    resetInstanceCounter();
   });
 
   it('registers DEATHRATTLE handler without error', () => {
@@ -186,5 +192,22 @@ describe('DEATHRATTLE effect handler', () => {
 
     expect(receivedCtx).toBe(ctx);
     expect(receivedCtx!.source).toBe(source);
+  });
+
+  it('destroyMinion triggers draw from a real deathrattle card', () => {
+    registerEffectHandler(deathrattleHandler);
+
+    const bus = new EventBus();
+    const ctx = makeEffectContext({ source: makeCardInstance({ card: makeCard('placeholder') }) });
+    ctx.state.players[0].deck = [{ ...makeCard('draw_target') }];
+    const mutator = createStateMutator(ctx.state, bus);
+    const source = createCardInstance(BINGMAYONG, 0);
+    ctx.state.players[0].battlefield.push(source);
+
+    mutator.destroyMinion(source.instanceId);
+
+    expect(ctx.state.players[0].hand).toHaveLength(1);
+    expect(ctx.state.players[0].hand[0].id).toBe('draw_target');
+    expect(ctx.state.players[0].graveyard.map((card) => card.id)).toContain(BINGMAYONG.id);
   });
 });

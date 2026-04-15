@@ -10,8 +10,11 @@ import type {
   StateMutator,
   SummonMinionResult,
   Keyword,
+  EffectContext,
 } from '@king-card/shared';
 import { createCardInstance } from '../models/card-instance.js';
+import { DefaultRNG } from './rng.js';
+import { resolveEffects } from '../cards/effects/index.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -42,6 +45,7 @@ function emit(eventBus: { emit: (event: GameEvent) => void }, event: GameEvent):
 export function createStateMutator(
   state: GameState,
   eventBus: { emit: (event: GameEvent) => void },
+  rng: EffectContext['rng'] = new DefaultRNG(),
 ): StateMutator {
   return {
     // ── damage ────────────────────────────────────────────────────
@@ -79,7 +83,7 @@ export function createStateMutator(
 
       if (minion.currentHealth <= 0) {
         // destroyMinion is called internally via the mutator itself
-        const destroyResult = createStateMutator(state, eventBus).destroyMinion(target.instanceId);
+        const destroyResult = createStateMutator(state, eventBus, rng).destroyMinion(target.instanceId);
         return destroyResult;
       }
 
@@ -193,6 +197,21 @@ export function createStateMutator(
         const idx = player.battlefield.findIndex((m) => m.instanceId === instanceId);
         if (idx !== -1) {
           const [minion] = player.battlefield.splice(idx, 1);
+
+          const effectCtx: EffectContext = {
+            state,
+            mutator: createStateMutator(state, eventBus, rng),
+            source: minion,
+            playerIndex: minion.ownerIndex,
+            eventBus: {
+              emit: (event: unknown) => eventBus.emit(event as GameEvent),
+              on: () => () => {},
+              removeAllListeners: () => {},
+            },
+            rng,
+          };
+
+          resolveEffects('ON_DEATH', effectCtx);
           player.graveyard.push(minion.card);
 
           // Update positions
@@ -281,7 +300,7 @@ export function createStateMutator(
       emit(eventBus, { type: 'BUFF_REMOVED', target: minion, buff: removed });
 
       if (minion.currentHealth <= 0) {
-        return createStateMutator(state, eventBus).destroyMinion(target.instanceId);
+        return createStateMutator(state, eventBus, rng).destroyMinion(target.instanceId);
       }
 
       return null;

@@ -9,6 +9,7 @@ import type {
   Player,
   ValidAction,
   RNG,
+  EffectContext,
 } from '@king-card/shared';
 import { GAME_CONSTANTS } from '@king-card/shared';
 import { createGameState } from '../models/game.js';
@@ -152,7 +153,7 @@ export class GameEngine {
     // 8. Pre-draw cards before first turn start
     // executeTurnStart draws 1 card per turn. We need STARTING_HAND_SIZE total for each player.
     // So pre-draw (STARTING_HAND_SIZE - 1) for player 0 and STARTING_HAND_SIZE for player 1.
-    const mutator = createStateMutator(state, eventBus);
+    const mutator = createStateMutator(state, eventBus, actualRng as EffectContext['rng']);
     mutator.drawCards(0, GAME_CONSTANTS.STARTING_HAND_SIZE - 1);
     mutator.drawCards(1, GAME_CONSTANTS.STARTING_HAND_SIZE);
 
@@ -348,7 +349,7 @@ export class GameEngine {
   }
 
   attack(attackerInstanceId: string, target: TargetRef): EngineResult {
-    return executeAttack(this.state, this.eventBus, attackerInstanceId, target);
+    return executeAttack(this.state, this.eventBus, attackerInstanceId, target, this.rng);
   }
 
   endTurn(): EngineResult {

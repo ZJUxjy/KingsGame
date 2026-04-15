@@ -278,13 +278,18 @@ describe('China Card Definitions', () => {
 
   // ─── Specific Card Checks ─────────────────────────────────────────
 
-  it('Bingmayong should be a 1-cost 1/1 with no keywords and no effects', () => {
+  it('Bingmayong should be a 1-cost 1/1 deathrattle minion that draws a card', () => {
     const card = CHINA_MINIONS.find((c) => c.id === 'china_bingmayong')!;
     expect(card.cost).toBe(1);
     expect(card.attack).toBe(1);
     expect(card.health).toBe(1);
-    expect(card.keywords).toHaveLength(0);
-    expect(card.effects).toHaveLength(0);
+    expect(card.keywords).toContain('DEATHRATTLE');
+    expect(card.effects).toHaveLength(1);
+    expect(card.effects[0]).toMatchObject({
+      trigger: 'ON_DEATH',
+      type: 'DRAW',
+      params: { count: 1 },
+    });
   });
 
   it('Qinjun Bubing should have MOBILIZE keyword', () => {

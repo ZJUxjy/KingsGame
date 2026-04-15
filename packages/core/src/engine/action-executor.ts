@@ -16,6 +16,7 @@ import { checkWinCondition } from './win-condition.js';
 import { executeTurnStart } from './game-loop.js';
 import { executeCardEffects, resolveEffects } from '../cards/effects/index.js';
 import { getEmperorData } from './emperor-registry.js';
+import { DefaultRNG } from './rng.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ function createEffectContext(
 ): EffectContext {
   return {
     state,
-    mutator: createStateMutator(state, eventBus),
+    mutator: createStateMutator(state, eventBus, rng as EffectContext['rng']),
     source,
     target,
     playerIndex,
@@ -229,7 +230,7 @@ export function executePlayCard(
   // ── Execution ───────────────────────────────────────────────────
   const events: GameEvent[] = [];
   const collectingBus = createCollectingEventBus(eventBus, events);
-  const mutator = createStateMutator(state, collectingBus);
+  const mutator = createStateMutator(state, collectingBus, _rng as EffectContext['rng']);
 
   // Remove card from hand
   player.hand.splice(handIndex, 1);
@@ -358,6 +359,7 @@ export function executeAttack(
   eventBus: EventBus,
   attackerInstanceId: string,
   target: TargetRef,
+  _rng: RNG = new DefaultRNG(),
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
   if (state.phase !== 'MAIN') {
@@ -425,7 +427,7 @@ export function executeAttack(
   // ── Execution ───────────────────────────────────────────────────
   const events: GameEvent[] = [];
   const collectingBus = createCollectingEventBus(eventBus, events);
-  const mutator = createStateMutator(state, collectingBus);
+  const mutator = createStateMutator(state, collectingBus, _rng as EffectContext['rng']);
 
   // Decrement remaining attacks
   attacker.remainingAttacks -= 1;
