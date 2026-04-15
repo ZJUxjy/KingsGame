@@ -3,6 +3,7 @@ import { executeCardEffects } from '../../../src/cards/effects/index.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { createStateMutator, resetStratagemCounter } from '../../../src/engine/state-mutator.js';
 import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
+import { resetBuffCounter } from '../../../src/cards/effects/execute-card-effects.js';
 import type { Card, EffectContext, GameState } from '@king-card/shared';
 
 function makeMinionCard(overrides: Partial<Card> & { id: string }): Card {
@@ -102,6 +103,7 @@ function makeGameState(): GameState {
 function setup() {
   resetInstanceCounter();
   resetStratagemCounter();
+  resetBuffCounter();
   const bus = new EventBus();
   const state = makeGameState();
   const mutator = createStateMutator(state, bus);
@@ -113,6 +115,7 @@ describe('executeCardEffects', () => {
   beforeEach(() => {
     resetInstanceCounter();
     resetStratagemCounter();
+    resetBuffCounter();
   });
 
   it('should apply DAMAGE to a targeted enemy minion', () => {

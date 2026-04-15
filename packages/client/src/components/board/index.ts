@@ -7,3 +7,5 @@ export { TurnIndicator } from './TurnIndicator.js';
 export { Battlefield } from './Battlefield.js';
 export { HandZone } from './HandZone.js';
 export { default as GameBoard } from './GameBoard.js';
+export { default as GameOverlay } from './GameOverlay.js';
+export { default as Toast } from './Toast.js';

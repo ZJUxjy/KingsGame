@@ -43,6 +43,7 @@ export function GeneralSkillsPanel({
                 <button
                   key={skillKey}
                   type="button"
+                  data-anchor-id={`general-skill:${general.instanceId}:${skillIndex}`}
                   disabled={!canUse}
                   onClick={() => onSkillClick(general.instanceId, skillIndex)}
                   className={`rounded px-2 py-0.5 text-[10px] font-bold ${canUse

@@ -11,6 +11,7 @@ interface MinisterPanelProps {
   canUseSkill?: boolean;
   skillPending?: boolean;
   canSwitch?: boolean;
+  skillAnchorId?: string;
   onSkillClick?: () => void;
   onSwitch?: (ministerIndex: number) => void;
 }
@@ -28,6 +29,7 @@ export function MinisterPanel({
   canUseSkill,
   skillPending,
   canSwitch,
+  skillAnchorId,
   onSkillClick,
   onSwitch,
 }: MinisterPanelProps) {
@@ -48,6 +50,7 @@ export function MinisterPanel({
           </span>
         </div>
         <button
+          data-anchor-id={skillAnchorId}
           onClick={onSkillClick}
           disabled={!canUseSkill}
           className={`px-2 py-0.5 rounded text-[10px] font-bold

@@ -8,7 +8,14 @@ interface HeroPanelProps {
   canUseSkill?: boolean;
   skillPending?: boolean;
   isOpponent?: boolean;
+  targetable?: boolean;
+  highlightedTarget?: boolean;
+  targetAnchorId?: string;
+  skillAnchorId?: string;
   onSkillClick?: () => void;
+  onClick?: () => void;
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
 }
 
 export function HeroPanel({
@@ -21,14 +28,27 @@ export function HeroPanel({
   canUseSkill,
   skillPending,
   isOpponent,
+  targetable,
+  highlightedTarget,
+  targetAnchorId,
+  skillAnchorId,
   onSkillClick,
+  onClick,
+  onPointerEnter,
+  onPointerLeave,
 }: HeroPanelProps) {
   const hpPercent = Math.max(0, (health / maxHealth) * 100);
   const hpColor =
     health <= 10 ? 'bg-red-600' : health <= 20 ? 'bg-orange-500' : 'bg-green-600';
 
   return (
-    <div className="flex items-center gap-3 h-[70px] px-2">
+    <div
+      data-anchor-id={targetAnchorId}
+      className={`flex items-center gap-3 h-[70px] px-2 rounded-2xl transition-all duration-150 ${targetable ? 'cursor-pointer' : ''} ${highlightedTarget ? 'ring-2 ring-red-400 shadow-[0_0_24px_rgba(248,113,113,0.5)]' : ''}`}
+      onClick={onClick}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+    >
       {/* Hero portrait placeholder */}
       <div className="w-[56px] h-[56px] rounded-full bg-gray-700 border-2 border-yellow-600 flex items-center justify-center text-2xl">
         &#x1F451;
@@ -53,6 +73,7 @@ export function HeroPanel({
       {/* Skill button */}
       {!isOpponent && skillName && (
         <button
+          data-anchor-id={skillAnchorId}
           onClick={onSkillClick}
           disabled={!canUseSkill}
           className={`px-3 py-1 rounded text-xs font-bold

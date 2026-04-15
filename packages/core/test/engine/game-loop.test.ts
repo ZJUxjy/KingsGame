@@ -366,6 +366,36 @@ describe('GameLoop', () => {
       expect(minion.remainingAttacks).toBe(1);
     });
 
+    it('should reset usedGeneralSkills for battlefield generals at turn start', () => {
+      const { state, bus } = setup();
+      resetInstanceCounter();
+      const general = createCardInstance(
+        makeMinionCard({
+          id: 'general_minion',
+          type: 'GENERAL',
+          rarity: 'LEGENDARY',
+          cost: 4,
+          attack: 4,
+          health: 4,
+          generalSkills: [
+            {
+              name: 'Test General Skill',
+              description: '',
+              cost: 0,
+              effect: { trigger: 'ON_PLAY', type: 'DAMAGE', params: { target: 'ENEMY_HERO', amount: 1 } },
+            },
+          ],
+        }),
+        0,
+      );
+      general.usedGeneralSkills = 1;
+      state.players[0].battlefield.push(general);
+
+      executeTurnStart(state, bus);
+
+      expect(general.usedGeneralSkills).toBe(0);
+    });
+
     it('should reset hero skillUsedThisTurn and decrement cooldown', () => {
       const { state, bus } = setup();
       state.players[0].hero.skillUsedThisTurn = true;

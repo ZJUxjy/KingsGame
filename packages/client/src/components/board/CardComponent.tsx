@@ -31,10 +31,12 @@ interface CardComponentProps {
   card?: Card;
   instance?: CardInstance;
   selected?: boolean;
+  actionable?: boolean;
   validTarget?: boolean;
   onClick?: () => void;
-  draggable?: boolean;
-  onDragStart?: (e: React.DragEvent) => void;
+  onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
   className?: string;
   isHidden?: boolean;
 }
@@ -43,10 +45,12 @@ export function CardComponent({
   card,
   instance,
   selected,
+  actionable,
   validTarget,
   onClick,
-  draggable,
-  onDragStart,
+  onPointerDown,
+  onPointerEnter,
+  onPointerLeave,
   className,
   isHidden,
 }: CardComponentProps) {
@@ -72,11 +76,13 @@ export function CardComponent({
         transition-all duration-150
         hover:-translate-y-5 hover:scale-105
         ${selected ? 'ring-2 ring-yellow-400 scale-105' : ''}
-        ${validTarget ? 'ring-2 ring-red-400 animate-pulse' : ''}
+        ${actionable ? 'shadow-[0_0_22px_rgba(74,222,128,0.55)] ring-1 ring-emerald-400/70' : ''}
+        ${validTarget ? 'ring-2 ring-red-400 shadow-[0_0_26px_rgba(248,113,113,0.65)] animate-pulse' : ''}
         ${className ?? ''}`}
       onClick={onClick}
-      draggable={draggable}
-      onDragStart={onDragStart}
+      onPointerDown={onPointerDown}
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
     >
       {/* Cost circle */}
       <div className="absolute top-1 left-1 w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold">

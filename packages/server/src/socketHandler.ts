@@ -89,6 +89,23 @@ export function registerSocketHandlers(
     broadcastGameState(session.id);
   }
 
+  function ensureCurrentPlayerTurn(
+    socket: Socket,
+    session: GameSession,
+    playerIndex: 0 | 1,
+  ): boolean {
+    const state = session.engine.getGameState();
+    if (state.currentPlayerIndex === playerIndex) {
+      return true;
+    }
+
+    socket.emit('game:error', {
+      code: 'NOT_YOUR_TURN',
+      message: 'It is not your turn',
+    });
+    return false;
+  }
+
   // ─── Helper: listen for GAME_OVER on an engine ────────────────
 
   function subscribeGameOver(
@@ -163,6 +180,10 @@ export function registerSocketHandlers(
         }
         const { session, playerIndex } = ctx;
 
+        if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
+          return;
+        }
+
         try {
           const result = session.engine.playCard(
             playerIndex,
@@ -194,6 +215,10 @@ export function registerSocketHandlers(
         }
         const { session, playerIndex } = ctx;
 
+        if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
+          return;
+        }
+
         try {
           const target: TargetRef =
             payload.targetInstanceId === 'HERO'
@@ -222,7 +247,11 @@ export function registerSocketHandlers(
         socket.emit('game:error', { code: 'NO_GAME', message: 'Not in a game' });
         return;
       }
-      const { session } = ctx;
+      const { session, playerIndex } = ctx;
+
+      if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
+        return;
+      }
 
       try {
         const result = session.engine.endTurn();
@@ -259,6 +288,10 @@ export function registerSocketHandlers(
       }
       const { session, playerIndex } = ctx;
 
+      if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
+        return;
+      }
+
       try {
         const result = session.engine.useHeroSkill(playerIndex, toTargetRef(payload?.target));
         handleEngineResult(socket, session, result);
@@ -279,6 +312,10 @@ export function registerSocketHandlers(
         return;
       }
       const { session, playerIndex } = ctx;
+
+      if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
+        return;
+      }
 
       try {
         const result = session.engine.useMinisterSkill(playerIndex, toTargetRef(payload?.target));
@@ -302,6 +339,10 @@ export function registerSocketHandlers(
           return;
         }
         const { session, playerIndex } = ctx;
+
+        if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
+          return;
+        }
 
         try {
           const result = session.engine.switchMinister(
@@ -329,6 +370,10 @@ export function registerSocketHandlers(
           return;
         }
         const { session, playerIndex } = ctx;
+
+        if (!ensureCurrentPlayerTurn(socket, session, playerIndex)) {
+          return;
+        }
 
         try {
           const result = session.engine.useGeneralSkill(

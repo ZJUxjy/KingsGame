@@ -4,65 +4,68 @@ interface BattlefieldProps {
   minions: any[];
   isOpponent?: boolean;
   onMinionClick?: (instanceId: string, isMine: boolean) => void;
+  actionableIds?: Set<string>;
   selectedAttackerId?: string | null;
   validTargetIds?: Set<string>;
-  onDrop?: (handIndex: number) => void;
+  hoveredTargetId?: string | null;
+  onTargetHover?: (instanceId: string | null) => void;
 }
-
-const MAX_BOARD_SIZE = 7;
 
 export function Battlefield({
   minions,
   isOpponent = false,
   onMinionClick,
+  actionableIds,
   selectedAttackerId,
   validTargetIds,
-  onDrop,
+  hoveredTargetId,
+  onTargetHover,
 }: BattlefieldProps) {
+  const gap = minions.length >= 6 ? -18 : minions.length >= 5 ? -10 : minions.length >= 4 ? 0 : 14;
+
   return (
     <div
-      className={`h-[180px] flex items-center justify-center gap-2 px-4 ${isOpponent ? '' : ''}`}
-      onDragOver={onDrop ? (e) => e.preventDefault() : undefined}
-      onDrop={
-        onDrop
-          ? (e) => {
-              e.preventDefault();
-              const handIndex = Number(e.dataTransfer.getData('handIndex'));
-              onDrop(handIndex);
-            }
-          : undefined
-      }
+      className="h-[180px] flex items-end justify-center px-4 transition-all duration-300"
+      style={{ gap: `${gap}px` }}
     >
-      {Array.from({ length: MAX_BOARD_SIZE }, (_, slotIndex) => {
-        const minion = minions[slotIndex];
-        if (minion) {
+      {minions.length === 0 ? (
+        <div className="h-[150px] w-full max-w-[360px] rounded-3xl border border-dashed border-gray-700/80 bg-gray-900/35" />
+      ) : (
+        minions.map((minion: any) => {
           const isSelected = minion.instanceId === selectedAttackerId;
-          const isValidTarget = validTargetIds?.has(minion.instanceId) ?? false;
+          const isHoveredTarget = hoveredTargetId === minion.instanceId;
+          const isTargetable = validTargetIds?.has(minion.instanceId) ?? false;
+          const canAct = actionableIds?.has(minion.instanceId) ?? false;
+
           return (
             <div
               key={minion.instanceId}
-              className={`cursor-pointer transition-all duration-150 ${
-                isSelected ? 'ring-2 ring-yellow-400 scale-105' : ''
-              } ${isValidTarget ? 'ring-2 ring-red-500' : ''} hover:scale-105`}
+              data-anchor-id={`minion:${minion.instanceId}`}
+              className="cursor-pointer transition-all duration-200 hover:-translate-y-1"
               onClick={() => onMinionClick?.(minion.instanceId, !isOpponent)}
+              onPointerEnter={() => {
+                if (isTargetable) {
+                  onTargetHover?.(minion.instanceId);
+                }
+              }}
+              onPointerLeave={() => {
+                if (isHoveredTarget) {
+                  onTargetHover?.(null);
+                }
+              }}
             >
               <CardComponent
                 card={minion.card}
                 instance={minion}
                 selected={isSelected}
-                validTarget={isValidTarget}
+                actionable={canAct}
+                validTarget={isHoveredTarget}
                 onClick={() => onMinionClick?.(minion.instanceId, !isOpponent)}
               />
             </div>
           );
-        }
-        return (
-          <div
-            key={`empty-${slotIndex}`}
-            className="w-[120px] h-[170px] border-2 border-dashed border-gray-600 rounded-lg"
-          />
-        );
-      })}
+        })
+      )}
     </div>
   );
 }

@@ -17,7 +17,7 @@ const CARD_WIDTH = 120;
 export function computeFanLayout(
   count: number,
   containerWidth: number,
-  maxAngle: number = 30,
+  maxAngle: number = 22,
 ): FanCardTransform[] {
   if (count <= 0) return [];
   if (count === 1) {
@@ -25,27 +25,18 @@ export function computeFanLayout(
   }
 
   const results: FanCardTransform[] = [];
-
-  // Available horizontal space: we place the leftmost card at its center
-  // at one edge and the rightmost card at its center at the other edge.
-  const totalSpread = containerWidth - CARD_WIDTH;
+  const compactSpacing = count <= 3 ? 74 : count <= 5 ? 82 : count <= 7 ? 88 : 92;
+  const desiredSpread = Math.max(compactSpacing * (count - 1), CARD_WIDTH * 0.8);
+  const maxSpread = Math.max(CARD_WIDTH, Math.min(containerWidth - CARD_WIDTH * 0.65, desiredSpread));
+  const totalSpread = maxSpread;
+  const arcDepth = Math.min(30, 12 + count * 2.6);
+  const dynamicAngle = Math.min(maxAngle, 10 + count * 1.9);
 
   for (let i = 0; i < count; i++) {
-    // Normalised position from -1 (leftmost) to +1 (rightmost)
     const t = count === 1 ? 0 : (i / (count - 1)) * 2 - 1;
-
-    // Horizontal offset from container center
     const x = t * (totalSpread / 2);
-
-    // Rotation: linear interpolation from -maxAngle to +maxAngle
-    const rotation = t * maxAngle;
-
-    // Y offset: parabolic arc -- edges are lower (negative = upward in CSS),
-    // center is highest (most forward). Using t^2 gives a symmetric arc.
-    const arcDepth = 30; // max downward dip at the edges (px)
-    const y = t * t * arcDepth - arcDepth; // range: [-arcDepth, 0]
-
-    // zIndex: center cards are on top
+    const rotation = t * dynamicAngle;
+    const y = t * t * arcDepth - arcDepth;
     const zIndex = count - Math.abs(i - Math.floor((count - 1) / 2));
 
     results.push({ x, y, rotation, zIndex });

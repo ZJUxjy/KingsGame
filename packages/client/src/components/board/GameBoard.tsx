@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { HeroPanel } from './HeroPanel.js';
 import { EnergyBar } from './EnergyBar.js';
@@ -7,9 +7,20 @@ import { GeneralSkillsPanel } from './GeneralSkillsPanel.js';
 import { TurnIndicator } from './TurnIndicator.js';
 import { Battlefield } from './Battlefield.js';
 import { HandZone } from './HandZone.js';
+import { TargetingArrow } from './TargetingArrow.js';
 import GameOverlay from './GameOverlay.js';
 import Toast from './Toast.js';
 import type { TargetRef, ValidAction } from '@king-card/shared';
+
+interface ScreenPoint {
+  x: number;
+  y: number;
+}
+
+type HoveredTarget =
+  | { type: 'MINION'; instanceId: string }
+  | { type: 'HERO'; playerIndex: number }
+  | null;
 
 export default function GameBoard() {
   // Store state
@@ -162,6 +173,29 @@ export default function GameBoard() {
 
   // Turn overlay state
   const [overlayText, setOverlayText] = useState<string | null>(null);
+  const [pointerPosition, setPointerPosition] = useState<ScreenPoint | null>(null);
+  const [hoveredTarget, setHoveredTarget] = useState<HoveredTarget>(null);
+  const [anchorCenters, setAnchorCenters] = useState<Record<string, ScreenPoint>>({});
+
+  const measureAnchors = useCallback(() => {
+    const nextCenters: Record<string, ScreenPoint> = {};
+    const elements = document.querySelectorAll<HTMLElement>('[data-anchor-id]');
+
+    for (const element of elements) {
+      const anchorId = element.dataset.anchorId;
+      if (!anchorId) {
+        continue;
+      }
+
+      const rect = element.getBoundingClientRect();
+      nextCenters[anchorId] = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      };
+    }
+
+    setAnchorCenters(nextCenters);
+  }, []);
 
   useEffect(() => {
     if (!gameState) return;
@@ -170,6 +204,64 @@ export default function GameBoard() {
     const timer = setTimeout(() => setOverlayText(null), 1500);
     return () => clearTimeout(timer);
   }, [gameState?.turnNumber]); // trigger on turn change
+
+  useEffect(() => {
+    if (!selectedAttacker && !pendingSkillAction) {
+      setPointerPosition(null);
+      setHoveredTarget(null);
+      return;
+    }
+
+    const updatePointer = (event: PointerEvent) => {
+      setPointerPosition({ x: event.clientX, y: event.clientY });
+    };
+
+    window.addEventListener('pointermove', updatePointer);
+    return () => window.removeEventListener('pointermove', updatePointer);
+  }, [pendingSkillAction, selectedAttacker]);
+
+  useEffect(() => {
+    if (!gameState) {
+      return;
+    }
+
+    const rafId = requestAnimationFrame(measureAnchors);
+    const handleViewportChange = () => measureAnchors();
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [
+    gameState,
+    measureAnchors,
+    hoveredTarget,
+    pendingSkillAction,
+    selectedAttacker,
+    gameState?.me.battlefield.length,
+    gameState?.opponent.battlefield.length,
+  ]);
+
+  const arrowSourceAnchorId = pendingSkillAction
+    ? pendingSkillAction.type === 'HERO'
+      ? 'hero-skill:me'
+      : pendingSkillAction.type === 'MINISTER'
+        ? 'minister-skill:me'
+        : `general-skill:${pendingSkillAction.instanceId}:${pendingSkillAction.skillIndex}`
+    : selectedAttacker
+      ? `minion:${selectedAttacker}`
+      : null;
+
+  const arrowStart = arrowSourceAnchorId ? anchorCenters[arrowSourceAnchorId] ?? null : null;
+  const arrowEnd = hoveredTarget
+    ? hoveredTarget.type === 'MINION'
+      ? anchorCenters[`minion:${hoveredTarget.instanceId}`] ?? null
+      : anchorCenters[hoveredTarget.playerIndex === playerIndex ? 'hero:me' : 'hero:enemy'] ?? null
+    : pointerPosition;
 
   // --- Handlers ---
 
@@ -185,6 +277,7 @@ export default function GameBoard() {
           useGeneralSkill(pendingSkillAction.instanceId, pendingSkillAction.skillIndex, target);
         }
         setPendingSkillAction(null);
+        setHoveredTarget(null);
       }
       return;
     }
@@ -205,6 +298,7 @@ export default function GameBoard() {
       if (selectedAttacker && attackTargetIds.has(instanceId)) {
         attack(selectedAttacker, { type: 'MINION', instanceId });
         setSelectedAttacker(null);
+        setHoveredTarget(null);
       }
     }
   };
@@ -220,12 +314,14 @@ export default function GameBoard() {
         useGeneralSkill(pendingSkillAction.instanceId, pendingSkillAction.skillIndex, target);
       }
       setPendingSkillAction(null);
+      setHoveredTarget(null);
       return;
     }
 
     if (selectedAttacker && canAttackHero && playerIndex !== null) {
       attack(selectedAttacker, { type: 'HERO', playerIndex: 1 - playerIndex });
       setSelectedAttacker(null);
+      setHoveredTarget(null);
     }
   };
 
@@ -267,26 +363,11 @@ export default function GameBoard() {
     setPendingSkillAction(isSamePending ? null : { type: 'GENERAL', instanceId, skillIndex });
   };
 
-  const handleCardClick = (handIndex: number) => {
+  const handlePlayCardFromHand = useCallback((handIndex: number) => {
     if (validPlayIndices.has(handIndex)) {
       playCard(handIndex);
     }
-  };
-
-  const handleCardDragStart = (handIndex: number, e: React.DragEvent) => {
-    if (validPlayIndices.has(handIndex)) {
-      e.dataTransfer.setData('handIndex', String(handIndex));
-      e.dataTransfer.effectAllowed = 'move';
-    } else {
-      e.preventDefault();
-    }
-  };
-
-  const handleDropOnBattlefield = (handIndex: number) => {
-    if (validPlayIndices.has(handIndex)) {
-      playCard(handIndex);
-    }
-  };
+  }, [playCard, validPlayIndices]);
 
   // --- Early return ---
   if (!gameState) {
@@ -316,9 +397,19 @@ export default function GameBoard() {
   // Minister data
   const ministers = (me.ministerPool as any[]) ?? [];
 
+  const enemyHeroHighlighted = hoveredTarget?.type === 'HERO'
+    && playerIndex !== null
+    && hoveredTarget.playerIndex === 1 - playerIndex;
+
   return (
     <div className="min-w-[1024px]">
     <div className="h-screen flex flex-col max-w-[1280px] mx-auto bg-gradient-to-b from-gray-900 to-gray-950 overflow-hidden">
+      <TargetingArrow
+        start={arrowStart}
+        end={arrowEnd}
+        visible={Boolean(arrowSourceAnchorId && arrowStart && arrowEnd)}
+      />
+
       {/* Enemy hero bar */}
       <div className="flex items-center justify-between px-4 h-[100px] shrink-0">
         <HeroPanel
@@ -327,15 +418,23 @@ export default function GameBoard() {
           maxHealth={oppHero?.maxHealth ?? 30}
           armor={oppHero?.armor ?? 0}
           isOpponent
+          targetable={selectedAttacker ? canAttackHero : canTargetEnemyHero}
+          highlightedTarget={enemyHeroHighlighted}
+          targetAnchorId="hero:enemy"
+          onClick={handleEnemyHeroClick}
+          onPointerEnter={() => {
+            if (playerIndex !== null && (selectedAttacker ? canAttackHero : canTargetEnemyHero)) {
+              setHoveredTarget({ type: 'HERO', playerIndex: 1 - playerIndex });
+            }
+          }}
+          onPointerLeave={() => {
+            if (enemyHeroHighlighted) {
+              setHoveredTarget(null);
+            }
+          }}
         />
         <div
-          className={`text-sm text-gray-400 ${
-            selectedAttacker && canAttackHero
-              || pendingSkillAction && canTargetEnemyHero
-              ? 'text-red-400 cursor-pointer ring-2 ring-red-500 rounded px-2 py-1'
-              : ''
-          }`}
-          onClick={handleEnemyHeroClick}
+          className="text-sm text-gray-400"
         >
           牌堆: {opponent.deckCount}
         </div>
@@ -349,6 +448,10 @@ export default function GameBoard() {
           onMinionClick={handleMinionClick}
           selectedAttackerId={selectedAttacker}
           validTargetIds={activeTargetIds}
+          hoveredTargetId={hoveredTarget?.type === 'MINION' ? hoveredTarget.instanceId : null}
+          onTargetHover={(instanceId) => {
+            setHoveredTarget(instanceId ? { type: 'MINION', instanceId } : null);
+          }}
         />
       </div>
 
@@ -372,9 +475,13 @@ export default function GameBoard() {
         <Battlefield
           minions={me.battlefield as any[]}
           onMinionClick={handleMinionClick}
+          actionableIds={validAttackerIds}
           selectedAttackerId={selectedAttacker}
           validTargetIds={activeTargetIds}
-          onDrop={handleDropOnBattlefield}
+          hoveredTargetId={hoveredTarget?.type === 'MINION' ? hoveredTarget.instanceId : null}
+          onTargetHover={(instanceId) => {
+            setHoveredTarget(instanceId ? { type: 'MINION', instanceId } : null);
+          }}
         />
       </div>
 
@@ -396,6 +503,8 @@ export default function GameBoard() {
           skillCost={myHeroSkillCost}
           canUseSkill={canUseHeroSkill}
           skillPending={pendingSkillAction?.type === 'HERO'}
+          targetAnchorId="hero:me"
+          skillAnchorId="hero-skill:me"
           onSkillClick={handleHeroSkillClick}
         />
         <div className="flex items-center gap-4">
@@ -406,6 +515,7 @@ export default function GameBoard() {
             canUseSkill={canUseMinisterSkill}
             skillPending={pendingSkillAction?.type === 'MINISTER'}
             canSwitch={validSwitchMinisters.size > 0}
+            skillAnchorId="minister-skill:me"
             onSkillClick={handleMinisterSkillClick}
             onSwitch={switchMinister}
           />
@@ -416,8 +526,7 @@ export default function GameBoard() {
       <div className="h-[180px] shrink-0">
         <HandZone
           cards={me.hand as any[]}
-          onCardClick={handleCardClick}
-          onCardDragStart={handleCardDragStart}
+          onPlayCard={handlePlayCardFromHand}
           validPlayIndices={validPlayIndices}
         />
       </div>

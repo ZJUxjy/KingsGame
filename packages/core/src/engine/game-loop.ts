@@ -174,6 +174,7 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
   // 4a. Reset battlefield minions
   for (const minion of player.battlefield) {
     minion.justPlayed = false;
+    minion.usedGeneralSkills = 0;
     // Only reset remainingAttacks for non-sleeping minions
     if (minion.sleepTurns === 0) {
       minion.remainingAttacks = 1;

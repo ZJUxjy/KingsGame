@@ -11,6 +11,10 @@ import { CHINA_ALL_CARDS } from '../definitions/index.js';
 
 let buffCounter = 0;
 
+export function resetBuffCounter(): void {
+  buffCounter = 0;
+}
+
 function findCardById(cardId: string): Card | undefined {
   return CHINA_ALL_CARDS.find((card) => card.id === cardId);
 }

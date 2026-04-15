@@ -4,6 +4,31 @@ import Lobby from './components/lobby/Lobby.js';
 import HeroSelect from './components/lobby/HeroSelect.js';
 import GameBoard from './components/board/GameBoard.js';
 
+function GameOverScreen() {
+  const gameState = useGameStore(s => s.gameState);
+  const playerIndex = useGameStore(s => s.playerIndex);
+  const _reset = useGameStore(s => s._reset);
+
+  const won = gameState?.winnerIndex === playerIndex;
+
+  return (
+    <div className="h-screen bg-gray-900 flex flex-col items-center justify-center">
+      <h1 className={`text-7xl font-bold mb-8 ${won ? 'text-yellow-400' : 'text-red-400'}`}>
+        {won ? '胜利!' : '失败!'}
+      </h1>
+      <p className="text-gray-400 text-lg mb-12">
+        {gameState?.winReason === 'HERO_KILLED' ? '英雄被击杀' : '牌库耗尽'}
+      </p>
+      <button
+        onClick={() => { _reset(); }}
+        className="px-8 py-3 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-lg cursor-pointer transition-colors"
+      >
+        再来一局
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   const uiPhase = useGameStore((s) => s.uiPhase);
 
@@ -17,6 +42,6 @@ export default function App() {
     case 'playing':
       return <GameBoard />;
     case 'game-over':
-      return <div className="h-screen bg-gray-900 flex items-center justify-center text-white text-2xl">游戏结束</div>;
+      return <GameOverScreen />;
   }
 }
