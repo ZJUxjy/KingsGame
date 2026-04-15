@@ -1,0 +1,234 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { GameEngine } from '@king-card/core';
+import type { GameState, ValidAction, Card } from '@king-card/shared';
+import { runAiTurn, AI_PLAYER_INDEX } from '../src/aiPlayer.js';
+
+function makeCard(cost: number): Card {
+  return {
+    id: `card-${cost}`,
+    name: `Test Card ${cost}`,
+    civilization: 'CHINA',
+    type: 'MINION',
+    rarity: 'COMMON',
+    cost,
+    attack: 1,
+    health: 1,
+    description: 'test',
+    keywords: [],
+    effects: [],
+  };
+}
+
+function makeGameState(overrides: Partial<GameState> = {}): GameState {
+  const player = {
+    id: 'ai',
+    name: 'AI',
+    hero: {
+      health: 30,
+      maxHealth: 30,
+      armor: 0,
+      heroSkill: {
+        name: 'Test Skill',
+        description: 'test',
+        cost: 2,
+        cooldown: 0,
+        effect: { trigger: 'ON_PLAY', type: 'DAMAGE', params: { amount: 1 } },
+      },
+      skillUsedThisTurn: false,
+      skillCooldownRemaining: 0,
+    },
+    civilization: 'CHINA',
+    hand: [makeCard(3), makeCard(1)],
+    handLimit: 10,
+    deck: [],
+    graveyard: [],
+    battlefield: [],
+    activeStratagems: [],
+    costModifiers: [],
+    energyCrystal: 10,
+    maxEnergy: 10,
+    cannotDrawNextTurn: false,
+    ministerPool: [],
+    activeMinisterIndex: -1,
+    boundCards: [],
+  };
+
+  const opponent = {
+    ...player,
+    id: 'opponent',
+    name: 'Opponent',
+    hand: [],
+    battlefield: [],
+  };
+
+  return {
+    players: [opponent, player],
+    currentPlayerIndex: 1,
+    turnNumber: 1,
+    phase: 'MAIN',
+    isGameOver: false,
+    winnerIndex: null,
+    winReason: null,
+    ...overrides,
+  } as GameState;
+}
+
+function createMockEngine(gameState: GameState): GameEngine {
+  return {
+    getGameState: vi.fn(() => gameState),
+    getValidActions: vi.fn(() => []),
+    playCard: vi.fn(),
+    attack: vi.fn(),
+    endTurn: vi.fn(),
+    useHeroSkill: vi.fn(),
+    useMinisterSkill: vi.fn(),
+  } as unknown as GameEngine;
+}
+
+describe('aiPlayer', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  it('AI_PLAYER_INDEX is 1', () => {
+    expect(AI_PLAYER_INDEX).toBe(1);
+  });
+
+  it('plays cards when available (highest cost first)', async () => {
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    // First call returns play card actions; subsequent calls return empty
+    const playActions: ValidAction[] = [
+      { type: 'PLAY_CARD', handIndex: 0 }, // cost 3
+      { type: 'PLAY_CARD', handIndex: 1 }, // cost 1
+    ];
+    vi.mocked(engine.getValidActions)
+      .mockReturnValueOnce(playActions)
+      .mockReturnValue([]);
+
+    const promise = runAiTurn(engine, 1);
+
+    // Advance past the two delays (one for each card played)
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(engine.playCard).toHaveBeenCalledTimes(2);
+    // Highest cost first (handIndex 0 = cost 3)
+    expect(engine.playCard).toHaveBeenNthCalledWith(1, 1, 0);
+    expect(engine.playCard).toHaveBeenNthCalledWith(2, 1, 1);
+    expect(engine.endTurn).toHaveBeenCalledTimes(1);
+
+    await promise;
+  });
+
+  it('attacks when possible', async () => {
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    const attackActions: ValidAction[] = [
+      { type: 'ATTACK', attackerInstanceId: 'minion-1', targetInstanceId: 'minion-2' },
+      { type: 'ATTACK', attackerInstanceId: 'minion-3', targetInstanceId: 'HERO' },
+    ];
+    vi.mocked(engine.getValidActions)
+      .mockReturnValueOnce([])        // no cards to play
+      .mockReturnValueOnce(attackActions) // attack actions
+      .mockReturnValue([]);           // hero skill check
+
+    const promise = runAiTurn(engine, 1);
+    await vi.advanceTimersByTimeAsync(1500);
+
+    expect(engine.attack).toHaveBeenCalledTimes(2);
+    expect(engine.attack).toHaveBeenNthCalledWith(1, 'minion-1', { type: 'MINION', instanceId: 'minion-2' });
+    expect(engine.attack).toHaveBeenNthCalledWith(2, 'minion-3', { type: 'HERO', playerIndex: 0 });
+    expect(engine.endTurn).toHaveBeenCalledTimes(1);
+
+    await promise;
+  });
+
+  it('uses hero skill when available', async () => {
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    vi.mocked(engine.getValidActions)
+      .mockReturnValueOnce([])                          // no cards
+      .mockReturnValueOnce([])                          // no attacks
+      .mockReturnValueOnce([{ type: 'USE_HERO_SKILL' }]); // hero skill
+
+    const promise = runAiTurn(engine, 1);
+    await vi.advanceTimersByTimeAsync(1500);
+
+    expect(engine.useHeroSkill).toHaveBeenCalledTimes(1);
+    expect(engine.useHeroSkill).toHaveBeenCalledWith(1);
+    expect(engine.endTurn).toHaveBeenCalledTimes(1);
+
+    await promise;
+  });
+
+  it('ends turn after all actions', async () => {
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    vi.mocked(engine.getValidActions).mockReturnValue([]);
+
+    const promise = runAiTurn(engine, 1);
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(engine.endTurn).toHaveBeenCalledTimes(1);
+
+    await promise;
+  });
+
+  it('skips actions when game is over', async () => {
+    const gameOverState = makeGameState({ isGameOver: true });
+    const engine = createMockEngine(gameOverState);
+
+    vi.mocked(engine.getValidActions).mockReturnValue([]);
+
+    await runAiTurn(engine, 1);
+
+    expect(engine.playCard).not.toHaveBeenCalled();
+    expect(engine.attack).not.toHaveBeenCalled();
+    expect(engine.useHeroSkill).not.toHaveBeenCalled();
+    expect(engine.endTurn).not.toHaveBeenCalled();
+  });
+
+  it('convertTargetInstanceId converts HERO target correctly', async () => {
+    // We test indirectly via the attack flow
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    vi.mocked(engine.getValidActions)
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce([
+        { type: 'ATTACK', attackerInstanceId: 'm1', targetInstanceId: 'HERO' },
+      ])
+      .mockReturnValue([]);
+
+    const promise = runAiTurn(engine, 1);
+    await vi.advanceTimersByTimeAsync(1500);
+
+    // playerIndex=1, so HERO should target playerIndex 0
+    expect(engine.attack).toHaveBeenCalledWith('m1', { type: 'HERO', playerIndex: 0 });
+
+    await promise;
+  });
+
+  it('convertTargetInstanceId converts minion target correctly', async () => {
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    vi.mocked(engine.getValidActions)
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce([
+        { type: 'ATTACK', attackerInstanceId: 'm1', targetInstanceId: 'enemy-minion-42' },
+      ])
+      .mockReturnValue([]);
+
+    const promise = runAiTurn(engine, 1);
+    await vi.advanceTimersByTimeAsync(1500);
+
+    expect(engine.attack).toHaveBeenCalledWith('m1', { type: 'MINION', instanceId: 'enemy-minion-42' });
+
+    await promise;
+  });
+});
