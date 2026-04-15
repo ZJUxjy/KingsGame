@@ -160,6 +160,7 @@ export function HandZone({
             key={i}
             className={`absolute transition-all duration-200 ease-out ${isDragging ? 'pointer-events-none z-50 transition-none' : ''}`}
             style={{
+              position: isDragging ? 'fixed' : 'absolute',
               left: isDragging && dragState ? dragPosition.x - dragState.offsetX : '50%',
               top: isDragging && dragState ? dragPosition.y - dragState.offsetY : '50%',
               width: 120,

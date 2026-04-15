@@ -326,7 +326,7 @@ export default function GameBoard() {
   };
 
   const handleHeroSkillClick = () => {
-    const requiresTarget = heroSkillActions.some((action) => action.target?.type === 'MINION');
+    const requiresTarget = heroSkillActions.some((action) => action.target != null);
     if (!requiresTarget) {
       useHeroSkill();
       return;
@@ -336,7 +336,7 @@ export default function GameBoard() {
   };
 
   const handleMinisterSkillClick = () => {
-    const requiresTarget = ministerSkillActions.some((action) => action.target?.type === 'MINION');
+    const requiresTarget = ministerSkillActions.some((action) => action.target != null);
     if (!requiresTarget) {
       useMinisterSkill();
       return;
@@ -349,7 +349,7 @@ export default function GameBoard() {
     const skillActions = generalSkillActions.filter(
       (action) => action.instanceId === instanceId && action.skillIndex === skillIndex,
     );
-    const requiresTarget = skillActions.some((action) => action.target?.type === 'MINION');
+    const requiresTarget = skillActions.some((action) => action.target != null);
 
     if (!requiresTarget) {
       useGeneralSkill(instanceId, skillIndex);
