@@ -206,6 +206,22 @@ describe('GameBoard targeting interactions', () => {
     expect(useGameStore.getState().selectedAttacker).toBeNull();
   });
 
+  it('does not clear selected attacker when clicking interactive board targets', () => {
+    seedPlayableBoard();
+    const { container } = render(<GameBoard />);
+
+    const attacker = container.querySelector('[data-anchor-id="minion:attacker-1"]') as HTMLElement;
+    const myHero = container.querySelector('[data-anchor-id="hero:me"]') as HTMLElement;
+    expect(attacker).not.toBeNull();
+    expect(myHero).not.toBeNull();
+
+    fireEvent.click(attacker);
+    expect(useGameStore.getState().selectedAttacker).toBe('attacker-1');
+
+    fireEvent.click(myHero);
+    expect(useGameStore.getState().selectedAttacker).toBe('attacker-1');
+  });
+
   it('attacks enemy hero when ATTACK -> HERO is valid', () => {
     const attack = vi.fn();
     seedPlayableBoard({ attack });

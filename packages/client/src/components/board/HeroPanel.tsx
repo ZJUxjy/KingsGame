@@ -61,6 +61,7 @@ export function HeroPanel({
   return (
     <div
       data-anchor-id={targetAnchorId}
+      data-card-interactive="true"
       className={`flex items-center gap-2 transition-all duration-150
         ${targetable ? 'cursor-pointer' : ''}
         ${highlightedTarget ? 'ring-2 ring-red-400 shadow-[0_0_24px_rgba(248,113,113,0.5)] rounded-xl' : ''}`}
@@ -142,6 +143,7 @@ export function HeroPanel({
         <button
           type="button"
           data-anchor-id={skillAnchorId}
+          data-card-interactive="true"
           onClick={onSkillClick}
           disabled={!canUseSkill}
           className={`flex-shrink-0 px-2 py-1 text-[10px] font-bold text-white rounded transition-all duration-150${skillPending && canUseSkill ? ' skill-pending' : ''}`}

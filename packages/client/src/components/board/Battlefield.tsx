@@ -43,6 +43,7 @@ export function Battlefield({
             <div
               key={minion.instanceId}
               data-anchor-id={`minion:${minion.instanceId}`}
+              data-card-interactive="true"
               className="cursor-pointer transition-all duration-200 hover:-translate-y-1"
               onClick={() => onMinionClick?.(minion.instanceId, !isOpponent)}
               onPointerEnter={() => {

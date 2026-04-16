@@ -105,6 +105,7 @@ interface GameStore {
   // UI actions
   setSelectedAttacker: (id: string | null) => void;
   setPendingSkillAction: (action: PendingSkillAction | null) => void;
+  clearTargetingSelection: () => void;
   clearError: () => void;
   setUiPhase: (phase: UiPhase) => void;
 
@@ -229,6 +230,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setPendingSkillAction: (action: PendingSkillAction | null) => {
     set({ pendingSkillAction: action, selectedAttacker: action ? null : get().selectedAttacker });
+  },
+
+  clearTargetingSelection: () => {
+    set({ selectedAttacker: null, pendingSkillAction: null });
   },
 
   clearError: () => {
