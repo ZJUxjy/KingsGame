@@ -225,6 +225,44 @@ describe('GameEngine', () => {
 
       expect(heroSkillActions).toHaveLength(0);
     });
+
+    it('should include attacking the enemy hero for an ordinary ready minion', () => {
+      const engine = createTestEngine();
+      const state = engine.getGameState();
+
+      const attacker = createCardInstance(makeMinionCard({ id: 'ready_attacker', attack: 4 }), 0);
+      attacker.justPlayed = false;
+      attacker.remainingAttacks = 1;
+      state.players[0].battlefield.push(attacker);
+
+      const actions = engine.getValidActions(state.currentPlayerIndex);
+      const attackActions = actions.filter((action) => action.type === 'ATTACK');
+
+      expect(attackActions).toContainEqual({
+        type: 'ATTACK',
+        attackerInstanceId: attacker.instanceId,
+        targetInstanceId: 'HERO',
+      });
+    });
+
+    it('should not include attacks for a freshly summoned non-CHARGE minion', () => {
+      const engine = createTestEngine();
+      const state = engine.getGameState();
+
+      const freshMinion = createCardInstance(makeMinionCard({ id: 'fresh_attacker' }), 0);
+      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_target' }), 1);
+      state.players[0].battlefield.push(freshMinion);
+      state.players[1].battlefield.push(enemyMinion);
+
+      const actions = engine.getValidActions(state.currentPlayerIndex);
+      const attackActions = actions.filter(
+        (action) =>
+          action.type === 'ATTACK' &&
+          action.attackerInstanceId === freshMinion.instanceId,
+      );
+
+      expect(attackActions).toHaveLength(0);
+    });
   });
 
   // ─── Play Card ────────────────────────────────────────────────────

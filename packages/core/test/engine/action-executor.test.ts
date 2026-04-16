@@ -430,6 +430,38 @@ describe('ActionExecutor', () => {
       expect(state.players[1].hero.health).toBe(25); // 30 - 5
     });
 
+    it('should allow an ordinary ready minion to attack the enemy hero', () => {
+      const { state, bus } = setup();
+      const attacker = addMinionToBattlefield(state, 0, { id: 'ready_hero_attacker', attack: 4 });
+      attacker.remainingAttacks = 1;
+
+      const result = executeAttack(state, bus, attacker.instanceId, {
+        type: 'HERO',
+        playerIndex: 1,
+      });
+
+      expect(result.success).toBe(true);
+      expect(state.players[1].hero.health).toBe(26);
+      expect(attacker.remainingAttacks).toBe(0);
+    });
+
+    it('should not allow a freshly summoned non-CHARGE minion to attack the enemy hero', () => {
+      const { state, bus } = setup();
+      const attacker = createCardInstance(makeMinionCard({ id: 'fresh_hero_attacker', attack: 4 }), 0);
+      state.players[0].battlefield.push(attacker);
+
+      const result = executeAttack(state, bus, attacker.instanceId, {
+        type: 'HERO',
+        playerIndex: 1,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.errorCode).toBe('MINION_CANNOT_ATTACK');
+      }
+      expect(state.players[1].hero.health).toBe(30);
+    });
+
     it('should require attacking TAUNT minion first', () => {
       const { state, bus } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'normal_att', attack: 3 });
@@ -456,6 +488,30 @@ describe('ActionExecutor', () => {
         instanceId: taunt.instanceId,
       });
       expect(result2.success).toBe(true);
+    });
+
+    it('should still require attacking a TAUNT minion before the enemy hero', () => {
+      const { state, bus } = setup();
+      const attacker = addMinionToBattlefield(state, 0, { id: 'hero_attacker', attack: 3 });
+      const tauntMinion = addMinionToBattlefield(state, 1, {
+        id: 'hero_guard',
+        keywords: ['TAUNT'],
+        health: 6,
+      });
+      attacker.remainingAttacks = 1;
+
+      const result = executeAttack(state, bus, attacker.instanceId, {
+        type: 'HERO',
+        playerIndex: 1,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.errorCode).toBe('INVALID_TARGET');
+        expect(result.message).toBe('Must attack a TAUNT minion before attacking the hero');
+      }
+      expect(state.players[1].hero.health).toBe(30);
+      expect(tauntMinion.currentHealth).toBe(6);
     });
   });
 
