@@ -58,8 +58,8 @@ function MidlineDivider() {
       <div
         style={{
           height: 1,
-          background: 'linear-gradient(90deg, transparent 0%, var(--midline-color) 50%, transparent 100%)',
-          boxShadow: '0 0 6px var(--midline-glow)',
+          background: 'linear-gradient(90deg, transparent 0%, var(--midline-color, rgba(203,213,225,0.35)) 50%, transparent 100%)',
+          boxShadow: '0 0 6px var(--midline-glow, rgba(148,163,184,0.18))',
         }}
       />
     </div>
@@ -109,12 +109,11 @@ export function SidePanel({
 }: SidePanelProps) {
   return (
     <div
-      className="flex flex-col items-center justify-between py-3 gap-2"
+      className="flex flex-col items-center justify-between py-3 gap-2 h-full"
       style={{
         width: 'var(--sidebar-width)',
         background: 'linear-gradient(180deg, var(--sidebar-bg-from) 0%, var(--sidebar-bg-to) 100%)',
         borderLeft: '1px solid var(--sidebar-border)',
-        height: '100%',
       }}
     >
       {/* Enemy deck widget (top) */}
@@ -130,7 +129,7 @@ export function SidePanel({
         type="button"
         onClick={onEndTurn}
         disabled={!isMyTurn}
-        className="w-[90px] py-1.5 rounded text-xs font-bold btn-endturn"
+        className="mx-3 self-stretch py-1.5 rounded text-xs font-bold btn-endturn"
       >
         结束回合
       </button>
