@@ -80,7 +80,7 @@ describe('HandZone drag interactions', () => {
 
     // Find the first CardComponent root div (the actual element with onPointerDown)
     const cardWrappers = handContainer.querySelectorAll(':scope > div');
-    const firstCardRoot = cardWrappers[0]?.querySelector('.w-\\[120px\\]') as HTMLElement;
+    const firstCardRoot = cardWrappers[0]?.querySelector('[data-testid="card"]') as HTMLElement;
 
     act(() => {
       fireEvent.pointerDown(firstCardRoot, {
@@ -176,7 +176,7 @@ describe('HandZone drag interactions', () => {
     };
 
     // Find all CardComponent root divs (w-[120px] h-[170px] class)
-    const allCardRoots = handContainer.querySelectorAll('.w-\\[120px\\]');
+    const allCardRoots = handContainer.querySelectorAll('[data-testid="card"]');
     const secondCardRoot = allCardRoots[1] as HTMLElement;
     expect(secondCardRoot).toBeTruthy();
 
@@ -205,7 +205,7 @@ describe('HandZone drag interactions', () => {
   it('cancels drag on pointercancel event (inside hand zone)', () => {
     const { container } = renderHand();
     const handContainer = container.firstElementChild as HTMLElement;
-    const firstCardRoot = handContainer.querySelector('.w-\\[120px\\]') as HTMLElement;
+    const firstCardRoot = handContainer.querySelector('[data-testid="card"]') as HTMLElement;
 
     const origGetBCR = Element.prototype.getBoundingClientRect;
     Element.prototype.getBoundingClientRect = function (this: Element) {
