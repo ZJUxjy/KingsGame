@@ -14,14 +14,10 @@
   --board-shell-padding-x: clamp(12px, 2vw, 28px);
   --board-shell-padding-y: clamp(12px, 2.2vh, 28px);
   --board-row-gap: clamp(8px, 1.5vh, 18px);
-  --hero-row-height: clamp(76px, 11vh, 124px);
-  --battlefield-row-height: clamp(140px, 23vh, 240px);
-  --hand-row-height: clamp(148px, 24vh, 250px);
-  --battlefield-card-width: clamp(78px, 7vw, 108px);
-  --battlefield-card-height: clamp(112px, 10vw, 156px);
+  --hero-row-height: clamp(56px, 8vh, 72px);
 
   /* Sidebar */
-  --sidebar-width: 110px;
+  --sidebar-width: 120px;
   --sidebar-bg-from: rgba(8, 14, 32, 0.7);
   --sidebar-bg-to: rgba(5, 10, 24, 0.85);
   --sidebar-border: rgba(148, 163, 184, 0.08);

@@ -82,8 +82,8 @@ export function HeroPanel({
       <div
         className="relative flex-shrink-0 flex items-center justify-center"
         style={{
-          width: 52,
-          height: 52,
+          width: 46,
+          height: 46,
           borderRadius: '50%',
           background: portraitBg,
           border: `2px solid ${portraitBorder}`,
@@ -98,8 +98,8 @@ export function HeroPanel({
             style={{
               bottom: 0,
               right: 0,
-              width: 18,
-              height: 18,
+              width: 16,
+              height: 16,
               borderRadius: '50%',
               background: '#1e3a8a',
               border: '1.5px solid #60a5fa',
