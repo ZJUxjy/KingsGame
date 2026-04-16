@@ -11,6 +11,7 @@
   --board-bg-edge: rgba(2, 8, 16, 1);
 
   /* Sidebar */
+  --sidebar-width: 110px;
   --sidebar-bg-from: rgba(8, 14, 32, 0.7);
   --sidebar-bg-to: rgba(5, 10, 24, 0.85);
   --sidebar-border: rgba(148, 163, 184, 0.08);

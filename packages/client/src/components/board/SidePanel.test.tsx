@@ -80,4 +80,19 @@ describe('SidePanel', () => {
     expect(playerWidget).not.toBeNull();
     expect(playerWidget!.textContent).toContain('5');
   });
+
+  it('renders two gold midline accent dividers', () => {
+    const { container } = render(<SidePanel {...defaultProps()} />);
+    const dividers = container.querySelectorAll('[data-midline-divider]');
+    expect(dividers.length).toBe(2);
+  });
+
+  it('TurnIndicator inside SidePanel does NOT have its own end-turn button', () => {
+    // SidePanel omits onEndTurn from TurnIndicator; the sidebar end-turn button is separate
+    const { getAllByRole } = render(<SidePanel {...defaultProps()} />);
+    const buttons = getAllByRole('button');
+    // Only one button: the SidePanel's own end-turn button
+    expect(buttons.length).toBe(1);
+    expect(buttons[0].textContent).toContain('结束回合');
+  });
 });

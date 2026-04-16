@@ -16,15 +16,52 @@ function DeckWidget({ count, side }: { count: number; side: 'enemy' | 'player' }
       data-deck-widget={side}
       className="flex flex-col items-center gap-1"
     >
-      {/* Stacked card shapes */}
-      <div className="relative w-10 h-14">
-        <div className="absolute inset-0 translate-x-1 -translate-y-1 rounded bg-white/5 border border-white/10" />
-        <div className="absolute inset-0 translate-x-0.5 -translate-y-0.5 rounded bg-white/8 border border-white/10" />
-        <div className="absolute inset-0 rounded bg-slate-700 border border-white/15 flex items-center justify-center">
-          <span className="text-base font-bold text-white leading-none">{count}</span>
+      {/* Stacked card shapes — ~51×85px shell */}
+      <div className="relative" style={{ width: 51, height: 68 }}>
+        <div
+          className="absolute rounded border border-white/10"
+          style={{
+            inset: 0,
+            transform: 'translate(3px, -3px)',
+            background: 'rgba(255,255,255,0.04)',
+          }}
+        />
+        <div
+          className="absolute rounded border border-white/10"
+          style={{
+            inset: 0,
+            transform: 'translate(1.5px, -1.5px)',
+            background: 'rgba(255,255,255,0.07)',
+          }}
+        />
+        <div
+          className="absolute inset-0 rounded border border-white/15 flex items-center justify-center"
+          style={{ background: 'var(--cardback-from)' }}
+        >
+          <span className="text-lg font-bold text-white leading-none">{count}</span>
         </div>
       </div>
-      <span className="text-[10px] text-slate-400">{side === 'enemy' ? '敌方牌库' : '我方牌库'}</span>
+      <span className="text-[10px]" style={{ color: 'var(--sidebar-label)' }}>
+        {side === 'enemy' ? '敌方牌库' : '我方牌库'}
+      </span>
+    </div>
+  );
+}
+
+function MidlineDivider() {
+  return (
+    <div
+      data-midline-divider
+      className="w-full px-2"
+      aria-hidden="true"
+    >
+      <div
+        style={{
+          height: 1,
+          background: 'linear-gradient(90deg, transparent 0%, var(--midline-color) 50%, transparent 100%)',
+          boxShadow: '0 0 6px var(--midline-glow)',
+        }}
+      />
     </div>
   );
 }
@@ -73,16 +110,18 @@ export function SidePanel({
     <div
       className="flex flex-col items-center justify-between py-3 gap-2"
       style={{
-        width: 'var(--sidebar-width, 110px)',
+        width: 'var(--sidebar-width)',
         background: 'linear-gradient(180deg, var(--sidebar-bg-from) 0%, var(--sidebar-bg-to) 100%)',
-        borderLeft: '1px solid var(--sidebar-border, rgba(255,255,255,0.08))',
+        borderLeft: '1px solid var(--sidebar-border)',
         height: '100%',
       }}
     >
       {/* Enemy deck widget (top) */}
       <DeckWidget count={enemyDeckCount} side="enemy" />
 
-      {/* Turn indicator */}
+      <MidlineDivider />
+
+      {/* Turn indicator — display-only; no onEndTurn passed */}
       <TurnIndicator turnNumber={turnNumber} isMyTurn={isMyTurn} />
 
       {/* Mana crystals */}
@@ -96,6 +135,8 @@ export function SidePanel({
       >
         结束回合
       </button>
+
+      <MidlineDivider />
 
       {/* Player deck widget (bottom) */}
       <DeckWidget count={playerDeckCount} side="player" />
