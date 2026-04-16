@@ -13,7 +13,10 @@ function GameOverScreen() {
   const won = gameState?.winnerIndex === playerIndex;
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col items-center justify-center">
+    <div
+      className="h-screen flex flex-col items-center justify-center"
+      style={{ background: 'radial-gradient(ellipse at 50% 40%, var(--board-bg-center) 0%, var(--board-bg-mid) 55%, var(--board-bg-edge) 100%)' }}
+    >
       <h1 className={`text-7xl font-bold mb-8 ${won ? 'text-yellow-400' : 'text-red-400'}`}>
         {won ? '胜利!' : '失败!'}
       </h1>
