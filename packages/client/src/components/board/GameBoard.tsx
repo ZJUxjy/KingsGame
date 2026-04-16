@@ -486,11 +486,7 @@ export default function GameBoard() {
 
   return (
     <div
-      className="min-w-[1024px] h-screen overflow-hidden relative"
-      style={{
-        background:
-          'radial-gradient(ellipse at 50% 40%, var(--board-bg-center) 0%, var(--board-bg-mid) 55%, var(--board-bg-edge) 100%)',
-      }}
+      className="min-w-[1024px] h-screen overflow-hidden relative bg-board-gradient"
     >
       {/* Decorative star-particle background — purely visual */}
       <StarParticleLayer />

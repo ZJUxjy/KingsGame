@@ -9,6 +9,7 @@
   --board-bg-center: rgba(13, 27, 62, 1);
   --board-bg-mid: rgba(6, 13, 31, 1);
   --board-bg-edge: rgba(2, 8, 16, 1);
+  --board-gradient: radial-gradient(ellipse at 50% 40%, var(--board-bg-center) 0%, var(--board-bg-mid) 55%, var(--board-bg-edge) 100%);
 
   /* Sidebar */
   --sidebar-width: 110px;
@@ -225,4 +226,9 @@
   border-color: transparent;
   box-shadow: none;
   cursor: not-allowed;
+}
+
+/* ── Shared board background gradient utility ── */
+.bg-board-gradient {
+  background: var(--board-gradient);
 }
