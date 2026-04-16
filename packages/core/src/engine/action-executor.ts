@@ -472,6 +472,14 @@ export function executeAttack(
   state.winnerIndex = winResult.winnerIndex;
   state.winReason = winResult.winReason;
 
+  if (winResult.isGameOver) {
+    collectingBus.emit({
+      type: 'GAME_OVER',
+      winnerIndex: winResult.winnerIndex!,
+      reason: winResult.winReason!,
+    });
+  }
+
   return success(events);
 }
 

@@ -201,6 +201,14 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
   state.winnerIndex = result.winnerIndex;
   state.winReason = result.winReason;
 
+  if (result.isGameOver) {
+    eventBus.emit({
+      type: 'GAME_OVER',
+      winnerIndex: result.winnerIndex!,
+      reason: result.winReason!,
+    });
+  }
+
   eventBus.emit({
     type: 'TURN_END',
     playerIndex: state.currentPlayerIndex,
