@@ -17,7 +17,9 @@ export default function Lobby() {
   };
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col items-center justify-center">
+    <div
+      className="h-screen flex flex-col items-center justify-center bg-board-gradient"
+    >
       <h1 className="text-7xl font-bold text-yellow-400 mb-16">帝王牌</h1>
 
       <div className="flex gap-8">

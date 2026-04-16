@@ -1,6 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SerializedGameState, ValidAction } from './gameStore.js';
-import type { TargetRef } from '@king-card/shared';
+import type { TargetRef, HeroSkill, HeroState } from '@king-card/shared';
+
+const stubHeroSkill: HeroSkill = {
+  name: '',
+  description: '',
+  cost: 0,
+  cooldown: 0,
+  effect: { trigger: 'ON_PLAY', type: 'DAMAGE', params: {} },
+};
+
+const stubHeroState: HeroState = {
+  health: 30,
+  maxHealth: 30,
+  armor: 0,
+  heroSkill: stubHeroSkill,
+  skillUsedThisTurn: false,
+  skillCooldownRemaining: 0,
+};
 
 const { emit, mockSocketService } = vi.hoisted(() => ({
   emit: vi.fn(),
@@ -36,7 +53,7 @@ function createGameState(
         health: 30,
         maxHealth: 30,
         armor: 0,
-        heroSkill: null,
+        heroSkill: stubHeroSkill,
         skillUsedThisTurn: false,
         skillCooldownRemaining: 0,
       },
@@ -56,7 +73,7 @@ function createGameState(
       id: 'opponent',
       name: 'Player 2',
       civilization: 'JAPAN',
-      hero: null,
+      hero: stubHeroState,
       hand: [],
       battlefield: [],
       energyCrystal: 0,

@@ -1,8 +1,22 @@
 import { create } from 'zustand';
-import type { GamePhase, ValidAction, WinReason, TargetRef } from '@king-card/shared';
+import type {
+  GamePhase,
+  ValidAction,
+  WinReason,
+  TargetRef,
+  CardInstance,
+  HeroState,
+  Minister,
+  Card,
+  ActiveStratagem,
+  Civilization,
+} from '@king-card/shared';
 import { socketService } from '../services/socketService.js';
 
 export type { ValidAction } from '@king-card/shared';
+
+/** Mirrors the server's HiddenCard serialized shape (opponent's face-down cards). */
+export type HiddenCard = { hidden: true };
 
 // These types mirror what the server sends
 export interface SerializedGameState {
@@ -15,43 +29,36 @@ export interface SerializedGameState {
   me: {
     id: string;
     name: string;
-    civilization: string;
-    hero: {
-      health: number;
-      maxHealth: number;
-      armor: number;
-      heroSkill: unknown;
-      skillUsedThisTurn: boolean;
-      skillCooldownRemaining: number;
-    };
-    hand: unknown[];
-    battlefield: unknown[];
+    civilization: Civilization;
+    hero: HeroState;
+    hand: Card[];
+    battlefield: CardInstance[];
     energyCrystal: number;
     maxEnergy: number;
     deckCount: number;
     activeMinisterIndex: number;
-    ministerPool: unknown[];
-    activeStratagems: unknown[];
+    ministerPool: Minister[];
+    activeStratagems: ActiveStratagem[];
     cannotDrawNextTurn: boolean;
-    boundCards: unknown[];
-    graveyard: unknown[];
+    boundCards: Card[];
+    graveyard: Card[];
   };
   opponent: {
     id: string;
     name: string;
-    civilization: string;
-    hero: unknown;
-    hand: unknown[];
-    battlefield: unknown[];
+    civilization: Civilization;
+    hero: HeroState;
+    hand: (Card | HiddenCard)[];
+    battlefield: CardInstance[];
     energyCrystal: number;
     maxEnergy: number;
     deckCount: number;
     activeMinisterIndex: number;
-    ministerPool: unknown[];
-    activeStratagems: unknown[];
+    ministerPool: Minister[];
+    activeStratagems: ActiveStratagem[];
     cannotDrawNextTurn: boolean;
-    boundCards: unknown[];
-    graveyard: unknown[];
+    boundCards: Card[];
+    graveyard: Card[];
   };
 }
 

@@ -3,16 +3,82 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { useAnimations } from '../../hooks/useAnimations.js';
 import { audioService } from '../../services/audioService.js';
 import { HeroPanel } from './HeroPanel.js';
-import { EnergyBar } from './EnergyBar.js';
 import { MinisterPanel } from './MinisterPanel.js';
 import { GeneralSkillsPanel } from './GeneralSkillsPanel.js';
-import { TurnIndicator } from './TurnIndicator.js';
+import { SidePanel } from './SidePanel.js';
 import { Battlefield } from './Battlefield.js';
 import { HandZone } from './HandZone.js';
 import { TargetingArrow } from './TargetingArrow.js';
 import GameOverlay from './GameOverlay.js';
 import Toast from './Toast.js';
 import type { TargetRef, ValidAction } from '@king-card/shared';
+
+// ---------------------------------------------------------------------------
+// Decorative helpers (exported for unit tests)
+// ---------------------------------------------------------------------------
+
+const PARTICLES = [
+  { top: '8%', left: '12%', delay: '0s' },
+  { top: '15%', left: '35%', delay: '0.6s' },
+  { top: '22%', left: '60%', delay: '1.1s' },
+  { top: '30%', left: '82%', delay: '0.3s' },
+  { top: '45%', left: '5%', delay: '1.8s' },
+  { top: '52%', left: '25%', delay: '0.9s' },
+  { top: '60%', left: '50%', delay: '2.1s' },
+  { top: '70%', left: '74%', delay: '0.5s' },
+  { top: '78%', left: '18%', delay: '1.4s' },
+  { top: '88%', left: '90%', delay: '0.2s' },
+  { top: '5%', left: '70%', delay: '1.6s' },
+  { top: '40%', left: '44%', delay: '2.4s' },
+  { top: '65%', left: '92%', delay: '0.7s' },
+  { top: '93%', left: '55%', delay: '1.9s' },
+  { top: '18%', left: '88%', delay: '1.2s' },
+] as const;
+
+/**
+ * Purely decorative star-particle background layer.
+ * @internal exported only so unit tests can render the component in isolation.
+ */
+export function StarParticleLayer() {
+  return (
+    <div
+      className="absolute inset-0 pointer-events-none overflow-hidden"
+      aria-hidden="true"
+    >
+      {PARTICLES.map((p, i) => (
+        <div
+          key={i}
+          data-particle
+          className="absolute w-[2px] h-[2px] rounded-full bg-white/30 animate-float-particle"
+          style={{ top: p.top, left: p.left, animationDelay: p.delay }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Glowing midline divider between enemy and player battlefields.
+ * @internal exported only so unit tests can render the component in isolation.
+ */
+export function BoardMidlineDivider() {
+  return (
+    <div
+      data-board-midline
+      className="shrink-0 py-0.5 px-4"
+      aria-hidden="true"
+    >
+      <div
+        style={{
+          height: 1,
+          background:
+            'linear-gradient(90deg, transparent 0%, var(--midline-color, rgba(203,213,225,0.35)) 50%, transparent 100%)',
+          boxShadow: '0 0 8px var(--midline-glow, rgba(148,163,184,0.18))',
+        }}
+      />
+    </div>
+  );
+}
 
 interface ScreenPoint {
   x: number;
@@ -399,160 +465,171 @@ export default function GameBoard() {
   const myTurn = isMyTurn();
 
   // Merge dying minions back into battlefield for death animation
-  const myDying = pendingRemovals.filter((m: any) => m.ownerIndex === playerIndex);
-  const oppDying = pendingRemovals.filter((m: any) => m.ownerIndex !== playerIndex);
-  const myBattlefield = [...(me.battlefield as any[]), ...myDying];
-  const oppBattlefield = [...(opponent.battlefield as any[]), ...oppDying];
+  const myDying = pendingRemovals.filter((m) => m.ownerIndex === playerIndex);
+  const oppDying = pendingRemovals.filter((m) => m.ownerIndex !== playerIndex);
+  const myBattlefield = [...me.battlefield, ...myDying];
+  const oppBattlefield = [...opponent.battlefield, ...oppDying];
 
   // Extract hero data with defaults
-  const myHero = me.hero as any;
-  const oppHero = opponent.hero as any;
+  const myHero = me.hero;
+  const oppHero = opponent.hero;
 
   const myHeroName =
-    myHero?.heroSkill?.name ?? myHero?.name ?? '帝王';
+    myHero?.heroSkill?.name ?? '帝王';
   const myHeroSkillName =
     myHero?.heroSkill?.name ?? '';
   const myHeroSkillCost = myHero?.heroSkill?.cost;
 
   const oppHeroName =
-    oppHero?.heroSkill?.name ?? oppHero?.name ?? '帝王';
+    oppHero?.heroSkill?.name ?? '帝王';
 
   // Minister data
-  const ministers = (me.ministerPool as any[]) ?? [];
+  const ministers = me.ministerPool ?? [];
 
   const enemyHeroHighlighted = hoveredTarget?.type === 'HERO'
     && playerIndex !== null
     && hoveredTarget.playerIndex === 1 - playerIndex;
 
   return (
-    <div className="min-w-[1024px]">
-    <div className="h-screen flex flex-col max-w-[1280px] mx-auto bg-gradient-to-b from-gray-900 to-gray-950 overflow-hidden">
+    <div
+      className="min-w-[1024px] h-screen overflow-hidden relative bg-board-gradient"
+    >
+      {/* Decorative star-particle background — purely visual */}
+      <StarParticleLayer />
+
+      {/* Targeting arrow overlay */}
       <TargetingArrow
         start={arrowStart}
         end={arrowEnd}
         visible={Boolean(arrowSourceAnchorId && arrowStart && arrowEnd)}
       />
 
-      {/* Enemy hero bar */}
-      <div className="flex items-center justify-between px-4 h-[100px] shrink-0">
-        <HeroPanel
-          heroName={oppHeroName}
-          health={oppHero?.health ?? 30}
-          maxHealth={oppHero?.maxHealth ?? 30}
-          armor={oppHero?.armor ?? 0}
-          isOpponent
-          targetable={selectedAttacker ? canAttackHero : canTargetEnemyHero}
-          highlightedTarget={enemyHeroHighlighted}
-          targetAnchorId="hero:enemy"
-          onClick={handleEnemyHeroClick}
-          onPointerEnter={() => {
-            if (playerIndex !== null && (selectedAttacker ? canAttackHero : canTargetEnemyHero)) {
-              setHoveredTarget({ type: 'HERO', playerIndex: 1 - playerIndex });
-            }
-          }}
-          onPointerLeave={() => {
-            if (enemyHeroHighlighted) {
-              setHoveredTarget(null);
-            }
-          }}
-        />
-        <div
-          className="text-sm text-gray-400"
-        >
-          牌堆: {opponent.deckCount}
+      {/* Main board layout: play area + right sidebar */}
+      <div className="relative z-10 h-full max-w-[1280px] mx-auto flex flex-row">
+
+        {/* ── Left / centre play area ── */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+
+          {/* Enemy hero bar */}
+          <div className="flex items-center px-4 h-[100px] shrink-0">
+            <HeroPanel
+              heroName={oppHeroName}
+              health={oppHero?.health ?? 30}
+              maxHealth={oppHero?.maxHealth ?? 30}
+              armor={oppHero?.armor ?? 0}
+              isOpponent
+              targetable={selectedAttacker ? canAttackHero : canTargetEnemyHero}
+              highlightedTarget={enemyHeroHighlighted}
+              targetAnchorId="hero:enemy"
+              onClick={handleEnemyHeroClick}
+              onPointerEnter={() => {
+                if (playerIndex !== null && (selectedAttacker ? canAttackHero : canTargetEnemyHero)) {
+                  setHoveredTarget({ type: 'HERO', playerIndex: 1 - playerIndex });
+                }
+              }}
+              onPointerLeave={() => {
+                if (enemyHeroHighlighted) {
+                  setHoveredTarget(null);
+                }
+              }}
+            />
+          </div>
+
+          {/* Enemy battlefield */}
+          <div className="h-[150px] shrink-0">
+            <Battlefield
+              minions={oppBattlefield}
+              isOpponent
+              onMinionClick={handleMinionClick}
+              selectedAttackerId={selectedAttacker}
+              validTargetIds={activeTargetIds}
+              hoveredTargetId={hoveredTarget?.type === 'MINION' ? hoveredTarget.instanceId : null}
+              animationMap={animationMap}
+              onTargetHover={(instanceId) => {
+                setHoveredTarget(instanceId ? { type: 'MINION', instanceId } : null);
+              }}
+            />
+          </div>
+
+          {/* Glowing midline divider */}
+          <BoardMidlineDivider />
+
+          {/* Skill-targeting prompt */}
+          {pendingSkillPrompt && (
+            <div className="px-4 py-1 text-center text-sm font-bold text-cyan-300 shrink-0">
+              {pendingSkillPrompt}
+            </div>
+          )}
+
+          {/* Player battlefield */}
+          <div className="h-[150px] shrink-0">
+            <Battlefield
+              minions={myBattlefield}
+              onMinionClick={handleMinionClick}
+              actionableIds={validAttackerIds}
+              selectedAttackerId={selectedAttacker}
+              validTargetIds={activeTargetIds}
+              hoveredTargetId={hoveredTarget?.type === 'MINION' ? hoveredTarget.instanceId : null}
+              animationMap={animationMap}
+              onTargetHover={(instanceId) => {
+                setHoveredTarget(instanceId ? { type: 'MINION', instanceId } : null);
+              }}
+            />
+          </div>
+
+          <GeneralSkillsPanel
+            generals={me.battlefield.filter((minion) => minion.card?.type === 'GENERAL')}
+            availableSkillKeys={availableGeneralSkillKeys}
+            pendingSkillKey={pendingGeneralSkillKey}
+            onSkillClick={handleGeneralSkillClick}
+          />
+
+          {/* Player info bar: hero + minister */}
+          <div className="flex items-center justify-between px-4 h-[100px] shrink-0">
+            <HeroPanel
+              heroName={myHeroName}
+              health={myHero?.health ?? 30}
+              maxHealth={myHero?.maxHealth ?? 30}
+              armor={myHero?.armor ?? 0}
+              skillName={myHeroSkillName || undefined}
+              skillCost={myHeroSkillCost}
+              canUseSkill={canUseHeroSkill}
+              skillPending={pendingSkillAction?.type === 'HERO'}
+              targetAnchorId="hero:me"
+              skillAnchorId="hero-skill:me"
+              onSkillClick={handleHeroSkillClick}
+            />
+            <MinisterPanel
+              ministers={ministers}
+              activeIndex={me.activeMinisterIndex}
+              canUseSkill={canUseMinisterSkill}
+              skillPending={pendingSkillAction?.type === 'MINISTER'}
+              canSwitch={validSwitchMinisters.size > 0}
+              skillAnchorId="minister-skill:me"
+              onSkillClick={handleMinisterSkillClick}
+              onSwitch={switchMinister}
+            />
+          </div>
+
+          {/* Player hand zone */}
+          <div className="h-[150px] shrink-0">
+            <HandZone
+              cards={me.hand}
+              onPlayCard={handlePlayCardFromHand}
+              validPlayIndices={validPlayIndices}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Enemy battlefield */}
-      <div className="h-[180px] shrink-0">
-        <Battlefield
-          minions={oppBattlefield}
-          isOpponent
-          onMinionClick={handleMinionClick}
-          selectedAttackerId={selectedAttacker}
-          validTargetIds={activeTargetIds}
-          hoveredTargetId={hoveredTarget?.type === 'MINION' ? hoveredTarget.instanceId : null}
-          animationMap={animationMap}
-          onTargetHover={(instanceId) => {
-            setHoveredTarget(instanceId ? { type: 'MINION', instanceId } : null);
-          }}
-        />
-      </div>
-
-      {/* Turn indicator */}
-      <div className="h-[50px] shrink-0">
-        <TurnIndicator
+        {/* ── Right sidebar ── */}
+        <SidePanel
+          enemyDeckCount={opponent.deckCount}
+          playerDeckCount={me.deckCount}
+          energyCrystal={me.energyCrystal}
+          maxEnergy={me.maxEnergy}
           turnNumber={gameState.turnNumber}
           isMyTurn={myTurn}
           onEndTurn={endTurn}
-        />
-      </div>
-
-      {pendingSkillPrompt && (
-        <div className="px-4 py-1 text-center text-sm font-bold text-cyan-300">
-          {pendingSkillPrompt}
-        </div>
-      )}
-
-      {/* Player battlefield */}
-      <div className="h-[180px] shrink-0">
-        <Battlefield
-          minions={myBattlefield}
-          onMinionClick={handleMinionClick}
-          actionableIds={validAttackerIds}
-          selectedAttackerId={selectedAttacker}
-          validTargetIds={activeTargetIds}
-          hoveredTargetId={hoveredTarget?.type === 'MINION' ? hoveredTarget.instanceId : null}
-          animationMap={animationMap}
-          onTargetHover={(instanceId) => {
-            setHoveredTarget(instanceId ? { type: 'MINION', instanceId } : null);
-          }}
-        />
-      </div>
-
-      <GeneralSkillsPanel
-        generals={(me.battlefield as any[]).filter((minion) => minion.card?.type === 'GENERAL')}
-        availableSkillKeys={availableGeneralSkillKeys}
-        pendingSkillKey={pendingGeneralSkillKey}
-        onSkillClick={handleGeneralSkillClick}
-      />
-
-      {/* Player info bar: hero + energy + minister */}
-      <div className="flex items-center justify-between px-4 h-[100px] shrink-0">
-        <HeroPanel
-          heroName={myHeroName}
-          health={myHero?.health ?? 30}
-          maxHealth={myHero?.maxHealth ?? 30}
-          armor={myHero?.armor ?? 0}
-          skillName={myHeroSkillName || undefined}
-          skillCost={myHeroSkillCost}
-          canUseSkill={canUseHeroSkill}
-          skillPending={pendingSkillAction?.type === 'HERO'}
-          targetAnchorId="hero:me"
-          skillAnchorId="hero-skill:me"
-          onSkillClick={handleHeroSkillClick}
-        />
-        <div className="flex items-center gap-4">
-          <EnergyBar current={me.energyCrystal} max={me.maxEnergy} />
-          <MinisterPanel
-            ministers={ministers}
-            activeIndex={me.activeMinisterIndex}
-            canUseSkill={canUseMinisterSkill}
-            skillPending={pendingSkillAction?.type === 'MINISTER'}
-            canSwitch={validSwitchMinisters.size > 0}
-            skillAnchorId="minister-skill:me"
-            onSkillClick={handleMinisterSkillClick}
-            onSwitch={switchMinister}
-          />
-        </div>
-      </div>
-
-      {/* Player hand zone */}
-      <div className="h-[180px] shrink-0">
-        <HandZone
-          cards={me.hand as any[]}
-          onPlayCard={handlePlayCardFromHand}
-          validPlayIndices={validPlayIndices}
         />
       </div>
 
@@ -561,7 +638,6 @@ export default function GameBoard() {
 
       {/* Error toast */}
       <Toast />
-    </div>
     </div>
   );
 }

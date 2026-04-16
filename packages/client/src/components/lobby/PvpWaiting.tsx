@@ -14,7 +14,7 @@ export default function PvpWaiting() {
   };
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col items-center justify-center">
+    <div className="h-screen flex flex-col items-center justify-center bg-board-gradient">
       <h2 className="text-4xl font-bold text-blue-400 mb-8">等待对手加入…</h2>
 
       <div className="flex gap-2 mb-12">

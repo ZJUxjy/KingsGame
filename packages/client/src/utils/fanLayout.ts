@@ -5,7 +5,7 @@ export interface FanCardTransform {
   zIndex: number; // layer order (center = highest)
 }
 
-const CARD_WIDTH = 120;
+const CARD_WIDTH = 90;
 
 /**
  * Compute fan layout transforms for a hand of cards.

@@ -1,9 +1,27 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SerializedGameState, ValidAction } from '../stores/gameStore.js';
+import type { HeroSkill, HeroState } from '@king-card/shared';
 import { useGameStore } from '../stores/gameStore.js';
 
 type SocketListener = (...args: unknown[]) => void;
+
+const stubHeroSkill: HeroSkill = {
+  name: '',
+  description: '',
+  cost: 0,
+  cooldown: 0,
+  effect: { trigger: 'ON_PLAY', type: 'DAMAGE', params: {} },
+};
+
+const stubHeroState: HeroState = {
+  health: 30,
+  maxHealth: 30,
+  armor: 0,
+  heroSkill: stubHeroSkill,
+  skillUsedThisTurn: false,
+  skillCooldownRemaining: 0,
+};
 
 function createGameState(
   overrides: Partial<SerializedGameState> = {},
@@ -23,7 +41,7 @@ function createGameState(
         health: 30,
         maxHealth: 30,
         armor: 0,
-        heroSkill: null,
+        heroSkill: stubHeroSkill,
         skillUsedThisTurn: false,
         skillCooldownRemaining: 0,
       },
@@ -43,7 +61,7 @@ function createGameState(
       id: 'opponent',
       name: 'Player 2',
       civilization: 'JAPAN',
-      hero: null,
+      hero: stubHeroState,
       hand: [],
       battlefield: [],
       energyCrystal: 0,

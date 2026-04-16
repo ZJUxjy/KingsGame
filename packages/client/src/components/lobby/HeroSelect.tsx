@@ -24,7 +24,9 @@ export default function HeroSelect() {
   };
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col items-center justify-center">
+    <div
+      className="h-screen flex flex-col items-center justify-center bg-board-gradient"
+    >
       <h2 className="text-4xl font-bold text-yellow-400 mb-12">选择帝王</h2>
 
       <div className="flex gap-6 mb-12">

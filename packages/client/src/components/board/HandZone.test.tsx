@@ -62,8 +62,8 @@ describe('HandZone drag interactions', () => {
 
   // Mock getBoundingClientRect globally so containerRef.current picks it up.
   // Hand zone container: top=480, card elements: top=500
-  const HAND_RECT = { left: 0, top: 480, right: 800, bottom: 660, width: 800, height: 180, x: 0, y: 480, toJSON() {} };
-  const CARD_RECT = { left: 100, top: 500, right: 220, bottom: 670, width: 120, height: 170, x: 100, y: 500, toJSON() {} };
+  const HAND_RECT = { left: 0, top: 480, right: 800, bottom: 630, width: 800, height: 150, x: 0, y: 480, toJSON() {} };
+  const CARD_RECT = { left: 100, top: 500, right: 190, bottom: 630, width: 90, height: 130, x: 100, y: 500, toJSON() {} };
 
   /**
    * Helper: simulate a full drag sequence on the first card.
@@ -80,7 +80,7 @@ describe('HandZone drag interactions', () => {
 
     // Find the first CardComponent root div (the actual element with onPointerDown)
     const cardWrappers = handContainer.querySelectorAll(':scope > div');
-    const firstCardRoot = cardWrappers[0]?.querySelector('.w-\\[120px\\]') as HTMLElement;
+    const firstCardRoot = cardWrappers[0]?.querySelector('[data-testid="card"]') as HTMLElement;
 
     act(() => {
       fireEvent.pointerDown(firstCardRoot, {
@@ -175,8 +175,8 @@ describe('HandZone drag interactions', () => {
       return CARD_RECT as DOMRect;
     };
 
-    // Find all CardComponent root divs (w-[120px] h-[170px] class)
-    const allCardRoots = handContainer.querySelectorAll('.w-\\[120px\\]');
+    // Find all CardComponent root divs (identified by data-testid="card")
+    const allCardRoots = handContainer.querySelectorAll('[data-testid="card"]');
     const secondCardRoot = allCardRoots[1] as HTMLElement;
     expect(secondCardRoot).toBeTruthy();
 
@@ -205,7 +205,7 @@ describe('HandZone drag interactions', () => {
   it('cancels drag on pointercancel event (inside hand zone)', () => {
     const { container } = renderHand();
     const handContainer = container.firstElementChild as HTMLElement;
-    const firstCardRoot = handContainer.querySelector('.w-\\[120px\\]') as HTMLElement;
+    const firstCardRoot = handContainer.querySelector('[data-testid="card"]') as HTMLElement;
 
     const origGetBCR = Element.prototype.getBoundingClientRect;
     Element.prototype.getBoundingClientRect = function (this: Element) {

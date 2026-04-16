@@ -1,21 +1,147 @@
 @import "tailwindcss";
 
-/* Card play animation */
-@keyframes card-play-in {
-  0% {
-    opacity: 0;
-    transform: translateY(-100px) scale(0.5);
-  }
-  60% {
-    transform: translateY(10px) scale(1.05);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+/* ── Design Tokens (from Figma) ── */
+:root {
+  /* Particle animation */
+  --star-opacity: 0.6;
+
+  /* Board background */
+  --board-bg-center: rgba(13, 27, 62, 1);
+  --board-bg-mid: rgba(6, 13, 31, 1);
+  --board-bg-edge: rgba(2, 8, 16, 1);
+  --board-gradient: radial-gradient(ellipse at 50% 40%, var(--board-bg-center) 0%, var(--board-bg-mid) 55%, var(--board-bg-edge) 100%);
+
+  /* Sidebar */
+  --sidebar-width: 110px;
+  --sidebar-bg-from: rgba(8, 14, 32, 0.7);
+  --sidebar-bg-to: rgba(5, 10, 24, 0.85);
+  --sidebar-border: rgba(148, 163, 184, 0.08);
+  --sidebar-label: #45556c;
+
+  /* Card */
+  --card-body-from: #1a1a2e;
+  --card-body-mid: #16213e;
+  --card-body-to: #0f3460;
+  --card-border-radius: 14px;
+
+  /* Rarity borders (2px) */
+  --rarity-common: #fe9a00;
+  --rarity-rare: #fdc700;
+  --rarity-epic: #c27aff;
+  --rarity-legendary: #ff6b6b;
+
+  /* Card type art gradients */
+  --type-soldier-from: #78350f;
+  --type-soldier-to: #92400e;
+  --type-spell-from: #4c1d95;
+  --type-spell-to: #3730a3;
+  --type-general-from: #92400e;
+  --type-general-to: #b45309;
+
+  /* Card type badges */
+  --badge-soldier: #e17100;
+  --badge-spell: #9810fa;
+  --badge-general: #d08700;
+
+  /* Cost badge */
+  --cost-border: #8ec5ff;
+  --cost-glow: rgba(96, 165, 250, 0.8);
+
+  /* Attack badge */
+  --atk-from: #dc2626;
+  --atk-to: #991b1b;
+  --atk-border: #f87171;
+  --atk-glow: rgba(220, 38, 38, 0.5);
+
+  /* Health badge */
+  --hp-from: #16a34a;
+  --hp-to: #14532d;
+  --hp-border: #4ade80;
+  --hp-glow: rgba(22, 163, 74, 0.5);
+
+  /* Health bar – normal */
+  --hpbar-from: #00bc7d;
+  --hpbar-to: #05df72;
+  --hpbar-glow: rgba(74, 222, 128, 0.6);
+  --hpbar-bg: rgba(0, 0, 0, 0.5);
+  --hpbar-border: rgba(255, 255, 255, 0.1);
+  /* Health bar – warning (< 50 %) */
+  --hpbar-warn-from: #f59e0b;
+  --hpbar-warn-to: #d97706;
+  --hpbar-warn-glow: rgba(245, 158, 11, 0.7);
+  /* Health bar – danger (< 25 %) */
+  --hpbar-danger-from: #dc2626;
+  --hpbar-danger-to: #991b1b;
+  --hpbar-danger-glow: rgba(220, 38, 38, 0.8);
+
+  /* HP badge text colors */
+  --hp-text-full: #4ade80;
+  --hp-text-damaged: #f87171;
+
+  /* Hero portrait */
+  --portrait-enemy-border: #a855f7;
+  --portrait-enemy-glow: rgba(168, 85, 247, 0.6);
+  --portrait-enemy-badge-bg: #4c1d95;
+  --portrait-enemy-badge-border: #a855f7;
+  --portrait-enemy-badge-text: #d8b4fe;
+  --portrait-player-border: #f59e0b;
+  --portrait-player-glow: rgba(245, 158, 11, 0.6);
+  --portrait-player-badge-bg: #451a03;
+  --portrait-player-badge-border: #f59e0b;
+  --portrait-player-badge-text: #fcd34d;
+
+  /* Mana crystal */
+  --mana-border: #60a5fa;
+  --mana-glow: rgba(96, 165, 250, 0.7);
+  --mana-label: #51a2ff;
+  --mana-count: #8ec5ff;
+
+  /* Turn indicator */
+  --turn-label: #fbbf24;
+  --turn-number: #ffb900;
+  --turn-border: rgba(251, 191, 36, 0.25);
+  --turn-bg: rgba(10, 15, 35, 0.92);
+
+  /* End turn button */
+  --endturn-from: #dc2626;
+  --endturn-mid: #991b1b;
+  --endturn-to: #7f1d1d;
+  --endturn-border: rgba(248, 113, 113, 0.35);
+  --endturn-glow: rgba(220, 38, 38, 0.45);
+
+  /* Skill button */
+  --skill-from: #0ea5e9;
+  --skill-to: #0369a1;
+  --skill-border: rgba(14, 165, 233, 0.5);
+  --skill-glow: rgba(14, 165, 233, 0.4);
+
+  /* General skill button */
+  --general-skill-from: #be123c;
+  --general-skill-to: #881337;
+  --general-skill-border: rgba(244, 63, 94, 0.5);
+  --general-skill-glow: rgba(244, 63, 94, 0.4);
+  --general-skill-text: #fda4af;
+  --general-skill-pending-from: #fda4af;
+  --general-skill-pending-to: #f43f5e;
+  --general-skill-pending-text: #1a0510;
+
+  /* Midline divider */
+  --midline-color: rgba(203, 213, 225, 0.35);
+  --midline-glow: rgba(148, 163, 184, 0.15);
+
+  /* Card back */
+  --cardback-from: #1e2a4a;
+  --cardback-to: #111827;
+  --cardback-border: rgba(148, 163, 184, 0.18);
 }
 
-/* Attack shake animation */
+/* ── Animation keyframes ── */
+@keyframes card-play-in {
+  0% { opacity: 0; transform: translateY(-100px) scale(0.5); }
+  60% { transform: translateY(10px) scale(1.05); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @keyframes attack-shake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-8px); }
@@ -24,25 +150,21 @@
   80% { transform: translateX(4px); }
 }
 
-/* Death fade-out animation */
 @keyframes death-fade {
   0% { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(0.5) rotate(10deg); }
 }
 
-/* Damage flash */
 @keyframes damage-flash {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(2) saturate(0); }
 }
 
-/* Heal glow */
 @keyframes heal-glow {
   0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6); }
   100% { box-shadow: 0 0 20px 10px rgba(74, 222, 128, 0); }
 }
 
-/* Game overlay fade in/out */
 @keyframes fade-in-out {
   0% { opacity: 0; }
   20% { opacity: 1; }
@@ -50,40 +172,63 @@
   100% { opacity: 0; }
 }
 
-/* Toast slide up */
 @keyframes slide-up {
   0% { opacity: 0; transform: translate(-50%, 20px); }
   100% { opacity: 1; transform: translate(-50%, 0); }
 }
 
-.animate-fade-in-out {
-  animation: fade-in-out 1.5s ease-in-out forwards;
+@keyframes float-particle {
+  0%, 100% { opacity: var(--star-opacity); transform: translateY(0); }
+  50% { opacity: calc(var(--star-opacity) * 0.5); transform: translateY(-2px); }
 }
 
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out forwards;
+.animate-fade-in-out { animation: fade-in-out 1.5s ease-in-out forwards; }
+.animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
+.animate-card-play { animation: card-play-in 0.4s ease-out forwards; }
+.animate-attack { animation: attack-shake 0.3s ease-in-out; }
+.animate-death { animation: death-fade 0.5s ease-in forwards; }
+.animate-damage { animation: damage-flash 0.3s ease-in-out; }
+.animate-heal { animation: heal-glow 0.6s ease-out forwards; }
+.animate-float-particle { animation: float-particle 3s ease-in-out infinite; }
+
+.card-drag-shadow { box-shadow: 0 28px 48px rgba(15, 23, 42, 0.55); }
+
+@keyframes skill-pending-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--skill-glow); }
+  50% { box-shadow: 0 0 18px rgba(14, 165, 233, 0.85), inset 0 0 8px rgba(14, 165, 233, 0.3); }
+}
+.skill-pending { animation: skill-pending-pulse 1s ease-in-out infinite; }
+
+@keyframes general-skill-pending-pulse {
+  0%, 100% { box-shadow: 0 0 4px var(--general-skill-glow); }
+  50% { box-shadow: 0 0 14px rgba(244, 63, 94, 0.85), inset 0 0 6px rgba(244, 63, 94, 0.3); }
+}
+.general-skill-pending { animation: general-skill-pending-pulse 1s ease-in-out infinite; }
+
+.btn-endturn {
+  background: linear-gradient(180deg, var(--endturn-from) 0%, var(--endturn-mid) 60%, var(--endturn-to) 100%);
+  border: 1px solid var(--endturn-border);
+  box-shadow: 0 0 12px var(--endturn-glow);
+  color: white;
+  cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.15s;
+}
+.btn-endturn:hover:not(:disabled) {
+  filter: brightness(1.15);
+  box-shadow: 0 0 18px var(--endturn-glow);
+}
+.btn-endturn:active:not(:disabled) {
+  filter: brightness(0.9);
+}
+.btn-endturn:disabled {
+  background: #374151;
+  color: #6b7280;
+  border-color: transparent;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
-.animate-card-play {
-  animation: card-play-in 0.4s ease-out forwards;
-}
-
-.animate-attack {
-  animation: attack-shake 0.3s ease-in-out;
-}
-
-.animate-death {
-  animation: death-fade 0.5s ease-in forwards;
-}
-
-.animate-damage {
-  animation: damage-flash 0.3s ease-in-out;
-}
-
-.animate-heal {
-  animation: heal-glow 0.6s ease-out forwards;
-}
-
-.card-drag-shadow {
-  box-shadow: 0 28px 48px rgba(15, 23, 42, 0.55);
+/* ── Shared board background gradient utility ── */
+.bg-board-gradient {
+  background: var(--board-gradient);
 }

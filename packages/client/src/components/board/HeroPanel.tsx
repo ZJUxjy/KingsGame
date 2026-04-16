@@ -38,52 +38,132 @@ export function HeroPanel({
   onPointerLeave,
 }: HeroPanelProps) {
   const hpPercent = Math.max(0, (health / maxHealth) * 100);
-  const hpColor =
-    health <= 10 ? 'bg-red-600' : health <= 20 ? 'bg-orange-500' : 'bg-green-600';
+  const hpState = hpPercent < 25 ? 'danger' : hpPercent < 50 ? 'warn' : 'normal';
+  const hpBarFrom =
+    hpState === 'danger' ? 'var(--hpbar-danger-from)' :
+    hpState === 'warn'   ? 'var(--hpbar-warn-from)' :
+    'var(--hpbar-from)';
+  const hpBarTo =
+    hpState === 'danger' ? 'var(--hpbar-danger-to)' :
+    hpState === 'warn'   ? 'var(--hpbar-warn-to)' :
+    'var(--hpbar-to)';
+  const hpBarGlow =
+    hpState === 'danger' ? 'var(--hpbar-danger-glow)' :
+    hpState === 'warn'   ? 'var(--hpbar-warn-glow)' :
+    'var(--hpbar-glow)';
+  const portraitBorder = isOpponent ? 'var(--portrait-enemy-border)' : 'var(--portrait-player-border)';
+  const portraitGlow = isOpponent ? 'var(--portrait-enemy-glow)' : 'var(--portrait-player-glow)';
+  const portraitBg = isOpponent
+    ? 'linear-gradient(135deg, var(--portrait-enemy-badge-bg) 0%, #2d1b69 100%)'
+    : 'linear-gradient(135deg, var(--portrait-player-badge-bg) 0%, #7c2d12 100%)';
+  const nameColor = isOpponent ? 'var(--portrait-enemy-badge-text)' : 'var(--portrait-player-badge-text)';
 
   return (
     <div
       data-anchor-id={targetAnchorId}
-      className={`flex items-center gap-3 h-[70px] px-2 rounded-2xl transition-all duration-150 ${targetable ? 'cursor-pointer' : ''} ${highlightedTarget ? 'ring-2 ring-red-400 shadow-[0_0_24px_rgba(248,113,113,0.5)]' : ''}`}
+      className={`flex items-center gap-2 transition-all duration-150
+        ${targetable ? 'cursor-pointer' : ''}
+        ${highlightedTarget ? 'ring-2 ring-red-400 shadow-[0_0_24px_rgba(248,113,113,0.5)] rounded-xl' : ''}`}
+      style={{ padding: '6px 8px' }}
       onClick={onClick}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
     >
-      {/* Hero portrait placeholder */}
-      <div className="w-[56px] h-[56px] rounded-full bg-gray-700 border-2 border-yellow-600 flex items-center justify-center text-2xl">
-        &#x1F451;
+      {/* Portrait circle */}
+      <div
+        className="relative flex-shrink-0 flex items-center justify-center"
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: '50%',
+          background: portraitBg,
+          border: `2px solid ${portraitBorder}`,
+          boxShadow: `0 0 12px ${portraitGlow}`,
+        }}
+      >
+        <span style={{ fontSize: 22 }}>👑</span>
+        {/* Armor badge */}
+        {armor > 0 && (
+          <div
+            className="absolute flex items-center justify-center text-[9px] font-bold text-blue-200"
+            style={{
+              bottom: 0,
+              right: 0,
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              background: '#1e3a8a',
+              border: '1.5px solid #60a5fa',
+              transform: 'translate(25%, 25%)',
+            }}
+          >
+            {armor}
+          </div>
+        )}
       </div>
-      <div className="flex flex-col">
-        <span className="text-yellow-400 text-sm font-bold">{heroName}</span>
-        <div className="flex items-center gap-2">
-          <div className="w-[80px] h-2 bg-gray-700 rounded-full overflow-hidden">
+
+      {/* Info column */}
+      <div className="flex flex-col gap-1 flex-1 min-w-0">
+        <span className="text-xs font-bold truncate" style={{ color: nameColor }}>
+          {heroName}
+        </span>
+        {/* Glowing health bar */}
+        <div>
+          <div
+            className="relative w-full rounded-full overflow-hidden"
+            style={{
+              height: 6,
+              background: 'var(--hpbar-bg)',
+              border: '1px solid var(--hpbar-border)',
+            }}
+          >
             <div
-              className={`h-full ${hpColor} transition-all duration-300`}
-              style={{ width: `${hpPercent}%` }}
+              className="h-full transition-all duration-300"
+              style={{
+                width: `${hpPercent}%`,
+                background: `linear-gradient(90deg, ${hpBarFrom} 0%, ${hpBarTo} 100%)`,
+                boxShadow: `0 0 6px ${hpBarGlow}`,
+              }}
             />
           </div>
-          <span className="text-xs text-white font-bold">
-            {health}/{maxHealth}
-          </span>
-          {armor > 0 && (
-            <span className="text-xs text-blue-300">&#x1F6E1;{armor}</span>
-          )}
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className="text-[10px] text-white font-bold">
+              {health}/{maxHealth}
+            </span>
+            {armor > 0 && (
+              <span className="text-[10px] text-blue-300">🛡{armor}</span>
+            )}
+          </div>
         </div>
       </div>
-      {/* Skill button */}
+
+      {/* Skill button (player only) */}
       {!isOpponent && skillName && (
         <button
+          type="button"
           data-anchor-id={skillAnchorId}
           onClick={onSkillClick}
           disabled={!canUseSkill}
-          className={`px-3 py-1 rounded text-xs font-bold
-            ${canUseSkill
-              ? skillPending
-                ? 'bg-blue-300 text-slate-900 cursor-pointer'
-                : 'bg-blue-600 hover:bg-blue-500 cursor-pointer'
-              : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
+          className={`flex-shrink-0 px-2 py-1 text-[10px] font-bold text-white rounded transition-all duration-150${skillPending && canUseSkill ? ' skill-pending' : ''}`}
+          style={
+            canUseSkill
+              ? {
+                  background: 'linear-gradient(135deg, var(--skill-from), var(--skill-to))',
+                  border: '1px solid var(--skill-border)',
+                  boxShadow: skillPending ? undefined : '0 0 8px var(--skill-glow)',
+                  cursor: 'pointer',
+                }
+              : {
+                  background: '#374151',
+                  border: '1px solid transparent',
+                  color: '#6b7280',
+                  cursor: 'not-allowed',
+                }
+          }
         >
-          {skillName} ({skillCost})
+          {skillName}
+          <br />
+          <span className="text-[8px]">({skillCost})</span>
         </button>
       )}
     </div>

@@ -11,8 +11,8 @@ interface HandZoneProps {
   validPlayIndices?: Set<number>;
 }
 
-const DEFAULT_CONTAINER_WIDTH = 800;
-const CONTAINER_HEIGHT = 180;
+const DEFAULT_CONTAINER_WIDTH = 700;
+const CONTAINER_HEIGHT = 150;
 
 export function HandZone({
   cards,
@@ -163,11 +163,11 @@ export function HandZone({
               position: isDragging ? 'fixed' : 'absolute',
               left: isDragging && dragState ? dragPosition.x - dragState.offsetX : '50%',
               top: isDragging && dragState ? dragPosition.y - dragState.offsetY : '50%',
-              width: 120,
-              height: 170,
+              width: 90,
+              height: 130,
               touchAction: playable ? 'none' : 'auto',
-              marginLeft: isDragging ? 0 : -60,
-              marginTop: isDragging ? 0 : -85,
+              marginLeft: isDragging ? 0 : -45,
+              marginTop: isDragging ? 0 : -65,
               transform: isDragging
                 ? `rotate(${Math.max(-10, Math.min(10, (dragPosition.x - width / 2) / 80))}deg) scale(1.08)`
                 : `translateX(${t.x}px) translateY(${t.y}px) rotate(${t.rotation}deg)`,
@@ -176,7 +176,7 @@ export function HandZone({
             onMouseEnter={(e) => {
               if (isDragging) return;
               const el = e.currentTarget;
-              el.style.transform = `translateX(${t.x}px) translateY(${t.y - 20}px) rotate(${t.rotation}deg) scale(1.08)`;
+              el.style.transform = `translateX(${t.x}px) translateY(${t.y - 15}px) rotate(${t.rotation}deg) scale(1.08)`;
               el.style.zIndex = String(cards.length + 1);
             }}
             onMouseLeave={(e) => {
@@ -194,7 +194,7 @@ export function HandZone({
                 instance={card as CardInstance}
                 actionable={playable}
                 onPointerDown={(e) => handlePointerDown(i, e)}
-                className={isDragging ? 'shadow-[0_28px_48px_rgba(0,0,0,0.55)]' : ''}
+                className={isDragging ? 'card-drag-shadow' : ''}
               />
             )}
           </div>
@@ -207,11 +207,28 @@ export function HandZone({
 function OpponentCardBack({ playable }: { playable: boolean }) {
   return (
     <div
-      className={`w-[120px] h-[170px] rounded-lg bg-gradient-to-br from-purple-900 to-indigo-900 border-2 border-purple-600 flex items-center justify-center select-none transition-shadow duration-200
+      className={`relative flex items-center justify-center select-none overflow-hidden transition-shadow duration-200
         ${playable ? 'shadow-[0_0_12px_2px_rgba(234,179,8,0.4)]' : ''}`}
+      style={{
+        width: 90,
+        height: 130,
+        borderRadius: 'var(--card-border-radius)',
+        background: 'linear-gradient(135deg, var(--cardback-from) 0%, var(--cardback-to) 100%)',
+        border: '2px solid var(--cardback-border)',
+      }}
     >
-      <div className="w-16 h-16 border-2 border-yellow-600/50 rounded-full flex items-center justify-center">
-        <span className="text-yellow-600/50 text-xl">帝</span>
+      <div
+        style={{
+          width: 46,
+          height: 46,
+          borderRadius: '50%',
+          border: '1.5px solid rgba(148,163,184,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: 18 }}>帝</span>
       </div>
     </div>
   );
