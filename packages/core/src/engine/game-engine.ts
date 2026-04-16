@@ -211,19 +211,14 @@ export class GameEngine {
       if (minion.remainingAttacks <= 0 || minion.currentAttack <= 0) continue;
 
       const isStealthKill = minion.card.keywords.includes('STEALTH_KILL' as any);
-      const canAttackHero =
-        minion.card.keywords.includes('CHARGE' as any) ||
-        minion.card.keywords.includes('ASSASSIN' as any);
 
-      // Attack hero (only if CHARGE or ASSASSIN, and no taunt blockers unless STEALTH_KILL)
-      if (canAttackHero) {
-        if (!opponentHasTaunt || isStealthKill) {
-          actions.push({
-            type: 'ATTACK',
-            attackerInstanceId: minion.instanceId,
-            targetInstanceId: 'HERO',
-          });
-        }
+      // Attack hero when attack-ready and no taunt blockers unless STEALTH_KILL
+      if (!opponentHasTaunt || isStealthKill) {
+        actions.push({
+          type: 'ATTACK',
+          attackerInstanceId: minion.instanceId,
+          targetInstanceId: 'HERO',
+        });
       }
 
       // Attack enemy minions

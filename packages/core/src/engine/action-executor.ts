@@ -414,16 +414,6 @@ export function executeAttack(
     }
   }
 
-  // Hero attack restriction: attacker must have CHARGE or ASSASSIN (not just RUSH)
-  if (target.type === 'HERO') {
-    const canAttackHero =
-      hasKeyword(attacker, 'CHARGE') ||
-      hasKeyword(attacker, 'ASSASSIN');
-    if (!canAttackHero) {
-      return error('INVALID_TARGET', 'Attacker cannot attack the hero without CHARGE or ASSASSIN');
-    }
-  }
-
   // ── Execution ───────────────────────────────────────────────────
   const events: GameEvent[] = [];
   const collectingBus = createCollectingEventBus(eventBus, events);

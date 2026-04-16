@@ -398,7 +398,7 @@ describe('ActionExecutor', () => {
       expect(attacker.remainingAttacks).toBe(0);
     });
 
-    it('should not allow RUSH minion to attack hero', () => {
+    it('should allow a ready RUSH minion to attack hero', () => {
       const { state, bus } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'rusher', keywords: ['RUSH'] });
       attacker.remainingAttacks = 1;
@@ -408,12 +408,9 @@ describe('ActionExecutor', () => {
         playerIndex: 1,
       });
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.errorCode).toBe('INVALID_TARGET');
-      }
-      // Hero should not take damage
-      expect(state.players[1].hero.health).toBe(30);
+      expect(result.success).toBe(true);
+      expect(state.players[1].hero.health).toBe(28);
+      expect(attacker.remainingAttacks).toBe(0);
     });
 
     it('should allow CHARGE minion to attack hero', () => {
