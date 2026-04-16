@@ -1,26 +1,7 @@
-import { useId } from 'react';
+import { useId, useRef, useState } from 'react';
 import type { Card, CardInstance, Rarity } from '@king-card/shared';
 import { CardArtwork, CardBackArtwork } from './CardArtwork.js';
-
-const KEYWORD_LABELS: Record<string, string> = {
-  BATTLECRY: '战吼',
-  DEATHRATTLE: '亡语',
-  AURA: '光环',
-  TAUNT: '嘲讽',
-  RUSH: '突袭',
-  CHARGE: '冲锋',
-  ASSASSIN: '刺杀',
-  COMBO_STRIKE: '连击',
-  STEALTH_KILL: '暗杀',
-  MOBILIZE: '动员',
-  GARRISON: '驻守',
-  IRON_FIST: '铁拳',
-  RESEARCH: '研究',
-  BLOCKADE: '封锁',
-  COLONY: '殖民',
-  BLITZ: '闪击',
-  MOBILIZATION_ORDER: '动员令',
-};
+import { getCardDisplayText } from '../../utils/cardText.js';
 
 const RARITY_BORDER_VAR: Record<Rarity, string> = {
   COMMON: 'var(--rarity-common)',
@@ -29,15 +10,36 @@ const RARITY_BORDER_VAR: Record<Rarity, string> = {
   LEGENDARY: 'var(--rarity-legendary)',
 };
 
-type TypeTokenKey = 'soldier' | 'spell' | 'general';
+type CardSize = 'hand' | 'battlefield' | 'detail' | 'collection';
 
-function typeTokenKey(type: string): TypeTokenKey {
-  if (type === 'GENERAL') return 'general';
-  if (type === 'SPELL') return 'spell';
-  return 'soldier';
+type TooltipSize = 'regular' | 'wide' | 'large';
+type TooltipPlacement = 'above' | 'below';
+
+const TOOLTIP_HEIGHT_MAP: Record<TooltipSize, number> = {
+  regular: 120,
+  wide: 148,
+  large: 190,
+};
+
+function getTooltipSize(card: Card): TooltipSize {
+  if (card.type === 'GENERAL' || card.type === 'EMPEROR') return 'large';
+  if (card.type === 'STRATAGEM' || card.type === 'SORCERY') return 'wide';
+  return 'regular';
 }
 
-type CardSize = 'hand' | 'battlefield' | 'detail' | 'collection';
+function getTooltipWidthClass(size: TooltipSize): string {
+  if (size === 'large') return 'w-[320px]';
+  if (size === 'wide') return 'w-[280px]';
+  return 'w-[220px]';
+}
+
+function formatSkillUses(usesPerTurn: number): string {
+  return `每回合 ${usesPerTurn} 次`;
+}
+
+function formatHeroCooldown(cooldown: number): string {
+  return `冷却 ${cooldown} 回合`;
+}
 
 const SIZE_MAP: Record<CardSize, { width: number; height: number }> = {
   hand: { width: 90, height: 130 },
@@ -79,6 +81,9 @@ export function CardComponent({
 }: CardComponentProps) {
   const svgIdBase = useId().replace(/:/g, '_');
   const { width, height } = SIZE_MAP[size];
+  const eventTargetRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [tooltipPlacement, setTooltipPlacement] = useState<TooltipPlacement>('above');
 
   if (isHidden || !card) {
     return (
@@ -98,23 +103,42 @@ export function CardComponent({
     );
   }
 
+  const displayCard = getCardDisplayText(card);
   const rarityBorder = RARITY_BORDER_VAR[card.rarity] ?? 'var(--rarity-common)';
   const attack = instance?.currentAttack ?? card.attack ?? 0;
   const health = instance?.currentHealth ?? card.health ?? 0;
   const maxHealth = instance?.currentMaxHealth ?? card.health ?? 0;
   const isMinion = card.type === 'MINION' || card.type === 'GENERAL';
+  const tooltipSize = getTooltipSize(displayCard);
+  const hasTooltipContent = Boolean(
+    displayCard.description || displayCard.generalSkills?.length || displayCard.heroSkill,
+  );
+
+  const handlePointerEnter = () => {
+    const estimatedTooltipHeight = TOOLTIP_HEIGHT_MAP[tooltipSize];
+    const rootTop = eventTargetRef.current?.getBoundingClientRect().top ?? estimatedTooltipHeight + 16;
+    setTooltipPlacement(rootTop <= estimatedTooltipHeight + 16 ? 'below' : 'above');
+    setIsHovered(true);
+    onPointerEnter?.();
+  };
+
+  const handlePointerLeave = () => {
+    setIsHovered(false);
+    onPointerLeave?.();
+  };
 
   return (
     <div
+      ref={eventTargetRef}
       data-testid="card"
-      className={`relative select-none cursor-pointer overflow-hidden text-white
-        transition-all duration-150
-        hover:-translate-y-4 hover:scale-105
-        ${selected ? 'ring-2 ring-yellow-400 scale-105' : ''}
-        ${actionable ? 'shadow-[0_0_22px_rgba(74,222,128,0.55)] ring-1 ring-emerald-400/70' : ''}
-        ${validTarget ? 'ring-2 ring-red-400 shadow-[0_0_26px_rgba(248,113,113,0.65)] animate-pulse' : ''}
-        ${animationClass ?? ''}
-        ${className ?? ''}`}
+      className={`relative select-none cursor-pointer text-white
+          transition-all duration-150
+          hover:-translate-y-4 hover:scale-105
+          ${selected ? 'ring-2 ring-yellow-400 scale-105' : ''}
+          ${actionable ? 'shadow-[0_0_22px_rgba(74,222,128,0.55)] ring-1 ring-emerald-400/70' : ''}
+          ${validTarget ? 'ring-2 ring-red-400 shadow-[0_0_26px_rgba(248,113,113,0.65)] animate-pulse' : ''}
+          ${animationClass ?? ''}
+          ${className ?? ''}`}
       style={{
         width,
         height,
@@ -124,21 +148,77 @@ export function CardComponent({
       }}
       onClick={onClick}
       onPointerDown={onPointerDown}
-      onPointerEnter={onPointerEnter}
-      onPointerLeave={onPointerLeave}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
     >
-      <CardArtwork card={card} instance={instance} svgIdBase={svgIdBase} size={size} />
-
-      {/* Garrison overlay */}
-      {instance && instance.garrisonTurns > 0 && (
         <div
-          data-testid="garrison-overlay"
-          className="absolute inset-0 bg-blue-900/60 flex items-center justify-center"
+          className="absolute inset-0 overflow-hidden"
           style={{ borderRadius: 'var(--card-border-radius)' }}
         >
-          <span className="text-blue-300 text-xs font-bold">
-            驻守{instance.garrisonTurns}
-          </span>
+          <CardArtwork card={displayCard} instance={instance} svgIdBase={svgIdBase} size={size} />
+
+          {/* Garrison overlay */}
+          {instance && instance.garrisonTurns > 0 && (
+            <div
+              data-testid="garrison-overlay"
+              className="absolute inset-0 bg-blue-900/60 flex items-center justify-center"
+              style={{ borderRadius: 'var(--card-border-radius)' }}
+            >
+              <span className="text-blue-300 text-xs font-bold">
+                驻守{instance.garrisonTurns}
+              </span>
+            </div>
+          )}
+        </div>
+
+      {isHovered && hasTooltipContent && (
+        <div
+          role="tooltip"
+          data-testid="card-description-tooltip"
+          data-tooltip-size={tooltipSize}
+          data-tooltip-placement={tooltipPlacement}
+          className={`pointer-events-none absolute left-1/2 z-30 ${getTooltipWidthClass(tooltipSize)} max-w-[calc(100vw-24px)] -translate-x-1/2 rounded-xl border border-white/15 bg-black/70 px-3 py-2 text-xs leading-5 text-stone-100 shadow-[0_18px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm ${tooltipPlacement === 'below' ? 'top-full mt-2' : 'top-0 -translate-y-[calc(100%+10px)]'}`}
+        >
+          <div className="mb-1 text-sm font-bold text-amber-200">{displayCard.name}</div>
+          {displayCard.description && <div>{displayCard.description}</div>}
+          {displayCard.heroSkill && (
+            <div className="mt-2 space-y-1.5 border-t border-white/10 pt-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-300/85">
+                帝王技能
+              </div>
+              <div data-testid="card-tooltip-hero-skill" className="rounded-lg border border-white/8 bg-white/5 px-2 py-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[11px] font-semibold text-amber-100">{displayCard.heroSkill.name}</div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-stone-300/90">
+                    <span className="rounded-full border border-amber-300/20 bg-amber-200/10 px-1.5 py-0.5">费用 {displayCard.heroSkill.cost}</span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-1.5 py-0.5">{formatHeroCooldown(displayCard.heroSkill.cooldown)}</span>
+                  </div>
+                </div>
+                <div className="text-[11px] leading-4 text-stone-200/95">{displayCard.heroSkill.description}</div>
+              </div>
+            </div>
+          )}
+          {displayCard.generalSkills && displayCard.generalSkills.length > 0 && (
+            <div className="mt-2 space-y-1.5 border-t border-white/10 pt-2">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-stone-300/85">
+                将领技能
+              </div>
+              {displayCard.generalSkills.map((skill, index) => (
+                <div key={skill.name} data-testid="card-tooltip-skill" className="rounded-lg border border-white/8 bg-white/5 px-2 py-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[11px] font-semibold text-amber-100">
+                      {index + 1}. {skill.name}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-stone-300/90">
+                      <span className="rounded-full border border-amber-300/20 bg-amber-200/10 px-1.5 py-0.5">费用 {skill.cost}</span>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-1.5 py-0.5">{formatSkillUses(skill.usesPerTurn)}</span>
+                    </div>
+                  </div>
+                  <div className="text-[11px] leading-4 text-stone-200/95">{skill.description}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

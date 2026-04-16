@@ -1,3 +1,5 @@
+import { getMinisterDisplayText } from '../../utils/cardText.js';
+
 interface MinisterPanelProps {
   ministers: {
     id: string;
@@ -33,7 +35,8 @@ export function MinisterPanel({
   onSkillClick,
   onSwitch,
 }: MinisterPanelProps) {
-  const active = ministers[activeIndex];
+  const displayMinisters = ministers.map((minister) => getMinisterDisplayText(minister));
+  const active = displayMinisters[activeIndex];
   if (!active) return null;
 
   return (
@@ -97,9 +100,9 @@ export function MinisterPanel({
         </button>
       </div>
       {/* Switch buttons */}
-      {ministers.length > 1 && canSwitch && (
+      {displayMinisters.length > 1 && canSwitch && (
         <div className="flex gap-1">
-          {ministers.map(
+          {displayMinisters.map(
             (m, i) =>
               i !== activeIndex && (
                 <button

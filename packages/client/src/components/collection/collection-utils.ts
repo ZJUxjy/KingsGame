@@ -1,5 +1,6 @@
 import { ALL_CARDS, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
-import type { Card, CardType, Civilization, EmperorData, Keyword } from '@king-card/shared';
+import type { Card, CardType, Civilization, EmperorData } from '@king-card/shared';
+import { getCardDisplayText, getCardSearchText } from '../../utils/cardText.js';
 
 export type CollectionCardTypeFilter = 'ALL' | Exclude<CardType, 'EMPEROR'>;
 
@@ -12,6 +13,11 @@ export interface CollectionFilters {
 }
 
 type CollectibleCard = Card & { type: Exclude<CardType, 'EMPEROR'> };
+type PreparedCollectibleCard = {
+  card: CollectibleCard;
+  displayName: string;
+  searchText: string;
+};
 
 const TYPE_ORDER: Record<Exclude<CardType, 'EMPEROR'>, number> = {
   MINION: 0,
@@ -20,24 +26,31 @@ const TYPE_ORDER: Record<Exclude<CardType, 'EMPEROR'>, number> = {
   SORCERY: 3,
 };
 
-const COLLECTIBLE_CARDS: CollectibleCard[] = ALL_CARDS.filter(
+const COLLECTIBLE_CARDS: PreparedCollectibleCard[] = ALL_CARDS.filter(
   (card): card is CollectibleCard => card.type !== 'EMPEROR',
-);
+).map((card) => {
+  const displayText = getCardDisplayText(card);
 
-function keywordText(keywords: Keyword[]): string {
-  return keywords.join(' ');
-}
+  return {
+    card,
+    displayName: displayText.name,
+    searchText: getCardSearchText(card),
+  };
+});
 
-function sortCards(left: CollectibleCard, right: CollectibleCard): number {
-  if (left.cost !== right.cost) {
-    return left.cost - right.cost;
+function sortCards(left: PreparedCollectibleCard, right: PreparedCollectibleCard): number {
+  const leftCard = left.card;
+  const rightCard = right.card;
+
+  if (leftCard.cost !== rightCard.cost) {
+    return leftCard.cost - rightCard.cost;
   }
 
-  if (left.type !== right.type) {
-    return TYPE_ORDER[left.type] - TYPE_ORDER[right.type];
+  if (leftCard.type !== rightCard.type) {
+    return TYPE_ORDER[leftCard.type] - TYPE_ORDER[rightCard.type];
   }
 
-  return left.name.localeCompare(right.name, 'zh-CN');
+  return left.displayName.localeCompare(right.displayName, 'zh-CN');
 }
 
 function getBoundCardIds(emperorId: string | null): Set<string> | null {
@@ -73,20 +86,19 @@ export function getCollectionCards(filters: CollectionFilters): Card[] {
   const boundCardIds = getBoundCardIds(filters.emperorId);
 
   return COLLECTIBLE_CARDS
-    .filter((card) => card.civilization === filters.civilization || card.civilization === 'NEUTRAL')
-    .filter((card) => filters.type === 'ALL' || card.type === filters.type)
-    .filter((card) => {
+    .filter(
+      (entry) =>
+        entry.card.civilization === filters.civilization || entry.card.civilization === 'NEUTRAL',
+    )
+    .filter((entry) => filters.type === 'ALL' || entry.card.type === filters.type)
+    .filter((entry) => {
       if (!normalizedSearch) {
         return true;
       }
 
-      const haystack = [card.name, card.description, keywordText(card.keywords)]
-        .join(' ')
-        .toLowerCase();
-
-      return haystack.includes(normalizedSearch);
+      return entry.searchText.includes(normalizedSearch);
     })
-    .filter((card) => {
+    .filter((entry) => {
       if (!filters.showBoundOnly) {
         return true;
       }
@@ -95,7 +107,8 @@ export function getCollectionCards(filters: CollectionFilters): Card[] {
         return false;
       }
 
-      return boundCardIds.has(card.id);
+      return boundCardIds.has(entry.card.id);
     })
-    .sort(sortCards);
+    .sort(sortCards)
+    .map((entry) => entry.card);
 }
