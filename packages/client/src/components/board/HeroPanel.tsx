@@ -143,7 +143,7 @@ export function HeroPanel({
           data-anchor-id={skillAnchorId}
           onClick={onSkillClick}
           disabled={!canUseSkill}
-          className={`flex-shrink-0 px-2 py-1 text-[10px] font-bold text-white rounded transition-all duration-150${skillPending ? ' skill-pending' : ''}`}
+          className={`flex-shrink-0 px-2 py-1 text-[10px] font-bold text-white rounded transition-all duration-150${skillPending && canUseSkill ? ' skill-pending' : ''}`}
           style={
             canUseSkill
               ? {

@@ -63,16 +63,16 @@ export function GeneralSkillsPanel({
                   data-anchor-id={`general-skill:${general.instanceId}:${skillIndex}`}
                   disabled={!canUse}
                   onClick={() => onSkillClick(general.instanceId, skillIndex)}
-                  className="rounded px-1.5 py-0.5 text-[9px] font-bold transition-all duration-150"
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold transition-all duration-150${isPending && canUse ? ' general-skill-pending' : ''}`}
                   style={
                     canUse
                       ? {
                           background: isPending
-                            ? 'linear-gradient(135deg, #fda4af, #f43f5e)'
-                            : 'linear-gradient(135deg, #be123c, #881337)',
-                          color: isPending ? '#1a0510' : '#fda4af',
-                          border: '1px solid rgba(244, 63, 94, 0.5)',
-                          boxShadow: '0 0 4px rgba(244, 63, 94, 0.4)',
+                            ? `linear-gradient(135deg, var(--general-skill-pending-from), var(--general-skill-pending-to))`
+                            : `linear-gradient(135deg, var(--general-skill-from), var(--general-skill-to))`,
+                          color: isPending ? 'var(--general-skill-pending-text)' : 'var(--general-skill-text)',
+                          border: `1px solid var(--general-skill-border)`,
+                          boxShadow: isPending ? undefined : `0 0 4px var(--general-skill-glow)`,
                           cursor: 'pointer',
                         }
                       : {
