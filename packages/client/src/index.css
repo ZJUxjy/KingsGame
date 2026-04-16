@@ -1,119 +1,121 @@
 @import "tailwindcss";
 
-/* ============================================================
-   DESIGN TOKENS — Figma token set
-   ============================================================ */
-
+/* ── Design Tokens (from Figma) ── */
 :root {
-  /* Board */
-  --board-bg: #0d1117;
-  --board-felt: #1a2332;
-  --board-midline-color: rgba(255, 255, 255, 0.06);
-  --board-midline-height: 2px;
+  /* Board background */
+  --board-bg-center: rgba(13, 27, 62, 1);
+  --board-bg-mid: rgba(6, 13, 31, 1);
+  --board-bg-edge: rgba(2, 8, 16, 1);
 
   /* Sidebar */
-  --sidebar-width: 110px;
-  --sidebar-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(10, 15, 28, 0.92) 100%);
-  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-bg-from: rgba(8, 14, 32, 0.7);
+  --sidebar-bg-to: rgba(5, 10, 24, 0.85);
+  --sidebar-border: rgba(148, 163, 184, 0.08);
+  --sidebar-label: #45556c;
 
   /* Card */
-  --card-width: 120px;
-  --card-height: 170px;
-  --card-radius: 8px;
-  --card-bg: #1e293b;
-  --card-border: rgba(255, 255, 255, 0.12);
-  --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --card-hover-lift: translateY(-6px) scale(1.04);
+  --card-body-from: #1a1a2e;
+  --card-body-mid: #16213e;
+  --card-body-to: #0f3460;
+  --card-radius: 14px;
+  --card-border-radius: 14px;
 
-  /* Card back */
-  --card-back-bg: linear-gradient(135deg, #1e3a5f 0%, #0f2240 50%, #1e3a5f 100%);
-  --card-back-pattern: rgba(255, 255, 255, 0.04);
+  /* Rarity borders (2px) */
+  --rarity-common: #fe9a00;
+  --rarity-rare: #fdc700;
+  --rarity-epic: #c27aff;
+  --rarity-legendary: #ff6b6b;
 
-  /* Rarity colors */
-  --rarity-common: #9ca3af;
-  --rarity-rare: #3b82f6;
-  --rarity-epic: #a855f7;
-  --rarity-legendary: #f59e0b;
+  /* Card type art gradients */
+  --type-soldier-from: #78350f;
+  --type-soldier-to: #92400e;
+  --type-spell-from: #4c1d95;
+  --type-spell-to: #3730a3;
+  --type-general-from: #92400e;
+  --type-general-to: #b45309;
 
-  /* Type badge colors */
-  --type-minion: #10b981;
-  --type-spell: #6366f1;
-  --type-weapon: #ef4444;
+  /* Card type badges */
+  --badge-soldier: #e17100;
+  --badge-spell: #9810fa;
+  --badge-general: #d08700;
 
-  /* Badges (cost / attack / health) */
-  --badge-cost-bg: #1d4ed8;
-  --badge-cost-color: #ffffff;
-  --badge-attack-bg: #b45309;
-  --badge-attack-color: #fef3c7;
-  --badge-health-bg: #991b1b;
-  --badge-health-color: #fee2e2;
+  /* Cost badge */
+  --cost-border: #8ec5ff;
+  --cost-glow: rgba(96, 165, 250, 0.8);
+
+  /* Attack badge */
+  --atk-from: #dc2626;
+  --atk-to: #991b1b;
+  --atk-border: #f87171;
+  --atk-glow: rgba(220, 38, 38, 0.5);
+
+  /* Health badge */
+  --hp-from: #16a34a;
+  --hp-to: #14532d;
+  --hp-border: #4ade80;
+  --hp-glow: rgba(22, 163, 74, 0.5);
 
   /* Health bar */
-  --health-bar-full: #22c55e;
-  --health-bar-mid: #eab308;
-  --health-bar-low: #ef4444;
-  --health-bar-bg: rgba(0, 0, 0, 0.4);
-  --health-bar-height: 4px;
+  --hpbar-from: #00bc7d;
+  --hpbar-to: #05df72;
+  --hpbar-glow: rgba(74, 222, 128, 0.6);
+  --hpbar-bg: rgba(0, 0, 0, 0.5);
+  --hpbar-border: rgba(255, 255, 255, 0.1);
 
-  /* Portrait */
-  --portrait-bg: #0f172a;
-  --portrait-border: rgba(255, 255, 255, 0.15);
-  --portrait-radius: 4px;
+  /* Hero portrait */
+  --portrait-enemy-border: #a855f7;
+  --portrait-enemy-glow: rgba(168, 85, 247, 0.6);
+  --portrait-enemy-badge-bg: #4c1d95;
+  --portrait-enemy-badge-border: #a855f7;
+  --portrait-enemy-badge-text: #d8b4fe;
+  --portrait-player-border: #f59e0b;
+  --portrait-player-glow: rgba(245, 158, 11, 0.6);
+  --portrait-player-badge-bg: #451a03;
+  --portrait-player-badge-border: #f59e0b;
+  --portrait-player-badge-text: #fcd34d;
 
-  /* Mana / Energy */
-  --mana-full: #3b82f6;
-  --mana-empty: #1e3a5f;
-  --mana-crystal-size: 18px;
-  --mana-glow: 0 0 6px rgba(59, 130, 246, 0.7);
+  /* Mana crystal */
+  --mana-border: #60a5fa;
+  --mana-glow: rgba(96, 165, 250, 0.7);
+  --mana-label: #51a2ff;
+  --mana-count: #8ec5ff;
 
   /* Turn indicator */
-  --turn-my-color: #fbbf24;
-  --turn-enemy-color: #94a3b8;
-  --turn-bg: rgba(15, 23, 42, 0.7);
+  --turn-label: #fbbf24;
+  --turn-number: #ffb900;
+  --turn-border: rgba(251, 191, 36, 0.25);
+  --turn-bg: rgba(10, 15, 35, 0.92);
 
-  /* End-turn button */
-  --end-turn-bg: #7f1d1d;
-  --end-turn-bg-active: #dc2626;
-  --end-turn-glow: 0 0 12px rgba(220, 38, 38, 0.6);
-  --end-turn-disabled-bg: #374151;
-  --end-turn-disabled-color: #6b7280;
+  /* End turn button */
+  --endturn-from: #dc2626;
+  --endturn-mid: #991b1b;
+  --endturn-to: #7f1d1d;
+  --endturn-border: rgba(248, 113, 113, 0.35);
+  --endturn-glow: rgba(220, 38, 38, 0.45);
 
   /* Skill button */
-  --skill-bg: rgba(30, 41, 59, 0.8);
-  --skill-border: rgba(255, 255, 255, 0.12);
-  --skill-active-glow: 0 0 8px rgba(251, 191, 36, 0.5);
+  --skill-from: #0ea5e9;
+  --skill-to: #0369a1;
+  --skill-border: rgba(14, 165, 233, 0.5);
+  --skill-glow: rgba(14, 165, 233, 0.4);
 
   /* Midline divider */
-  --midline-gradient: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.08) 20%,
-    rgba(255, 255, 255, 0.12) 50%,
-    rgba(255, 255, 255, 0.08) 80%,
-    transparent 100%
-  );
+  --midline-color: rgba(203, 213, 225, 0.35);
+  --midline-glow: rgba(148, 163, 184, 0.15);
+
+  /* Card back */
+  --cardback-from: #1e2a4a;
+  --cardback-to: #111827;
+  --cardback-border: rgba(148, 163, 184, 0.18);
 }
 
-/* ============================================================
-   KEYFRAMES
-   ============================================================ */
-
-/* Card play animation */
+/* ── Animation keyframes ── */
 @keyframes card-play-in {
-  0% {
-    opacity: 0;
-    transform: translateY(-100px) scale(0.5);
-  }
-  60% {
-    transform: translateY(10px) scale(1.05);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  0% { opacity: 0; transform: translateY(-100px) scale(0.5); }
+  60% { transform: translateY(10px) scale(1.05); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Attack shake animation */
 @keyframes attack-shake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-8px); }
@@ -122,25 +124,21 @@
   80% { transform: translateX(4px); }
 }
 
-/* Death fade-out animation */
 @keyframes death-fade {
   0% { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(0.5) rotate(10deg); }
 }
 
-/* Damage flash */
 @keyframes damage-flash {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(2) saturate(0); }
 }
 
-/* Heal glow */
 @keyframes heal-glow {
   0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6); }
   100% { box-shadow: 0 0 20px 10px rgba(74, 222, 128, 0); }
 }
 
-/* Game overlay fade in/out */
 @keyframes fade-in-out {
   0% { opacity: 0; }
   20% { opacity: 1; }
@@ -148,55 +146,22 @@
   100% { opacity: 0; }
 }
 
-/* Toast slide up */
 @keyframes slide-up {
   0% { opacity: 0; transform: translate(-50%, 20px); }
   100% { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* Floating damage/heal particle */
 @keyframes float-particle {
-  0% { opacity: 1; transform: translateY(0) scale(1); }
-  60% { opacity: 0.8; transform: translateY(-30px) scale(1.1); }
-  100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+  0%, 100% { opacity: var(--star-opacity); transform: translateY(0); }
+  50% { opacity: calc(var(--star-opacity) * 0.5); transform: translateY(-2px); }
 }
 
-/* ============================================================
-   UTILITY ANIMATION CLASSES
-   ============================================================ */
+.animate-fade-in-out { animation: fade-in-out 1.5s ease-in-out forwards; }
+.animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
+.animate-card-play { animation: card-play-in 0.4s ease-out forwards; }
+.animate-attack { animation: attack-shake 0.3s ease-in-out; }
+.animate-death { animation: death-fade 0.5s ease-in forwards; }
+.animate-damage { animation: damage-flash 0.3s ease-in-out; }
+.animate-heal { animation: heal-glow 0.6s ease-out forwards; }
 
-.animate-fade-in-out {
-  animation: fade-in-out 1.5s ease-in-out forwards;
-}
-
-.animate-slide-up {
-  animation: slide-up 0.3s ease-out forwards;
-}
-
-.animate-card-play {
-  animation: card-play-in 0.4s ease-out forwards;
-}
-
-.animate-attack {
-  animation: attack-shake 0.3s ease-in-out;
-}
-
-.animate-death {
-  animation: death-fade 0.5s ease-in forwards;
-}
-
-.animate-damage {
-  animation: damage-flash 0.3s ease-in-out;
-}
-
-.animate-heal {
-  animation: heal-glow 0.6s ease-out forwards;
-}
-
-/* ============================================================
-   COMPONENT UTILITY CLASSES
-   ============================================================ */
-
-.card-drag-shadow {
-  box-shadow: 0 28px 48px rgba(15, 23, 42, 0.55);
-}
+.card-drag-shadow { box-shadow: 0 28px 48px rgba(15, 23, 42, 0.55); }
