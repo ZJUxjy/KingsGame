@@ -13,20 +13,20 @@ import {
 } from '../../../src/cards/definitions/index.js';
 
 describe('UK Card Definitions', () => {
-  // ─── Total count: 1 emperor + 3 ministers + 2 generals + 6 minions + 4 stratagems + 2 sorceries = 18 ───
+  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 6 minions + 4 stratagems + 6 sorceries = 34 ───
 
-  it('should have exactly 18 entities (15 Card + 3 Minister)', () => {
+  it('should have exactly 34 entities (25 Card + 9 Minister)', () => {
     const count = UK_MINIONS.length
       + UK_STRATAGEMS.length
       + UK_SORCERIES.length
       + UK_EMPERORS.length
       + UK_GENERALS.length
       + UK_MINISTERS.length;
-    expect(count).toBe(18);
+    expect(count).toBe(34);
   });
 
-  it('UK_ALL_CARDS should contain all 15 Card objects', () => {
-    expect(UK_ALL_CARDS).toHaveLength(15);
+  it('UK_ALL_CARDS should contain all 25 Card objects', () => {
+    expect(UK_ALL_CARDS).toHaveLength(25);
   });
 
   // ─── Unique IDs ───────────────────────────────────────────────────
@@ -65,17 +65,17 @@ describe('UK Card Definitions', () => {
   // ─── Card type counts ─────────────────────────────────────────────
 
   describe('Card type counts', () => {
-    it('should have 1 emperor', () => { expect(UK_EMPERORS).toHaveLength(1); });
-    it('should have 2 generals', () => { expect(UK_GENERALS).toHaveLength(2); });
+    it('should have 3 emperors', () => { expect(UK_EMPERORS).toHaveLength(3); });
+    it('should have 6 generals', () => { expect(UK_GENERALS).toHaveLength(6); });
     it('should have 6 minions', () => { expect(UK_MINIONS).toHaveLength(6); });
     it('should have 4 stratagems', () => { expect(UK_STRATAGEMS).toHaveLength(4); });
-    it('should have 2 sorceries', () => { expect(UK_SORCERIES).toHaveLength(2); });
+    it('should have 6 sorceries', () => { expect(UK_SORCERIES).toHaveLength(6); });
   });
 
   // ─── Ministers ─────────────────────────────────────────────────────
 
   describe('Ministers', () => {
-    it('should have 3 ministers', () => { expect(UK_MINISTERS).toHaveLength(3); });
+    it('should have 9 ministers', () => { expect(UK_MINISTERS).toHaveLength(9); });
 
     it('all ministers should have an activeSkill', () => {
       for (const m of UK_MINISTERS) {
@@ -95,14 +95,22 @@ describe('UK Card Definitions', () => {
   // ─── EmperorData ──────────────────────────────────────────────────
 
   describe('EmperorData', () => {
-    it('should have 1 emperor data entry', () => {
-      expect(UK_EMPEROR_DATA_LIST).toHaveLength(1);
+    it('should have 3 emperor data entries', () => {
+      expect(UK_EMPEROR_DATA_LIST).toHaveLength(3);
     });
 
     it('Victoria should expose localized emperor and hero skill text', () => {
       expect(EMPEROR_VICTORIA.emperorCard.description).toContain('帝王技能');
       expect(EMPEROR_VICTORIA.emperorCard.heroSkill?.name).toBe('帝国号令');
       expect(EMPEROR_VICTORIA.emperorCard.heroSkill?.description).toBe('所有友方生物获得+1/+1');
+    });
+
+    it('should include Victoria, Elizabeth I, and Winston Churchill', () => {
+      expect(UK_EMPEROR_DATA_LIST.map((entry) => entry.emperorCard.name)).toEqual([
+        '维多利亚女王',
+        '伊丽莎白一世',
+        '温斯顿·丘吉尔',
+      ]);
     });
 
     for (const ed of UK_EMPEROR_DATA_LIST) {

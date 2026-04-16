@@ -62,12 +62,13 @@ describe('GameManager', () => {
   it('createGame creates a game with valid engine', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const session = manager.createGame('pve', 0);
+    const expectedAiIndex = Math.floor(0.5 * ALL_EMPEROR_DATA_LIST.length);
 
     expect(session.id).toBeTruthy();
     expect(session.engine).toBeDefined();
     expect(session.state).toBe('waiting');
     expect(session.mode).toBe('pve');
-    expect(session.playerEmperorIndices).toEqual([0, 3]);
+    expect(session.playerEmperorIndices).toEqual([0, expectedAiIndex]);
   });
 
   it('createGame engine has non-empty hands for both players', () => {

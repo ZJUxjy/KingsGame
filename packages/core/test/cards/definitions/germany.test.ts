@@ -13,20 +13,20 @@ import {
 } from '../../../src/cards/definitions/index.js';
 
 describe('Germany Card Definitions', () => {
-  // ─── Total count: 1 emperor + 3 ministers + 2 generals + 6 minions + 4 stratagems + 2 sorceries = 18 ───
+  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 6 minions + 4 stratagems + 6 sorceries = 34 ───
 
-  it('should have exactly 18 entities (15 Card + 3 Minister)', () => {
+  it('should have exactly 34 entities (25 Card + 9 Minister)', () => {
     const count = GERMANY_MINIONS.length
       + GERMANY_STRATAGEMS.length
       + GERMANY_SORCERIES.length
       + GERMANY_EMPERORS.length
       + GERMANY_GENERALS.length
       + GERMANY_MINISTERS.length;
-    expect(count).toBe(18);
+    expect(count).toBe(34);
   });
 
-  it('GERMANY_ALL_CARDS should contain all 15 Card objects', () => {
-    expect(GERMANY_ALL_CARDS).toHaveLength(15);
+  it('GERMANY_ALL_CARDS should contain all 25 Card objects', () => {
+    expect(GERMANY_ALL_CARDS).toHaveLength(25);
   });
 
   // ─── Unique IDs ───────────────────────────────────────────────────
@@ -65,17 +65,17 @@ describe('Germany Card Definitions', () => {
   // ─── Card type counts ─────────────────────────────────────────────
 
   describe('Card type counts', () => {
-    it('should have 1 emperor', () => { expect(GERMANY_EMPERORS).toHaveLength(1); });
-    it('should have 2 generals', () => { expect(GERMANY_GENERALS).toHaveLength(2); });
+    it('should have 3 emperors', () => { expect(GERMANY_EMPERORS).toHaveLength(3); });
+    it('should have 6 generals', () => { expect(GERMANY_GENERALS).toHaveLength(6); });
     it('should have 6 minions', () => { expect(GERMANY_MINIONS).toHaveLength(6); });
     it('should have 4 stratagems', () => { expect(GERMANY_STRATAGEMS).toHaveLength(4); });
-    it('should have 2 sorceries', () => { expect(GERMANY_SORCERIES).toHaveLength(2); });
+    it('should have 6 sorceries', () => { expect(GERMANY_SORCERIES).toHaveLength(6); });
   });
 
   // ─── Ministers ─────────────────────────────────────────────────────
 
   describe('Ministers', () => {
-    it('should have 3 ministers', () => { expect(GERMANY_MINISTERS).toHaveLength(3); });
+    it('should have 9 ministers', () => { expect(GERMANY_MINISTERS).toHaveLength(9); });
 
     it('all ministers should have an activeSkill', () => {
       for (const m of GERMANY_MINISTERS) {
@@ -90,19 +90,41 @@ describe('Germany Card Definitions', () => {
         expect(m.cooldown).toBeGreaterThanOrEqual(0);
       }
     });
+
+    it('Wilhelm II should keep a strategist minister and distinct minister names', () => {
+      const wilhelmII = GERMANY_EMPEROR_DATA_LIST.find((entry) => entry.emperorCard.id === 'germany_wilhelm_ii');
+
+      expect(wilhelmII).toBeDefined();
+
+      const ministerTypes = new Set(wilhelmII?.ministers.map((minister) => minister.type));
+      expect(ministerTypes.has('STRATEGIST')).toBe(true);
+
+      const generalNames = new Set(wilhelmII?.boundGenerals.map((general) => general.name));
+      for (const minister of wilhelmII?.ministers ?? []) {
+        expect(generalNames.has(minister.name)).toBe(false);
+      }
+    });
   });
 
   // ─── EmperorData ──────────────────────────────────────────────────
 
   describe('EmperorData', () => {
-    it('should have 1 emperor data entry', () => {
-      expect(GERMANY_EMPEROR_DATA_LIST).toHaveLength(1);
+    it('should have 3 emperor data entries', () => {
+      expect(GERMANY_EMPEROR_DATA_LIST).toHaveLength(3);
     });
 
     it('Friedrich should expose localized emperor and hero skill text', () => {
       expect(EMPEROR_FRIEDRICH.emperorCard.description).toContain('帝王技能');
       expect(EMPEROR_FRIEDRICH.emperorCard.heroSkill?.name).toBe('斜线阵');
       expect(EMPEROR_FRIEDRICH.emperorCard.heroSkill?.description).toBe('对一个敌方生物造成2点伤害');
+    });
+
+    it('should include Friedrich, Wilhelm I, and Wilhelm II', () => {
+      expect(GERMANY_EMPEROR_DATA_LIST.map((entry) => entry.emperorCard.name)).toEqual([
+        '腓特烈大帝',
+        '威廉一世',
+        '威廉二世',
+      ]);
     });
 
     for (const ed of GERMANY_EMPEROR_DATA_LIST) {

@@ -1,6 +1,6 @@
 import type { Card } from '@king-card/shared';
 
-// ─── USA General Cards (2) ──────────────────────────────────────────
+// ─── USA General Cards (6) ──────────────────────────────────────────
 
 export const GRANT: Card = {
   id: 'usa_grant',
@@ -105,7 +105,212 @@ export const PATTON: Card = {
   ],
 };
 
+export const NATHANAEL_GREENE: Card = {
+  id: 'usa_nathanael_greene',
+  name: '纳撒尼尔·格林',
+  civilization: 'USA',
+  type: 'GENERAL',
+  rarity: 'LEGENDARY',
+  cost: 6,
+  attack: 4,
+  health: 6,
+  description: '嘲讽。技能①南方机动：对一个敌方生物造成4点伤害。技能②拖延战术：获得+0/+3。技能③坚守福吉谷：所有友方生物获得+1生命。',
+  keywords: ['TAUNT'],
+  effects: [],
+  generalSkills: [
+    {
+      name: '南方机动',
+      description: '对一个敌方生物造成4点伤害',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'DAMAGE',
+        params: { target: 'ENEMY_MINION', amount: 4 },
+      },
+    },
+    {
+      name: '拖延战术',
+      description: '获得+0/+3',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'MODIFY_STAT',
+        params: { healthDelta: 3 },
+      },
+    },
+    {
+      name: '坚守福吉谷',
+      description: '所有友方生物获得+1生命',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'MODIFY_STAT',
+        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', healthDelta: 1 },
+      },
+    },
+  ],
+};
+
+export const HENRY_KNOX: Card = {
+  id: 'usa_henry_knox',
+  name: '亨利·诺克斯',
+  civilization: 'USA',
+  type: 'GENERAL',
+  rarity: 'LEGENDARY',
+  cost: 5,
+  attack: 4,
+  health: 5,
+  description: '冲锋。技能①炮兵统率：对所有敌方生物造成2点伤害。技能②大陆军整编：所有友方生物获得+1攻击。技能③火炮援护：召唤一个3/3大兵。',
+  keywords: ['CHARGE'],
+  effects: [],
+  generalSkills: [
+    {
+      name: '炮兵统率',
+      description: '对所有敌方生物造成2点伤害',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'DAMAGE',
+        params: { targetFilter: 'ALL_ENEMY_MINIONS', amount: 2 },
+      },
+    },
+    {
+      name: '大陆军整编',
+      description: '所有友方生物获得+1攻击',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'MODIFY_STAT',
+        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1 },
+      },
+    },
+    {
+      name: '火炮援护',
+      description: '召唤一个3/3大兵',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'SUMMON',
+        params: { cardId: 'usa_gi' },
+      },
+    },
+  ],
+};
+
+export const DOUGLAS_MACARTHUR: Card = {
+  id: 'usa_douglas_macarthur',
+  name: '道格拉斯·麦克阿瑟',
+  civilization: 'USA',
+  type: 'GENERAL',
+  rarity: 'LEGENDARY',
+  cost: 6,
+  attack: 5,
+  health: 5,
+  description: '突袭。技能①跳岛战术：对一个敌方生物造成4点伤害。技能②我将归来：召唤一个3/3空降兵。技能③远东统帅：所有友方生物获得突袭（本回合）。',
+  keywords: ['RUSH'],
+  effects: [],
+  generalSkills: [
+    {
+      name: '跳岛战术',
+      description: '对一个敌方生物造成4点伤害',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'DAMAGE',
+        params: { target: 'ENEMY_MINION', amount: 4 },
+      },
+    },
+    {
+      name: '我将归来',
+      description: '召唤一个3/3空降兵',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'SUMMON',
+        params: { cardId: 'usa_airborne' },
+      },
+    },
+    {
+      name: '远东统帅',
+      description: '所有友方生物获得突袭（本回合）',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'APPLY_BUFF',
+        params: {
+          targetFilter: 'ALL_FRIENDLY_MINIONS',
+          keywordsGranted: ['RUSH'],
+          type: 'TEMPORARY',
+          remainingTurns: 1,
+        },
+      },
+    },
+  ],
+};
+
+export const DWIGHT_EISENHOWER: Card = {
+  id: 'usa_dwight_eisenhower',
+  name: '德怀特·艾森豪威尔',
+  civilization: 'USA',
+  type: 'GENERAL',
+  rarity: 'LEGENDARY',
+  cost: 7,
+  attack: 5,
+  health: 7,
+  description: '嘲讽。技能①霸王行动：对所有敌方生物造成3点伤害。技能②盟军总司令：所有友方生物获得+1/+1。技能③后勤大师：抽一张牌。',
+  keywords: ['TAUNT'],
+  effects: [],
+  generalSkills: [
+    {
+      name: '霸王行动',
+      description: '对所有敌方生物造成3点伤害',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'DAMAGE',
+        params: { targetFilter: 'ALL_ENEMY_MINIONS', amount: 3 },
+      },
+    },
+    {
+      name: '盟军总司令',
+      description: '所有友方生物获得+1/+1',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'MODIFY_STAT',
+        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1, healthDelta: 1 },
+      },
+    },
+    {
+      name: '后勤大师',
+      description: '抽一张牌',
+      cost: 0,
+      usesPerTurn: 1,
+      effect: {
+        trigger: 'ON_PLAY',
+        type: 'DRAW',
+        params: { count: 1 },
+      },
+    },
+  ],
+};
+
 export const USA_GENERALS: Card[] = [
   GRANT,
   PATTON,
+  NATHANAEL_GREENE,
+  HENRY_KNOX,
+  DOUGLAS_MACARTHUR,
+  DWIGHT_EISENHOWER,
 ];

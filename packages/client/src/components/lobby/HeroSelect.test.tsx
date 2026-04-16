@@ -8,6 +8,9 @@ const initialState = useGameStore.getState();
 const lincolnIndex = ALL_EMPEROR_DATA_LIST.findIndex(
   (emperorData) => emperorData.emperorCard.id === 'usa_lincoln',
 );
+const friedrichIndex = ALL_EMPEROR_DATA_LIST.findIndex(
+  (emperorData) => emperorData.emperorCard.id === 'germany_friedrich',
+);
 
 describe('HeroSelect', () => {
   const joinGame = vi.fn();
@@ -39,11 +42,14 @@ describe('HeroSelect', () => {
     expect(screen.getByRole('button', { name: /华夏/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /大和/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /美利坚/ })).toBeTruthy();
+    expect(screen.getAllByText(/3 位帝王/)).toHaveLength(5);
     expect(screen.queryByRole('button', { name: /亚伯拉罕·林肯/ })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /美利坚/ }));
 
     expect(screen.getByRole('button', { name: /亚伯拉罕·林肯/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /乔治·华盛顿/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /富兰克林·罗斯福/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /秦始皇/ })).toBeNull();
   });
 
@@ -67,7 +73,7 @@ describe('HeroSelect', () => {
     fireEvent.click(screen.getByRole('button', { name: /腓特烈大帝/ }));
     fireEvent.click(screen.getByRole('button', { name: '匹配对手' }));
 
-    expect(joinPvp).toHaveBeenCalledWith(ALL_EMPEROR_DATA_LIST.length - 1);
+    expect(joinPvp).toHaveBeenCalledWith(friedrichIndex);
     expect(joinGame).not.toHaveBeenCalled();
   });
 

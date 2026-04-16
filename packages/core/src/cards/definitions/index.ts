@@ -105,10 +105,16 @@ export {
 export {
   KAMIKAZE,
   SEPPUKU,
+  SAKOKU_EDICT,
+  SANKIN_KOTAI,
+  MEIJI_RESTORATION,
+  CONSCRIPTION_ORDINANCE,
 } from './japan-sorceries.js';
 
 export {
   ODA_NOBUNAGA,
+  TOKUGAWA_IEYASU,
+  EMPEROR_MEIJI,
 } from './japan-emperors.js';
 
 export {
@@ -116,11 +122,23 @@ export {
   TOYOTOMI,
   MAEDA,
   ODA_MINISTERS,
+  HATTORI_HANZO,
+  HONDA_MASANOBU,
+  SAKAI_TADATSUGU,
+  TOKUGAWA_MINISTERS,
+  ITO_HIROBUMI,
+  OKUBO_TOSHIMICHI,
+  KIDO_TAKAYOSHI,
+  MEIJI_MINISTERS,
 } from './japan-ministers.js';
 
 export {
   SANADA_YUKIMURA,
   BENKEI,
+  HONDA_TADAKATSU,
+  II_NAOMASA,
+  SAIGO_TAKAMORI,
+  YAMAGATA_ARITOMO,
 } from './japan-generals.js';
 
 export {
@@ -142,10 +160,16 @@ export {
 export {
   MANHATTAN_PROJECT,
   MONROE_DOCTRINE,
+  CONTINENTAL_CONGRESS,
+  VALLEY_FORGE,
+  NEW_DEAL,
+  D_DAY_LANDING,
 } from './usa-sorceries.js';
 
 export {
   LINCOLN,
+  GEORGE_WASHINGTON,
+  FRANKLIN_ROOSEVELT,
 } from './usa-emperors.js';
 
 export {
@@ -153,11 +177,23 @@ export {
   SHERMAN_MINISTER,
   HAMILTON,
   LINCOLN_MINISTERS,
+  JOHN_ADAMS,
+  THOMAS_PAINE,
+  HENRY_LAURENS,
+  WASHINGTON_MINISTERS,
+  ELEANOR_ROOSEVELT,
+  HARRY_HOPKINS,
+  GEORGE_MARSHALL,
+  ROOSEVELT_MINISTERS,
 } from './usa-ministers.js';
 
 export {
   GRANT,
   PATTON,
+  NATHANAEL_GREENE,
+  HENRY_KNOX,
+  DOUGLAS_MACARTHUR,
+  DWIGHT_EISENHOWER,
 } from './usa-generals.js';
 
 export {
@@ -179,10 +215,16 @@ export {
 export {
   GREAT_FIRE,
   ENCLOSURE_ACT,
+  SPANISH_ARMADA,
+  ROYAL_CHARTER,
+  FINEST_HOUR,
+  RADAR_NETWORK,
 } from './uk-sorceries.js';
 
 export {
   VICTORIA,
+  ELIZABETH_I,
+  WINSTON_CHURCHILL,
 } from './uk-emperors.js';
 
 export {
@@ -190,11 +232,23 @@ export {
   DRAKE,
   WALPOLE,
   VICTORIA_MINISTERS,
+  WALSINGHAM,
+  BURGHLEY,
+  ESSEX,
+  ELIZABETH_MINISTERS,
+  ATTLEE,
+  TURING,
+  EDEN,
+  CHURCHILL_MINISTERS,
 } from './uk-ministers.js';
 
 export {
   WELLINGTON,
   NELSON,
+  ROBERT_DUDLEY,
+  WILLIAM_CECIL,
+  BERNARD_MONTGOMERY,
+  ALAN_BROOKE,
 } from './uk-generals.js';
 
 export {
@@ -216,10 +270,16 @@ export {
 export {
   V2_ROCKET,
   SCORCHED_EARTH,
+  NORTH_GERMAN_CONFEDERATION,
+  FRANCO_PRUSSIAN_WAR,
+  SCHLIEFFEN_PLAN,
+  HIGH_SEAS_FLEET,
 } from './germany-sorceries.js';
 
 export {
   FRIEDRICH,
+  WILHELM_I,
+  WILHELM_II,
 } from './germany-emperors.js';
 
 export {
@@ -227,11 +287,23 @@ export {
   WALLENSTEIN,
   ERHARD,
   FRIEDRICH_MINISTERS,
+  DELBRUCK,
+  BENNIGSEN,
+  BLUMENTHAL,
+  WILHELM_I_MINISTERS,
+  BULOW,
+  TIRPITZ_MINISTER,
+  BETHMANN_HOLLWEG,
+  WILHELM_II_MINISTERS,
 } from './germany-ministers.js';
 
 export {
   BISMARCK,
   ROMMEL,
+  HELMUTH_VON_MOLTKE,
+  ALBRECHT_VON_ROON,
+  PAUL_VON_HINDENBURG,
+  ALFRED_VON_TIRPITZ,
 } from './germany-generals.js';
 
 // ─── Aggregate all China cards ──────────────────────────────────────
@@ -328,15 +400,15 @@ import { QIN_MINISTERS, HAN_MINISTERS, TANG_MINISTERS } from './china-ministers.
 import { HUOQUBING, WEIQING } from './china-generals.js';
 import { WUGUZHIHUO, FENSHU_KENGRU } from './china-sorceries.js';
 
-import { ODA_NOBUNAGA } from './japan-emperors.js';
-import { ODA_MINISTERS } from './japan-ministers.js';
-import { SANADA_YUKIMURA, BENKEI } from './japan-generals.js';
-import { KAMIKAZE, SEPPUKU } from './japan-sorceries.js';
+import { ODA_NOBUNAGA, TOKUGAWA_IEYASU, EMPEROR_MEIJI } from './japan-emperors.js';
+import { ODA_MINISTERS, TOKUGAWA_MINISTERS, MEIJI_MINISTERS } from './japan-ministers.js';
+import { SANADA_YUKIMURA, BENKEI, HONDA_TADAKATSU, II_NAOMASA, SAIGO_TAKAMORI, YAMAGATA_ARITOMO } from './japan-generals.js';
+import { KAMIKAZE, SEPPUKU, SAKOKU_EDICT, SANKIN_KOTAI, MEIJI_RESTORATION, CONSCRIPTION_ORDINANCE } from './japan-sorceries.js';
 
-import { LINCOLN } from './usa-emperors.js';
-import { LINCOLN_MINISTERS } from './usa-ministers.js';
-import { GRANT, PATTON } from './usa-generals.js';
-import { MANHATTAN_PROJECT, MONROE_DOCTRINE } from './usa-sorceries.js';
+import { LINCOLN, GEORGE_WASHINGTON, FRANKLIN_ROOSEVELT } from './usa-emperors.js';
+import { LINCOLN_MINISTERS, WASHINGTON_MINISTERS, ROOSEVELT_MINISTERS } from './usa-ministers.js';
+import { GRANT, PATTON, NATHANAEL_GREENE, HENRY_KNOX, DOUGLAS_MACARTHUR, DWIGHT_EISENHOWER } from './usa-generals.js';
+import { MANHATTAN_PROJECT, MONROE_DOCTRINE, CONTINENTAL_CONGRESS, VALLEY_FORGE, NEW_DEAL, D_DAY_LANDING } from './usa-sorceries.js';
 
 import type { Card } from '@king-card/shared';
 
@@ -376,8 +448,24 @@ export const EMPEROR_ODA: EmperorData = {
   boundSorceries: [KAMIKAZE, SEPPUKU],
 };
 
+export const EMPEROR_TOKUGAWA: EmperorData = {
+  emperorCard: TOKUGAWA_IEYASU,
+  ministers: TOKUGAWA_MINISTERS,
+  boundGenerals: [HONDA_TADAKATSU, II_NAOMASA],
+  boundSorceries: [SAKOKU_EDICT, SANKIN_KOTAI],
+};
+
+export const EMPEROR_MEIJI_DATA: EmperorData = {
+  emperorCard: EMPEROR_MEIJI,
+  ministers: MEIJI_MINISTERS,
+  boundGenerals: [SAIGO_TAKAMORI, YAMAGATA_ARITOMO],
+  boundSorceries: [MEIJI_RESTORATION, CONSCRIPTION_ORDINANCE],
+};
+
 export const JAPAN_EMPEROR_DATA_LIST: EmperorData[] = [
   EMPEROR_ODA,
+  EMPEROR_TOKUGAWA,
+  EMPEROR_MEIJI_DATA,
 ];
 
 // ─── USA EmperorData assemblies ─────────────────────────────────────
@@ -389,16 +477,32 @@ export const EMPEROR_LINCOLN: EmperorData = {
   boundSorceries: [MANHATTAN_PROJECT, MONROE_DOCTRINE],
 };
 
+export const EMPEROR_WASHINGTON: EmperorData = {
+  emperorCard: GEORGE_WASHINGTON,
+  ministers: WASHINGTON_MINISTERS,
+  boundGenerals: [NATHANAEL_GREENE, HENRY_KNOX],
+  boundSorceries: [CONTINENTAL_CONGRESS, VALLEY_FORGE],
+};
+
+export const EMPEROR_ROOSEVELT: EmperorData = {
+  emperorCard: FRANKLIN_ROOSEVELT,
+  ministers: ROOSEVELT_MINISTERS,
+  boundGenerals: [DOUGLAS_MACARTHUR, DWIGHT_EISENHOWER],
+  boundSorceries: [NEW_DEAL, D_DAY_LANDING],
+};
+
 export const USA_EMPEROR_DATA_LIST: EmperorData[] = [
   EMPEROR_LINCOLN,
+  EMPEROR_WASHINGTON,
+  EMPEROR_ROOSEVELT,
 ];
 
 // ─── Germany EmperorData assemblies ─────────────────────────────────
 
-import { FRIEDRICH } from './germany-emperors.js';
-import { FRIEDRICH_MINISTERS } from './germany-ministers.js';
-import { BISMARCK, ROMMEL } from './germany-generals.js';
-import { V2_ROCKET, SCORCHED_EARTH } from './germany-sorceries.js';
+import { FRIEDRICH, WILHELM_I, WILHELM_II } from './germany-emperors.js';
+import { FRIEDRICH_MINISTERS, WILHELM_I_MINISTERS, WILHELM_II_MINISTERS } from './germany-ministers.js';
+import { BISMARCK, ROMMEL, HELMUTH_VON_MOLTKE, ALBRECHT_VON_ROON, PAUL_VON_HINDENBURG, ALFRED_VON_TIRPITZ } from './germany-generals.js';
+import { V2_ROCKET, SCORCHED_EARTH, NORTH_GERMAN_CONFEDERATION, FRANCO_PRUSSIAN_WAR, SCHLIEFFEN_PLAN, HIGH_SEAS_FLEET } from './germany-sorceries.js';
 
 export const EMPEROR_FRIEDRICH: EmperorData = {
   emperorCard: FRIEDRICH,
@@ -407,16 +511,32 @@ export const EMPEROR_FRIEDRICH: EmperorData = {
   boundSorceries: [V2_ROCKET, SCORCHED_EARTH],
 };
 
+export const EMPEROR_WILHELM_I: EmperorData = {
+  emperorCard: WILHELM_I,
+  ministers: WILHELM_I_MINISTERS,
+  boundGenerals: [HELMUTH_VON_MOLTKE, ALBRECHT_VON_ROON],
+  boundSorceries: [NORTH_GERMAN_CONFEDERATION, FRANCO_PRUSSIAN_WAR],
+};
+
+export const EMPEROR_WILHELM_II: EmperorData = {
+  emperorCard: WILHELM_II,
+  ministers: WILHELM_II_MINISTERS,
+  boundGenerals: [PAUL_VON_HINDENBURG, ALFRED_VON_TIRPITZ],
+  boundSorceries: [SCHLIEFFEN_PLAN, HIGH_SEAS_FLEET],
+};
+
 export const GERMANY_EMPEROR_DATA_LIST: EmperorData[] = [
   EMPEROR_FRIEDRICH,
+  EMPEROR_WILHELM_I,
+  EMPEROR_WILHELM_II,
 ];
 
 // ─── UK EmperorData assemblies ──────────────────────────────────────
 
-import { VICTORIA } from './uk-emperors.js';
-import { VICTORIA_MINISTERS } from './uk-ministers.js';
-import { WELLINGTON, NELSON } from './uk-generals.js';
-import { GREAT_FIRE, ENCLOSURE_ACT } from './uk-sorceries.js';
+import { VICTORIA, ELIZABETH_I, WINSTON_CHURCHILL } from './uk-emperors.js';
+import { VICTORIA_MINISTERS, ELIZABETH_MINISTERS, CHURCHILL_MINISTERS } from './uk-ministers.js';
+import { WELLINGTON, NELSON, ROBERT_DUDLEY, WILLIAM_CECIL, BERNARD_MONTGOMERY, ALAN_BROOKE } from './uk-generals.js';
+import { GREAT_FIRE, ENCLOSURE_ACT, SPANISH_ARMADA, ROYAL_CHARTER, FINEST_HOUR, RADAR_NETWORK } from './uk-sorceries.js';
 
 export const EMPEROR_VICTORIA: EmperorData = {
   emperorCard: VICTORIA,
@@ -425,8 +545,24 @@ export const EMPEROR_VICTORIA: EmperorData = {
   boundSorceries: [GREAT_FIRE, ENCLOSURE_ACT],
 };
 
+export const EMPEROR_ELIZABETH: EmperorData = {
+  emperorCard: ELIZABETH_I,
+  ministers: ELIZABETH_MINISTERS,
+  boundGenerals: [ROBERT_DUDLEY, WILLIAM_CECIL],
+  boundSorceries: [SPANISH_ARMADA, ROYAL_CHARTER],
+};
+
+export const EMPEROR_CHURCHILL: EmperorData = {
+  emperorCard: WINSTON_CHURCHILL,
+  ministers: CHURCHILL_MINISTERS,
+  boundGenerals: [BERNARD_MONTGOMERY, ALAN_BROOKE],
+  boundSorceries: [FINEST_HOUR, RADAR_NETWORK],
+};
+
 export const UK_EMPEROR_DATA_LIST: EmperorData[] = [
   EMPEROR_VICTORIA,
+  EMPEROR_ELIZABETH,
+  EMPEROR_CHURCHILL,
 ];
 
 // ─── Global aggregates ──────────────────────────────────────────────
