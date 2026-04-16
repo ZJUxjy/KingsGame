@@ -1,5 +1,103 @@
 @import "tailwindcss";
 
+/* ============================================================
+   DESIGN TOKENS — Figma token set
+   ============================================================ */
+
+:root {
+  /* Board */
+  --board-bg: #0d1117;
+  --board-felt: #1a2332;
+  --board-midline-color: rgba(255, 255, 255, 0.06);
+  --board-midline-height: 2px;
+
+  /* Sidebar */
+  --sidebar-width: 110px;
+  --sidebar-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(10, 15, 28, 0.92) 100%);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+
+  /* Card */
+  --card-width: 120px;
+  --card-height: 170px;
+  --card-radius: 8px;
+  --card-bg: #1e293b;
+  --card-border: rgba(255, 255, 255, 0.12);
+  --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --card-hover-lift: translateY(-6px) scale(1.04);
+
+  /* Card back */
+  --card-back-bg: linear-gradient(135deg, #1e3a5f 0%, #0f2240 50%, #1e3a5f 100%);
+  --card-back-pattern: rgba(255, 255, 255, 0.04);
+
+  /* Rarity colors */
+  --rarity-common: #9ca3af;
+  --rarity-rare: #3b82f6;
+  --rarity-epic: #a855f7;
+  --rarity-legendary: #f59e0b;
+
+  /* Type badge colors */
+  --type-minion: #10b981;
+  --type-spell: #6366f1;
+  --type-weapon: #ef4444;
+
+  /* Badges (cost / attack / health) */
+  --badge-cost-bg: #1d4ed8;
+  --badge-cost-color: #ffffff;
+  --badge-attack-bg: #b45309;
+  --badge-attack-color: #fef3c7;
+  --badge-health-bg: #991b1b;
+  --badge-health-color: #fee2e2;
+
+  /* Health bar */
+  --health-bar-full: #22c55e;
+  --health-bar-mid: #eab308;
+  --health-bar-low: #ef4444;
+  --health-bar-bg: rgba(0, 0, 0, 0.4);
+  --health-bar-height: 4px;
+
+  /* Portrait */
+  --portrait-bg: #0f172a;
+  --portrait-border: rgba(255, 255, 255, 0.15);
+  --portrait-radius: 4px;
+
+  /* Mana / Energy */
+  --mana-full: #3b82f6;
+  --mana-empty: #1e3a5f;
+  --mana-crystal-size: 18px;
+  --mana-glow: 0 0 6px rgba(59, 130, 246, 0.7);
+
+  /* Turn indicator */
+  --turn-my-color: #fbbf24;
+  --turn-enemy-color: #94a3b8;
+  --turn-bg: rgba(15, 23, 42, 0.7);
+
+  /* End-turn button */
+  --end-turn-bg: #7f1d1d;
+  --end-turn-bg-active: #dc2626;
+  --end-turn-glow: 0 0 12px rgba(220, 38, 38, 0.6);
+  --end-turn-disabled-bg: #374151;
+  --end-turn-disabled-color: #6b7280;
+
+  /* Skill button */
+  --skill-bg: rgba(30, 41, 59, 0.8);
+  --skill-border: rgba(255, 255, 255, 0.12);
+  --skill-active-glow: 0 0 8px rgba(251, 191, 36, 0.5);
+
+  /* Midline divider */
+  --midline-gradient: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.08) 80%,
+    transparent 100%
+  );
+}
+
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+
 /* Card play animation */
 @keyframes card-play-in {
   0% {
@@ -56,6 +154,17 @@
   100% { opacity: 1; transform: translate(-50%, 0); }
 }
 
+/* Floating damage/heal particle */
+@keyframes float-particle {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  60% { opacity: 0.8; transform: translateY(-30px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+}
+
+/* ============================================================
+   UTILITY ANIMATION CLASSES
+   ============================================================ */
+
 .animate-fade-in-out {
   animation: fade-in-out 1.5s ease-in-out forwards;
 }
@@ -83,6 +192,10 @@
 .animate-heal {
   animation: heal-glow 0.6s ease-out forwards;
 }
+
+/* ============================================================
+   COMPONENT UTILITY CLASSES
+   ============================================================ */
 
 .card-drag-shadow {
   box-shadow: 0 28px 48px rgba(15, 23, 42, 0.55);
