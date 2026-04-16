@@ -165,4 +165,14 @@ describe('gameStore', () => {
       target,
     });
   });
+
+  it('clearTargetingSelection clears both selectedAttacker and pendingSkillAction', () => {
+    useGameStore.getState().setSelectedAttacker('attacker-1');
+    useGameStore.getState().setPendingSkillAction({ type: 'HERO' });
+
+    useGameStore.getState().clearTargetingSelection();
+
+    expect(useGameStore.getState().selectedAttacker).toBeNull();
+    expect(useGameStore.getState().pendingSkillAction).toBeNull();
+  });
 });
