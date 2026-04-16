@@ -47,6 +47,8 @@ export interface MinisterSkillOptions {
   effect: CardEffect;
 }
 
+// No defaults to inject today; wrapper enforces MinisterSkill shape
+// and provides a hook for future defaults.
 export function createMinisterSkill(options: MinisterSkillOptions): MinisterSkill {
   return {
     name: options.name,
