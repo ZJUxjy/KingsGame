@@ -29,6 +29,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@king-card/core':
+        specifier: workspace:*
+        version: link:../core
       '@king-card/shared':
         specifier: workspace:*
         version: link:../shared
