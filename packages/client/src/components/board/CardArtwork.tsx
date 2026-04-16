@@ -50,8 +50,8 @@ function getDescriptionLayout(card: Card, size: CardSize): DescriptionLayout {
     return {
       maxCharsPerLine: 10,
       maxLines: 3,
-      startY: card.keywords.length > 0 ? 102 : 98,
-      lineHeight: 5.5,
+      startY: card.keywords.length > 0 ? 138 : 132,
+      lineHeight: 6,
     };
   }
 
