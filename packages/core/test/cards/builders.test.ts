@@ -86,6 +86,16 @@ describe('Skill Helpers', () => {
       expect(skill.cost).toBe(2);
       expect(skill.usesPerTurn).toBe(2);
     });
+
+    it('respects explicit usesPerTurn override', () => {
+      const skill = createGeneralSkill({
+        name: 'Test',
+        description: 'test',
+        effect: onPlay('DRAW', { count: 1 }),
+        usesPerTurn: 2,
+      });
+      expect(skill.usesPerTurn).toBe(2);
+    });
   });
 
   describe('createHeroSkill', () => {

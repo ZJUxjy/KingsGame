@@ -1,4 +1,5 @@
 import type { Card } from '@king-card/shared';
+import { createGeneralSkill, onPlay } from './builders';
 
 // ─── Japan General Cards (6) ────────────────────────────────────────
 
@@ -15,44 +16,26 @@ export const SANADA_YUKIMURA: Card = {
   keywords: ['RUSH', 'CHARGE'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '十文字槍',
       description: '对一个敌方生物造成4点伤害',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { target: 'ENEMY_MINION', amount: 4 },
-      },
-    },
-    {
+      effect: onPlay('DAMAGE', { target: 'ENEMY_MINION', amount: 4 }),
+    }),
+    createGeneralSkill({
       name: '赤備え',
       description: '获得+2/+2',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { attackDelta: 2, healthDelta: 2 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { attackDelta: 2, healthDelta: 2 }),
+    }),
+    createGeneralSkill({
       name: '六文銭',
       description: '所有友方生物获得突袭（本回合）',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'APPLY_BUFF',
-        params: {
-          targetFilter: 'ALL_FRIENDLY_MINIONS',
-          keywordsGranted: ['RUSH'],
-          type: 'TEMPORARY',
-          remainingTurns: 1,
-        },
-      },
-    },
+      effect: onPlay('APPLY_BUFF', {
+        targetFilter: 'ALL_FRIENDLY_MINIONS',
+        keywordsGranted: ['RUSH'],
+        type: 'TEMPORARY',
+        remainingTurns: 1,
+      }),
+    }),
   ],
 };
 
@@ -69,44 +52,26 @@ export const BENKEI: Card = {
   keywords: ['TAUNT'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '七つ道具',
       description: '获得+2生命值',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { healthDelta: 2 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { healthDelta: 2 }),
+    }),
+    createGeneralSkill({
       name: '仁王立ち',
       description: '所有友方生物获得嘲讽（本回合）',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'APPLY_BUFF',
-        params: {
-          targetFilter: 'ALL_FRIENDLY_MINIONS',
-          keywordsGranted: ['TAUNT'],
-          type: 'TEMPORARY',
-          remainingTurns: 1,
-        },
-      },
-    },
-    {
+      effect: onPlay('APPLY_BUFF', {
+        targetFilter: 'ALL_FRIENDLY_MINIONS',
+        keywordsGranted: ['TAUNT'],
+        type: 'TEMPORARY',
+        remainingTurns: 1,
+      }),
+    }),
+    createGeneralSkill({
       name: '立往生',
       description: '对所有敌方生物造成3点伤害',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { targetFilter: 'ALL_ENEMY_MINIONS', amount: 3 },
-      },
-    },
+      effect: onPlay('DAMAGE', { targetFilter: 'ALL_ENEMY_MINIONS', amount: 3 }),
+    }),
   ],
 };
 
@@ -123,39 +88,21 @@ export const HONDA_TADAKATSU: Card = {
   keywords: ['TAUNT'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '蜻蛉切',
       description: '对一个敌方生物造成4点伤害',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { target: 'ENEMY_MINION', amount: 4 },
-      },
-    },
-    {
+      effect: onPlay('DAMAGE', { target: 'ENEMY_MINION', amount: 4 }),
+    }),
+    createGeneralSkill({
       name: '不败之将',
       description: '获得+1/+2',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { attackDelta: 1, healthDelta: 2 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { attackDelta: 1, healthDelta: 2 }),
+    }),
+    createGeneralSkill({
       name: '三河武备',
       description: '所有友方生物获得+1生命',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', healthDelta: 1 },
-      },
-    },
+      effect: onPlay('MODIFY_STAT', { targetFilter: 'ALL_FRIENDLY_MINIONS', healthDelta: 1 }),
+    }),
   ],
 };
 
@@ -172,39 +119,21 @@ export const II_NAOMASA: Card = {
   keywords: ['RUSH', 'CHARGE'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '赤备突击',
       description: '对一个敌方生物造成3点伤害',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { target: 'ENEMY_MINION', amount: 3 },
-      },
-    },
-    {
+      effect: onPlay('DAMAGE', { target: 'ENEMY_MINION', amount: 3 }),
+    }),
+    createGeneralSkill({
       name: '德川先锋',
       description: '所有友方生物获得+1攻击',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1 }),
+    }),
+    createGeneralSkill({
       name: '赤甲军',
       description: '召唤一个1/1足轻',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'SUMMON',
-        params: { cardId: 'japan_ashigaru' },
-      },
-    },
+      effect: onPlay('SUMMON', { cardId: 'japan_ashigaru' }),
+    }),
   ],
 };
 
@@ -221,39 +150,21 @@ export const SAIGO_TAKAMORI: Card = {
   keywords: ['CHARGE'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '维新先锋',
       description: '所有友方生物获得+1/+1',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1, healthDelta: 1 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1, healthDelta: 1 }),
+    }),
+    createGeneralSkill({
       name: '鹿儿岛义军',
       description: '召唤一个3/3武者',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'SUMMON',
-        params: { cardId: 'japan_musha' },
-      },
-    },
-    {
+      effect: onPlay('SUMMON', { cardId: 'japan_musha' }),
+    }),
+    createGeneralSkill({
       name: '决死突贯',
       description: '对一个敌方生物造成4点伤害',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { target: 'ENEMY_MINION', amount: 4 },
-      },
-    },
+      effect: onPlay('DAMAGE', { target: 'ENEMY_MINION', amount: 4 }),
+    }),
   ],
 };
 
@@ -270,44 +181,26 @@ export const YAMAGATA_ARITOMO: Card = {
   keywords: ['TAUNT'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '征兵令',
       description: '召唤一个2/2铁炮兵',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'SUMMON',
-        params: { cardId: 'japan_teppo' },
-      },
-    },
-    {
+      effect: onPlay('SUMMON', { cardId: 'japan_teppo' }),
+    }),
+    createGeneralSkill({
       name: '陆军整训',
       description: '所有友方生物获得突袭（本回合）',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'APPLY_BUFF',
-        params: {
-          targetFilter: 'ALL_FRIENDLY_MINIONS',
-          keywordsGranted: ['RUSH'],
-          type: 'TEMPORARY',
-          remainingTurns: 1,
-        },
-      },
-    },
-    {
+      effect: onPlay('APPLY_BUFF', {
+        targetFilter: 'ALL_FRIENDLY_MINIONS',
+        keywordsGranted: ['RUSH'],
+        type: 'TEMPORARY',
+        remainingTurns: 1,
+      }),
+    }),
+    createGeneralSkill({
       name: '军制改革',
       description: '获得3点护甲',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'GAIN_ARMOR',
-        params: { amount: 3 },
-      },
-    },
+      effect: onPlay('GAIN_ARMOR', { amount: 3 }),
+    }),
   ],
 };
 
