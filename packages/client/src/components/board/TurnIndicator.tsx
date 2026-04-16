@@ -29,6 +29,7 @@ export function TurnIndicator({ turnNumber, isMyTurn, onEndTurn }: TurnIndicator
       </span>
       {onEndTurn !== undefined && (
         <button
+          type="button"
           onClick={onEndTurn}
           disabled={!isMyTurn}
           className="mt-1 w-full py-0.5 rounded text-xs font-bold btn-endturn"

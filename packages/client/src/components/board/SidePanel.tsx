@@ -36,7 +36,7 @@ function DeckWidget({ count, side }: { count: number; side: 'enemy' | 'player' }
         />
         <div
           className="absolute inset-0 rounded border border-white/15 flex items-center justify-center"
-          style={{ background: 'var(--cardback-from)' }}
+          style={{ background: 'linear-gradient(160deg, var(--cardback-from) 0%, var(--cardback-to) 100%)' }}
         >
           <span className="text-lg font-bold text-white leading-none">{count}</span>
         </div>
@@ -124,11 +124,9 @@ export function SidePanel({
       {/* Turn indicator — display-only; no onEndTurn passed */}
       <TurnIndicator turnNumber={turnNumber} isMyTurn={isMyTurn} />
 
-      {/* Mana crystals */}
-      <ManaCrystals filled={energyCrystal} max={maxEnergy} />
-
       {/* End-turn button */}
       <button
+        type="button"
         onClick={onEndTurn}
         disabled={!isMyTurn}
         className="w-[90px] py-1.5 rounded text-xs font-bold btn-endturn"
@@ -137,6 +135,9 @@ export function SidePanel({
       </button>
 
       <MidlineDivider />
+
+      {/* Mana crystals */}
+      <ManaCrystals filled={energyCrystal} max={maxEnergy} />
 
       {/* Player deck widget (bottom) */}
       <DeckWidget count={playerDeckCount} side="player" />
