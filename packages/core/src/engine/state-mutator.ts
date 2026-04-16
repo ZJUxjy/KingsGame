@@ -1,3 +1,4 @@
+import { GAME_CONSTANTS } from '@king-card/shared';
 import type {
   GameState,
   Card,
@@ -171,7 +172,7 @@ export function createStateMutator(
       const player = state.players[ownerIndex];
       if (!player) return { instance: null, error: 'INVALID_TARGET' };
 
-      if (player.battlefield.length >= 7) return { instance: null, error: 'BOARD_FULL' };
+      if (player.battlefield.length >= GAME_CONSTANTS.MAX_BOARD_SIZE) return { instance: null, error: 'BOARD_FULL' };
 
       const instance = createCardInstance(card, ownerIndex as 0 | 1);
       instance.position = position ?? player.battlefield.length;
@@ -239,6 +240,10 @@ export function createStateMutator(
         // If health increased and exceeds currentMaxHealth, update max
         if (delta > 0 && minion.currentHealth > minion.currentMaxHealth) {
           minion.currentMaxHealth = minion.currentHealth;
+        }
+        // If health dropped to 0 or below, destroy the minion
+        if (minion.currentHealth <= 0) {
+          destroyMinion(minion.instanceId);
         }
       }
 

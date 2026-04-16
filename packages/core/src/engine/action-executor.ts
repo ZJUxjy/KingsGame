@@ -468,6 +468,21 @@ export function executeAttack(
       const counterDamage = Math.max(0, targetMinion.currentAttack);
       const attackerRef: TargetRef = { type: 'MINION', instanceId: attackerInstanceId };
       mutator.damage(attackerRef, counterDamage);
+
+      // If counterattack killed the attacker, trigger ON_KILL for the defender
+      const attackerAfterCounter = findMinion(state, attackerInstanceId);
+      if (!attackerAfterCounter) {
+        const onKillEffectCtx: EffectContext = {
+          ...effectCtx,
+          source: targetMinion,
+          target: attackerRef,
+          mutator,
+          playerIndex: currentPlayerIndex,
+          opponentIndex: 1 - currentPlayerIndex,
+          rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
+        };
+        resolveEffects('ON_KILL', onKillEffectCtx);
+      }
     }
   }
 

@@ -352,9 +352,17 @@ export function executeCardEffects(trigger: CardEffect['trigger'], ctx: EffectCo
         ctx.mutator.drawCards(ctx.playerIndex, getNumericParam(effect.params, 'count', 1));
         break;
       case 'HEAL':
-        if (effect.params.target === 'HERO') {
-          ctx.mutator.heal({ type: 'HERO', playerIndex: ctx.playerIndex }, getNumericParam(effect.params, 'amount'));
+        {
+          const target = effect.params.target ?? 'HERO';
+          if (target === 'HERO') {
+            ctx.mutator.heal({ type: 'HERO', playerIndex: ctx.playerIndex }, getNumericParam(effect.params, 'amount'));
+          } else if (effect.params.targetInstanceId) {
+            ctx.mutator.heal({ type: 'MINION', instanceId: effect.params.targetInstanceId }, getNumericParam(effect.params, 'amount'));
+          }
         }
+        break;
+      case 'GAIN_ARMOR':
+        ctx.mutator.gainArmor(ctx.playerIndex, getNumericParam(effect.params, 'amount'));
         break;
       case 'SUMMON':
         applySummonEffect(effect, ctx);
