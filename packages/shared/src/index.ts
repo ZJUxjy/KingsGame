@@ -3,6 +3,11 @@
 
 export * from './types.js';
 export { GAME_CONSTANTS } from './constants.js';
+export {
+  CIVILIZATION_ORDER,
+  CIVILIZATION_META,
+} from './civilization-meta.js';
+export type { CivilizationMeta } from './civilization-meta.js';
 export type {
   Card,
   CardEffect,
