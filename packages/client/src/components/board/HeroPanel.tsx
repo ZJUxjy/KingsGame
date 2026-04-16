@@ -140,6 +140,7 @@ export function HeroPanel({
       {/* Skill button (player only) */}
       {!isOpponent && skillName && (
         <button
+          type="button"
           data-anchor-id={skillAnchorId}
           onClick={onSkillClick}
           disabled={!canUseSkill}

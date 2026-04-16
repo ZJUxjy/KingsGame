@@ -35,7 +35,10 @@ const PARTICLES = [
   { top: '18%', left: '88%', delay: '1.2s' },
 ] as const;
 
-/** Purely decorative star-particle background layer. */
+/**
+ * Purely decorative star-particle background layer.
+ * @internal exported only so unit tests can render the component in isolation.
+ */
 export function StarParticleLayer() {
   return (
     <div
@@ -54,7 +57,10 @@ export function StarParticleLayer() {
   );
 }
 
-/** Glowing midline divider between enemy and player battlefields. */
+/**
+ * Glowing midline divider between enemy and player battlefields.
+ * @internal exported only so unit tests can render the component in isolation.
+ */
 export function BoardMidlineDivider() {
   return (
     <div
@@ -530,7 +536,7 @@ export default function GameBoard() {
           </div>
 
           {/* Enemy battlefield */}
-          <div className="h-[180px] shrink-0">
+          <div className="h-[150px] shrink-0">
             <Battlefield
               minions={oppBattlefield}
               isOpponent
@@ -556,7 +562,7 @@ export default function GameBoard() {
           )}
 
           {/* Player battlefield */}
-          <div className="h-[180px] shrink-0">
+          <div className="h-[150px] shrink-0">
             <Battlefield
               minions={myBattlefield}
               onMinionClick={handleMinionClick}
@@ -606,7 +612,7 @@ export default function GameBoard() {
           </div>
 
           {/* Player hand zone */}
-          <div className="h-[180px] shrink-0">
+          <div className="h-[150px] shrink-0">
             <HandZone
               cards={me.hand as any[]}
               onPlayCard={handlePlayCardFromHand}

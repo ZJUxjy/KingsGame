@@ -1,7 +1,7 @@
 interface TurnIndicatorProps {
   turnNumber: number;
   isMyTurn: boolean;
-  /** When provided, renders a compatible end-turn button (standalone GameBoard path).
+  /** When provided, renders an end-turn button.
    *  Omit for display-only sidebar embedding (SidePanel path). */
   onEndTurn?: () => void;
 }

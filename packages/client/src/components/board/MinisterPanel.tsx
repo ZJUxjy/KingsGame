@@ -72,6 +72,7 @@ export function MinisterPanel({
         </div>
         {/* Skill button */}
         <button
+          type="button"
           data-anchor-id={skillAnchorId}
           onClick={onSkillClick}
           disabled={!canUseSkill}
@@ -102,6 +103,7 @@ export function MinisterPanel({
             (m, i) =>
               i !== activeIndex && (
                 <button
+                  type="button"
                   key={m.id}
                   onClick={() => onSwitch?.(i)}
                   className="px-2 py-0.5 rounded text-[10px] text-gray-400 cursor-pointer transition-colors duration-150 hover:text-gray-200"
