@@ -37,7 +37,7 @@ const TYPE_BADGE_ICON: Record<string, string> = {
   EMPEROR: '帝',
 };
 
-type CardSize = 'hand' | 'battlefield' | 'detail';
+type CardSize = 'hand' | 'battlefield' | 'detail' | 'collection';
 
 interface CardArtworkProps {
   card: Card;

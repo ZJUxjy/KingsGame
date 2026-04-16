@@ -80,6 +80,24 @@ describe('CardComponent – redesign structure', () => {
     expect(root.style.height).toBe('130px');
   });
 
+  it('renders the collection size without throwing', () => {
+    const { container } = render(
+      <CardComponent card={makeCard()} size="collection" />,
+    );
+
+    expect(within(container).getByTestId('card')).toBeTruthy();
+  });
+
+  it('renders collection size for the real tile path without instance stats', () => {
+    const { container } = render(
+      <CardComponent card={makeCard({ type: 'STRATAGEM' })} size="collection" />,
+    );
+
+    expect(within(container).getByTestId('card')).toBeTruthy();
+    expect(container.querySelector('[data-testid="card-atk"]')).toBeNull();
+    expect(container.querySelector('[data-testid="card-hp"]')).toBeNull();
+  });
+
   it('renders cost badge with card cost value', () => {
     const { container } = render(
       <CardComponent card={makeCard({ cost: 5 })} instance={makeInstance()} />,

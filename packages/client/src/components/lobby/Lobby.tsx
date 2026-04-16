@@ -16,6 +16,10 @@ export default function Lobby() {
     setUiPhase('hero-select');
   };
 
+  const handleCollection = () => {
+    setUiPhase('collection');
+  };
+
   return (
     <div
       className="h-screen flex flex-col items-center justify-center bg-board-gradient"
@@ -51,6 +55,20 @@ export default function Lobby() {
             双人模式
           </span>
           <span className="text-sm text-gray-400">PvP</span>
+        </button>
+
+        <button
+          onClick={handleCollection}
+          className="group w-72 h-48 rounded-2xl bg-gray-800 border-2 border-amber-600
+                     flex flex-col items-center justify-center gap-4
+                     hover:bg-gray-700 hover:border-amber-400 hover:scale-105
+                     transition-all duration-200 cursor-pointer"
+        >
+          <span className="text-3xl">📚</span>
+          <span className="text-2xl font-bold text-amber-300">
+            卡牌收藏
+          </span>
+          <span className="text-sm text-gray-400">Collection</span>
         </button>
       </div>
     </div>

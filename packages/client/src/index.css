@@ -133,6 +133,16 @@
   --cardback-from: #1e2a4a;
   --cardback-to: #111827;
   --cardback-border: rgba(148, 163, 184, 0.18);
+
+  /* Collection page */
+  --collection-wood-dark: #2c170e;
+  --collection-wood-mid: #5a2f18;
+  --collection-wood-light: #8a5a2b;
+  --collection-paper-top: #f7e7bc;
+  --collection-paper-bottom: #ead29f;
+  --collection-paper-shadow: rgba(81, 43, 18, 0.18);
+  --collection-brass: #d7b062;
+  --collection-brass-deep: #9b6b26;
 }
 
 /* ── Animation keyframes ── */
@@ -231,4 +241,19 @@
 /* ── Shared board background gradient utility ── */
 .bg-board-gradient {
   background: var(--board-gradient);
+}
+
+.bg-collection-shell {
+  background:
+    radial-gradient(circle at top, rgba(134, 74, 34, 0.28), transparent 30%),
+    linear-gradient(180deg, #5b2d18 0%, #3f210f 36%, #24120a 100%);
+}
+
+.collection-wood-frame {
+  background: linear-gradient(180deg, var(--collection-wood-light) 0%, var(--collection-wood-mid) 28%, var(--collection-wood-dark) 100%);
+}
+
+.collection-paper {
+  background: linear-gradient(180deg, var(--collection-paper-top) 0%, var(--collection-paper-bottom) 100%);
+  box-shadow: inset 0 0 40px var(--collection-paper-shadow);
 }

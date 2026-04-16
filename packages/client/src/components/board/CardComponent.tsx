@@ -37,12 +37,13 @@ function typeTokenKey(type: string): TypeTokenKey {
   return 'soldier';
 }
 
-type CardSize = 'hand' | 'battlefield' | 'detail';
+type CardSize = 'hand' | 'battlefield' | 'detail' | 'collection';
 
 const SIZE_MAP: Record<CardSize, { width: number; height: number }> = {
   hand: { width: 90, height: 130 },
   battlefield: { width: 90, height: 130 },
   detail: { width: 288, height: 420 },
+  collection: { width: 168, height: 246 },
 };
 
 interface CardComponentProps {

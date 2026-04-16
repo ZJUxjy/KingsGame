@@ -27,7 +27,7 @@ export default function PvpWaiting() {
         onClick={handleCancel}
         className="px-8 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold text-lg cursor-pointer transition-colors"
       >
-        取消匹配
+        返回主菜单
       </button>
     </div>
   );

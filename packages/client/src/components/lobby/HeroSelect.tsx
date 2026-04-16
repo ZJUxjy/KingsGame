@@ -16,6 +16,7 @@ export default function HeroSelect() {
   const gameMode = useGameStore((s) => s.gameMode);
   const connected = useGameStore((s) => s.connected);
   const error = useGameStore((s) => s.error);
+  const reset = useGameStore((s) => s._reset);
   const [selectedCivilization, setSelectedCivilization] = useState<Civilization | null>(null);
   const [selectedEmperorIndex, setSelectedEmperorIndex] = useState<number | null>(null);
 
@@ -43,10 +44,20 @@ export default function HeroSelect() {
   return (
     <div className="min-h-screen bg-board-gradient px-6 py-10">
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center">
-        <div className="mb-10 text-center">
-          <p className="mb-3 text-sm uppercase tracking-[0.45em] text-yellow-200/70">Step 1</p>
-          <h2 className="text-4xl font-bold text-yellow-400">选择你的文明</h2>
-          <p className="mt-3 text-base text-stone-300">先决定文明阵营，再从该文明的帝王中选择出战领袖。</p>
+        <div className="mb-10 flex w-full flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="text-center md:text-left">
+            <p className="mb-3 text-sm uppercase tracking-[0.45em] text-yellow-200/70">Step 1</p>
+            <h2 className="text-4xl font-bold text-yellow-400">选择你的文明</h2>
+            <p className="mt-3 text-base text-stone-300">先决定文明阵营，再从该文明的帝王中选择出战领袖。</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={reset}
+            className="rounded-xl border border-stone-500/80 bg-stone-950/60 px-5 py-3 text-sm font-bold text-stone-100 transition hover:border-yellow-400/70 hover:text-yellow-100"
+          >
+            返回主菜单
+          </button>
         </div>
 
         <div className="mb-10 grid w-full gap-5 md:grid-cols-2 xl:grid-cols-5">
@@ -167,17 +178,19 @@ export default function HeroSelect() {
           </div>
         )}
 
-        <button
-          onClick={handleStart}
-          disabled={selectedEmperorIndex === null || !connected}
-          className={`rounded-xl px-12 py-4 text-xl font-bold transition-all duration-200 ${
-            selectedEmperorIndex !== null && connected
-              ? 'cursor-pointer bg-yellow-600 text-white hover:bg-yellow-500'
-              : 'cursor-not-allowed bg-gray-700 text-gray-500'
-          }`}
-        >
-          {gameMode === 'pvp' ? '匹配对手' : '开始对战'}
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <button
+            onClick={handleStart}
+            disabled={selectedEmperorIndex === null || !connected}
+            className={`rounded-xl px-12 py-4 text-xl font-bold transition-all duration-200 ${
+              selectedEmperorIndex !== null && connected
+                ? 'cursor-pointer bg-yellow-600 text-white hover:bg-yellow-500'
+                : 'cursor-not-allowed bg-gray-700 text-gray-500'
+            }`}
+          >
+            {gameMode === 'pvp' ? '匹配对手' : '开始对战'}
+          </button>
+        </div>
       </div>
     </div>
   );

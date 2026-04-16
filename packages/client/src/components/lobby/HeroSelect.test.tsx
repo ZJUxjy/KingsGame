@@ -80,4 +80,24 @@ describe('HeroSelect', () => {
     expect(screen.getByText('正在连接服务器...')).toBeTruthy();
     expect(screen.getByRole('button', { name: '开始对战' }).hasAttribute('disabled')).toBe(true);
   });
+
+  it('returns to the main menu and resets transient mode state', () => {
+    useGameStore.setState({
+      connected: true,
+      error: '匹配失败',
+      gameMode: 'pvp',
+      uiPhase: 'hero-select',
+      joinGame,
+      joinPvp,
+    });
+
+    render(<HeroSelect />);
+
+    fireEvent.click(screen.getByRole('button', { name: '返回主菜单' }));
+
+    expect(useGameStore.getState().uiPhase).toBe('lobby');
+    expect(useGameStore.getState().connected).toBe(false);
+    expect(useGameStore.getState().gameMode).toBe('pve');
+    expect(useGameStore.getState().error).toBeNull();
+  });
 });
