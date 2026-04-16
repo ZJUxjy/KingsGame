@@ -9,10 +9,14 @@ import type {
   Minister,
   Card,
   ActiveStratagem,
+  Civilization,
 } from '@king-card/shared';
 import { socketService } from '../services/socketService.js';
 
 export type { ValidAction } from '@king-card/shared';
+
+/** Mirrors the server's HiddenCard serialized shape (opponent's face-down cards). */
+export type HiddenCard = { hidden: true };
 
 // These types mirror what the server sends
 export interface SerializedGameState {
@@ -25,7 +29,7 @@ export interface SerializedGameState {
   me: {
     id: string;
     name: string;
-    civilization: string;
+    civilization: Civilization;
     hero: HeroState;
     hand: Card[];
     battlefield: CardInstance[];
@@ -42,9 +46,9 @@ export interface SerializedGameState {
   opponent: {
     id: string;
     name: string;
-    civilization: string;
+    civilization: Civilization;
     hero: HeroState;
-    hand: unknown[];
+    hand: (Card | HiddenCard)[];
     battlefield: CardInstance[];
     energyCrystal: number;
     maxEnergy: number;
@@ -53,8 +57,8 @@ export interface SerializedGameState {
     ministerPool: Minister[];
     activeStratagems: ActiveStratagem[];
     cannotDrawNextTurn: boolean;
-    boundCards: unknown[];
-    graveyard: unknown[];
+    boundCards: Card[];
+    graveyard: Card[];
   };
 }
 
