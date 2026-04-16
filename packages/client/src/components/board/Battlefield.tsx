@@ -32,8 +32,7 @@ export function Battlefield({
     >
       {minions.length === 0 ? (
         <div
-          className="w-full max-w-[340px] rounded-3xl border border-dashed border-gray-700/80 bg-gray-900/35"
-          style={{ height: 'var(--battlefield-card-height)' }}
+          className="h-[172px] w-full max-w-[420px] rounded-3xl border border-dashed border-gray-700/80 bg-gray-900/35"
         />
       ) : (
         minions.map((minion: any) => {
