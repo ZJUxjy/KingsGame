@@ -91,6 +91,12 @@ describe('Germany Card Definitions', () => {
       }
     });
 
+    it('all ministers should start with skillUsedThisTurn false', () => {
+      for (const minister of GERMANY_MINISTERS) {
+        expect(minister.skillUsedThisTurn).toBe(false);
+      }
+    });
+
     it('Wilhelm II should keep a strategist minister and distinct minister names', () => {
       const wilhelmII = GERMANY_EMPEROR_DATA_LIST.find((entry) => entry.emperorCard.id === 'germany_wilhelm_ii');
 

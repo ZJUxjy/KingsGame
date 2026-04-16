@@ -1,4 +1,5 @@
 import type { Card } from '@king-card/shared';
+import { createGeneralSkill, onPlay } from './builders';
 
 // ─── China General Cards (2) ────────────────────────────────────────
 
@@ -15,44 +16,26 @@ export const HUOQUBING: Card = {
   keywords: ['RUSH', 'CHARGE', 'COMBO_STRIKE'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '长驱直入',
       description: '对一个敌方生物造成6点伤害',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { target: 'ENEMY_MINION', amount: 6 },
-      },
-    },
-    {
+      effect: onPlay('DAMAGE', { target: 'ENEMY_MINION', amount: 6 }),
+    }),
+    createGeneralSkill({
       name: '封狼居胥',
       description: '获得+3/+3和连击',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { attackDelta: 3, healthDelta: 3 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { attackDelta: 3, healthDelta: 3 }),
+    }),
+    createGeneralSkill({
       name: '冠军侯',
       description: '所有友方生物获得冲锋（本回合）',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'APPLY_BUFF',
-        params: {
-          targetFilter: 'ALL_FRIENDLY_MINIONS',
-          keywordsGranted: ['CHARGE'],
-          type: 'TEMPORARY',
-          remainingTurns: 1,
-        },
-      },
-    },
+      effect: onPlay('APPLY_BUFF', {
+        targetFilter: 'ALL_FRIENDLY_MINIONS',
+        keywordsGranted: ['CHARGE'],
+        type: 'TEMPORARY',
+        remainingTurns: 1,
+      }),
+    }),
   ],
 };
 
@@ -69,39 +52,21 @@ export const WEIQING: Card = {
   keywords: ['TAUNT'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '漠北之战',
       description: '召唤两个汉朝骑兵',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'SUMMON',
-        params: { cardId: 'china_hanchao_qibing', count: 2 },
-      },
-    },
-    {
+      effect: onPlay('SUMMON', { cardId: 'china_hanchao_qibing', count: 2 }),
+    }),
+    createGeneralSkill({
       name: '河套筑垒',
       description: '所有友方生物获得+3生命值',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', healthDelta: 3 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { targetFilter: 'ALL_FRIENDLY_MINIONS', healthDelta: 3 }),
+    }),
+    createGeneralSkill({
       name: '龙城飞将',
       description: '所有敌方生物-2攻击力',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { targetFilter: 'ALL_ENEMY_MINIONS', attackDelta: -2 },
-      },
-    },
+      effect: onPlay('MODIFY_STAT', { targetFilter: 'ALL_ENEMY_MINIONS', attackDelta: -2 }),
+    }),
   ],
 };
 

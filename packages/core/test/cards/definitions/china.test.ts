@@ -207,6 +207,12 @@ describe('China Card Definitions', () => {
       }
     });
 
+    it('all ministers should start with skillUsedThisTurn false', () => {
+      for (const minister of CHINA_MINISTERS) {
+        expect(minister.skillUsedThisTurn).toBe(false);
+      }
+    });
+
     it('minister types should cover all four types', () => {
       const types = CHINA_MINISTERS.map((m) => m.type);
       expect(types).toContain('STRATEGIST');

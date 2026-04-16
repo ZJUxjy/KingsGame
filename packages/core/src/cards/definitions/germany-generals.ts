@@ -1,4 +1,5 @@
 import type { Card } from '@king-card/shared';
+import { createGeneralSkill, onPlay } from './builders';
 
 // ─── Germany General Cards (6) ──────────────────────────────────────
 
@@ -15,39 +16,21 @@ export const BISMARCK: Card = {
   keywords: ['TAUNT'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: 'Blood and Iron',
       description: 'Deal 4 damage to an enemy minion',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { target: 'ENEMY_MINION', amount: 4 },
-      },
-    },
-    {
+      effect: onPlay('DAMAGE', { target: 'ENEMY_MINION', amount: 4 }),
+    }),
+    createGeneralSkill({
       name: 'Realpolitik',
       description: 'All friendly minions get +1/+2',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1, healthDelta: 2 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1, healthDelta: 2 }),
+    }),
+    createGeneralSkill({
       name: 'Unification',
       description: 'Gain 4 armor',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'GAIN_ARMOR',
-        params: { amount: 4 },
-      },
-    },
+      effect: onPlay('GAIN_ARMOR', { amount: 4 }),
+    }),
   ],
 };
 
@@ -64,44 +47,26 @@ export const ROMMEL: Card = {
   keywords: ['RUSH', 'CHARGE'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: 'Desert Fox',
       description: 'Deal 3 damage to all enemy minions',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { targetFilter: 'ALL_ENEMY_MINIONS', amount: 3 },
-      },
-    },
-    {
+      effect: onPlay('DAMAGE', { targetFilter: 'ALL_ENEMY_MINIONS', amount: 3 }),
+    }),
+    createGeneralSkill({
       name: 'Blitzkrieg',
       description: 'All friendly minions gain Charge this turn',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'APPLY_BUFF',
-        params: {
-          targetFilter: 'ALL_FRIENDLY_MINIONS',
-          keywordsGranted: ['CHARGE'],
-          type: 'TEMPORARY',
-          remainingTurns: 1,
-        },
-      },
-    },
-    {
+      effect: onPlay('APPLY_BUFF', {
+        targetFilter: 'ALL_FRIENDLY_MINIONS',
+        keywordsGranted: ['CHARGE'],
+        type: 'TEMPORARY',
+        remainingTurns: 1,
+      }),
+    }),
+    createGeneralSkill({
       name: 'Afrika Korps',
       description: 'Summon a 3/3 Panzer',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'SUMMON',
-        params: { cardId: 'germany_panzer' },
-      },
-    },
+      effect: onPlay('SUMMON', { cardId: 'germany_panzer' }),
+    }),
   ],
 };
 
@@ -118,39 +83,21 @@ export const HELMUTH_VON_MOLTKE: Card = {
   keywords: ['TAUNT'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '总参谋部',
       description: '抽一张牌',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DRAW',
-        params: { count: 1 },
-      },
-    },
-    {
+      effect: onPlay('DRAW', { count: 1 }),
+    }),
+    createGeneralSkill({
       name: '普鲁士军改',
       description: '所有友方生物获得+1生命',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', healthDelta: 1 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { targetFilter: 'ALL_FRIENDLY_MINIONS', healthDelta: 1 }),
+    }),
+    createGeneralSkill({
       name: '决战规划',
       description: '对一个敌方生物造成4点伤害',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { target: 'ENEMY_MINION', amount: 4 },
-      },
-    },
+      effect: onPlay('DAMAGE', { target: 'ENEMY_MINION', amount: 4 }),
+    }),
   ],
 };
 
@@ -167,39 +114,21 @@ export const ALBRECHT_VON_ROON: Card = {
   keywords: ['CHARGE'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '征兵制',
       description: '召唤一个3/3掷弹兵',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'SUMMON',
-        params: { cardId: 'germany_grenadier' },
-      },
-    },
-    {
+      effect: onPlay('SUMMON', { cardId: 'germany_grenadier' }),
+    }),
+    createGeneralSkill({
       name: '铁血动员',
       description: '所有友方生物获得+1攻击',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1 }),
+    }),
+    createGeneralSkill({
       name: '炮兵支援',
       description: '对所有敌方生物造成2点伤害',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { targetFilter: 'ALL_ENEMY_MINIONS', amount: 2 },
-      },
-    },
+      effect: onPlay('DAMAGE', { targetFilter: 'ALL_ENEMY_MINIONS', amount: 2 }),
+    }),
   ],
 };
 
@@ -216,39 +145,21 @@ export const PAUL_VON_HINDENBURG: Card = {
   keywords: ['TAUNT'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '东线铁壁',
       description: '获得3点护甲',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'GAIN_ARMOR',
-        params: { amount: 3 },
-      },
-    },
-    {
+      effect: onPlay('GAIN_ARMOR', { amount: 3 }),
+    }),
+    createGeneralSkill({
       name: '鲁登道夫协同',
       description: '所有友方生物获得+1/+1',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'MODIFY_STAT',
-        params: { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1, healthDelta: 1 },
-      },
-    },
-    {
+      effect: onPlay('MODIFY_STAT', { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1, healthDelta: 1 }),
+    }),
+    createGeneralSkill({
       name: '总动员',
       description: '召唤一个3/3装甲师',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'SUMMON',
-        params: { cardId: 'germany_panzer' },
-      },
-    },
+      effect: onPlay('SUMMON', { cardId: 'germany_panzer' }),
+    }),
   ],
 };
 
@@ -265,44 +176,26 @@ export const ALFRED_VON_TIRPITZ: Card = {
   keywords: ['RUSH'],
   effects: [],
   generalSkills: [
-    {
+    createGeneralSkill({
       name: '大舰队法案',
       description: '抽一张牌',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DRAW',
-        params: { count: 1 },
-      },
-    },
-    {
+      effect: onPlay('DRAW', { count: 1 }),
+    }),
+    createGeneralSkill({
       name: '远洋威慑',
       description: '对一个敌方生物造成5点伤害',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'DAMAGE',
-        params: { target: 'ENEMY_MINION', amount: 5 },
-      },
-    },
-    {
+      effect: onPlay('DAMAGE', { target: 'ENEMY_MINION', amount: 5 }),
+    }),
+    createGeneralSkill({
       name: '海军扩张',
       description: '所有友方生物获得冲锋（本回合）',
-      cost: 0,
-      usesPerTurn: 1,
-      effect: {
-        trigger: 'ON_PLAY',
-        type: 'APPLY_BUFF',
-        params: {
-          targetFilter: 'ALL_FRIENDLY_MINIONS',
-          keywordsGranted: ['CHARGE'],
-          type: 'TEMPORARY',
-          remainingTurns: 1,
-        },
-      },
-    },
+      effect: onPlay('APPLY_BUFF', {
+        targetFilter: 'ALL_FRIENDLY_MINIONS',
+        keywordsGranted: ['CHARGE'],
+        type: 'TEMPORARY',
+        remainingTurns: 1,
+      }),
+    }),
   ],
 };
 

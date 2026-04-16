@@ -1,199 +1,155 @@
 import type { Minister } from '@king-card/shared';
+import { createMinister, createMinisterSkill, onPlay } from './builders';
 
 // ─── 秦始皇 Ministers (3) ───────────────────────────────────────────
 
-export const LISI: Minister = {
+export const LISI = createMinister({
   id: 'china_lisi',
   emperorId: 'china_qin_shihuang',
   name: '李斯',
   type: 'STRATEGIST',
-  activeSkill: {
+  activeSkill: createMinisterSkill({
     name: '上书',
     description: '抽一张牌',
     cost: 1,
-    effect: {
-      trigger: 'ON_PLAY',
-      type: 'DRAW',
-      params: { count: 1 },
-    },
-  },
-  skillUsedThisTurn: false,
+    effect: onPlay('DRAW', { count: 1 }),
+  }),
   cooldown: 1,
-};
+});
 
-export const MENGTIAN: Minister = {
+export const MENGTIAN = createMinister({
   id: 'china_mengtian',
   emperorId: 'china_qin_shihuang',
   name: '蒙恬',
   type: 'WARRIOR',
-  activeSkill: {
+  activeSkill: createMinisterSkill({
     name: '北击匈奴',
     description: '对一个敌方生物造成2点伤害',
     cost: 2,
-    effect: {
-      trigger: 'ON_PLAY',
-      type: 'DAMAGE',
-      params: { target: 'ENEMY_MINION', amount: 2 },
-    },
-  },
-  skillUsedThisTurn: false,
+    effect: onPlay('DAMAGE', { target: 'ENEMY_MINION', amount: 2 }),
+  }),
   cooldown: 2,
-};
+});
 
-export const ZHAOGAO: Minister = {
+export const ZHAOGAO = createMinister({
   id: 'china_zhaogao',
   emperorId: 'china_qin_shihuang',
   name: '赵高',
   type: 'ENVOY',
-  activeSkill: {
+  activeSkill: createMinisterSkill({
     name: '指鹿为马',
     description: '使一个敌方生物的攻击力变为1',
     cost: 1,
-    effect: {
-      trigger: 'ON_PLAY',
-      type: 'MODIFY_STAT',
-      params: { target: 'ENEMY_MINION', attackSet: 1 },
-    },
-  },
-  skillUsedThisTurn: false,
+    effect: onPlay('MODIFY_STAT', { target: 'ENEMY_MINION', attackSet: 1 }),
+  }),
   cooldown: 2,
-};
+});
 
 // ─── 汉武帝 Ministers (3) ───────────────────────────────────────────
 
-export const HANXIN: Minister = {
+export const HANXIN = createMinister({
   id: 'china_hanxin',
   emperorId: 'china_hanwudi',
   name: '韩信',
   type: 'WARRIOR',
-  activeSkill: {
+  activeSkill: createMinisterSkill({
     name: '国士无双',
     description: '使一个友方生物获得+2/+1和突袭',
     cost: 2,
-    effect: {
-      trigger: 'ON_PLAY',
-      type: 'APPLY_BUFF',
-      params: {
-        target: 'FRIENDLY_MINION',
-        attackBonus: 2,
-        healthBonus: 1,
-        keywordsGranted: ['RUSH'],
-        type: 'TEMPORARY',
-        remainingTurns: 1,
-      },
-    },
-  },
-  skillUsedThisTurn: false,
+    effect: onPlay('APPLY_BUFF', {
+      target: 'FRIENDLY_MINION',
+      attackBonus: 2,
+      healthBonus: 1,
+      keywordsGranted: ['RUSH'],
+      type: 'TEMPORARY',
+      remainingTurns: 1,
+    }),
+  }),
   cooldown: 2,
-};
+});
 
-export const XIAOHE: Minister = {
+export const XIAOHE = createMinister({
   id: 'china_xiaohe',
   emperorId: 'china_hanwudi',
   name: '萧何',
   type: 'ADMINISTRATOR',
-  activeSkill: {
+  activeSkill: createMinisterSkill({
     name: '举荐',
     description: '恢复3点生命值',
     cost: 1,
-    effect: {
-      trigger: 'ON_PLAY',
-      type: 'HEAL',
-      params: { target: 'HERO', amount: 3 },
-    },
-  },
-  skillUsedThisTurn: false,
+    effect: onPlay('HEAL', { target: 'HERO', amount: 3 }),
+  }),
   cooldown: 1,
-};
+});
 
-export const CHENPING: Minister = {
+export const CHENPING = createMinister({
   id: 'china_chenping',
   emperorId: 'china_hanwudi',
   name: '陈平',
   type: 'ENVOY',
-  activeSkill: {
+  activeSkill: createMinisterSkill({
     name: '反间',
     description: '使一个敌方生物本回合无法攻击',
     cost: 1,
-    effect: {
-      trigger: 'ON_PLAY',
-      type: 'APPLY_BUFF',
-      params: {
-        target: 'ENEMY_MINION',
-        attackDelta: -100,
-        type: 'TEMPORARY',
-        remainingTurns: 1,
-      },
-    },
-  },
-  skillUsedThisTurn: false,
+    effect: onPlay('APPLY_BUFF', {
+      target: 'ENEMY_MINION',
+      attackDelta: -100,
+      type: 'TEMPORARY',
+      remainingTurns: 1,
+    }),
+  }),
   cooldown: 1,
-};
+});
 
 // ─── 唐太宗 Ministers (3) ───────────────────────────────────────────
 
-export const WEIZHI: Minister = {
+export const WEIZHI = createMinister({
   id: 'china_weizhi',
   emperorId: 'china_tangtaizong',
   name: '魏征',
   type: 'STRATEGIST',
-  activeSkill: {
+  activeSkill: createMinisterSkill({
     name: '直谏',
     description: '抽一张牌',
     cost: 2,
-    effect: {
-      trigger: 'ON_PLAY',
-      type: 'DRAW',
-      params: { count: 1 },
-    },
-  },
-  skillUsedThisTurn: false,
+    effect: onPlay('DRAW', { count: 1 }),
+  }),
   cooldown: 1,
-};
+});
 
-export const FANGXUANLING: Minister = {
+export const FANGXUANLING = createMinister({
   id: 'china_fangxuanling',
   emperorId: 'china_tangtaizong',
   name: '房玄龄',
   type: 'ADMINISTRATOR',
-  activeSkill: {
+  activeSkill: createMinisterSkill({
     name: '贞观之策',
     description: '获得2点护甲',
     cost: 2,
-    effect: {
-      trigger: 'ON_PLAY',
-      type: 'GAIN_ARMOR',
-      params: { amount: 2 },
-    },
-  },
-  skillUsedThisTurn: false,
+    effect: onPlay('GAIN_ARMOR', { amount: 2 }),
+  }),
   cooldown: 2,
-};
+});
 
-export const LIJING: Minister = {
+export const LIJING = createMinister({
   id: 'china_lijing',
   emperorId: 'china_tangtaizong',
   name: '李靖',
   type: 'WARRIOR',
-  activeSkill: {
+  activeSkill: createMinisterSkill({
     name: '灭国之功',
     description: '使一个友方生物获得+1/+2',
     cost: 2,
-    effect: {
-      trigger: 'ON_PLAY',
-      type: 'APPLY_BUFF',
-      params: {
-        target: 'FRIENDLY_MINION',
-        attackBonus: 1,
-        healthBonus: 2,
-        type: 'TEMPORARY',
-        remainingTurns: 2,
-      },
-    },
-  },
-  skillUsedThisTurn: false,
+    effect: onPlay('APPLY_BUFF', {
+      target: 'FRIENDLY_MINION',
+      attackBonus: 1,
+      healthBonus: 2,
+      type: 'TEMPORARY',
+      remainingTurns: 2,
+    }),
+  }),
   cooldown: 2,
-};
+});
 
 // ─── Per-emperor minister pools ─────────────────────────────────────
 

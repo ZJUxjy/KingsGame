@@ -100,6 +100,12 @@ describe('USA Card Definitions', () => {
         expect(m.cooldown).toBeGreaterThanOrEqual(0);
       }
     });
+
+    it('all ministers should start with skillUsedThisTurn false', () => {
+      for (const minister of USA_MINISTERS) {
+        expect(minister.skillUsedThisTurn).toBe(false);
+      }
+    });
   });
 
   // ─── EmperorData ──────────────────────────────────────────────────
