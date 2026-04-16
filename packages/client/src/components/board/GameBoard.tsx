@@ -3,8 +3,7 @@ import {
   useEffect,
   useState,
   useCallback,
-  type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
+  useRef,
 } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useAnimations } from '../../hooks/useAnimations.js';
@@ -363,65 +362,55 @@ export default function GameBoard() {
     setPointerPosition(null);
   }, [clearTargetingSelection]);
 
+  // Refs for latest values (used inside global pointerup handler to avoid stale closures)
+  const hoveredTargetRef = useRef<HoveredTarget>(null);
+  hoveredTargetRef.current = hoveredTarget;
+  const selectedAttackerRef = useRef(selectedAttacker);
+  selectedAttackerRef.current = selectedAttacker;
+  const pendingSkillActionRef = useRef(pendingSkillAction);
+  pendingSkillActionRef.current = pendingSkillAction;
+
+  // --- Global pointerup: execute action on valid target or cancel ---
+  useEffect(() => {
+    const handlePointerUp = () => {
+      const attacker = selectedAttackerRef.current;
+      const skill = pendingSkillActionRef.current;
+      if (!attacker && !skill) return;
+
+      const target = hoveredTargetRef.current;
+      if (target) {
+        const targetRef: TargetRef = target.type === 'MINION'
+          ? { type: 'MINION', instanceId: target.instanceId }
+          : { type: 'HERO', playerIndex: target.playerIndex };
+
+        if (skill) {
+          if (skill.type === 'HERO') useHeroSkill(targetRef);
+          else if (skill.type === 'MINISTER') useMinisterSkill(targetRef);
+          else useGeneralSkill(skill.instanceId, skill.skillIndex, targetRef);
+        } else {
+          attack(attacker!, targetRef);
+        }
+      }
+
+      clearTargetingUiState();
+    };
+
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => window.removeEventListener('pointerup', handlePointerUp);
+  }, [attack, useHeroSkill, useMinisterSkill, useGeneralSkill, clearTargetingUiState]);
+
   // --- Handlers ---
 
-  const handleMinionClick = (instanceId: string, isMine: boolean) => {
-    if (pendingSkillAction) {
-      if (pendingSkillTargets.targetIds.has(instanceId)) {
-        const target: TargetRef = { type: 'MINION', instanceId };
-        if (pendingSkillAction.type === 'HERO') {
-          useHeroSkill(target);
-        } else if (pendingSkillAction.type === 'MINISTER') {
-          useMinisterSkill(target);
-        } else {
-          useGeneralSkill(pendingSkillAction.instanceId, pendingSkillAction.skillIndex, target);
-        }
-        clearTargetingUiState();
-      }
-      return;
-    }
+  const handleMinionPointerDown = (instanceId: string, isMine: boolean) => {
+    if (!isMine) return; // enemy minions are targets, handled by pointerup
+    if (pendingSkillAction) return; // don't interfere with skill targeting
 
-    if (isMine) {
-      // Clicking own minion
-      if (validAttackerIds.has(instanceId)) {
-        if (selectedAttacker === instanceId) {
-          // Deselect
-          clearTargetingUiState();
-        } else {
-          // Select as attacker
-          setSelectedAttacker(instanceId);
-        }
-      }
-    } else {
-      // Clicking enemy minion
-      if (selectedAttacker && attackTargetIds.has(instanceId)) {
-        attack(selectedAttacker, { type: 'MINION', instanceId });
-        clearTargetingUiState();
-      }
+    if (validAttackerIds.has(instanceId)) {
+      setSelectedAttacker(instanceId);
     }
   };
 
-  const handleEnemyHeroClick = () => {
-    if (pendingSkillAction && canTargetEnemyHero && playerIndex !== null) {
-      const target: TargetRef = { type: 'HERO', playerIndex: 1 - playerIndex };
-      if (pendingSkillAction.type === 'HERO') {
-        useHeroSkill(target);
-      } else if (pendingSkillAction.type === 'MINISTER') {
-        useMinisterSkill(target);
-      } else {
-        useGeneralSkill(pendingSkillAction.instanceId, pendingSkillAction.skillIndex, target);
-      }
-      clearTargetingUiState();
-      return;
-    }
-
-    if (selectedAttacker && canAttackHero && playerIndex !== null) {
-      attack(selectedAttacker, { type: 'HERO', playerIndex: 1 - playerIndex });
-      clearTargetingUiState();
-    }
-  };
-
-  const handleHeroSkillClick = () => {
+  const handleHeroSkillPointerDown = () => {
     const requiresTarget = heroSkillActions.some((action) => action.target != null);
     if (!requiresTarget) {
       useHeroSkill();
@@ -436,7 +425,7 @@ export default function GameBoard() {
     setPendingSkillAction({ type: 'HERO' });
   };
 
-  const handleMinisterSkillClick = () => {
+  const handleMinisterSkillPointerDown = () => {
     const requiresTarget = ministerSkillActions.some((action) => action.target != null);
     if (!requiresTarget) {
       useMinisterSkill();
@@ -451,7 +440,7 @@ export default function GameBoard() {
     setPendingSkillAction({ type: 'MINISTER' });
   };
 
-  const handleGeneralSkillClick = (instanceId: string, skillIndex: number) => {
+  const handleGeneralSkillPointerDown = (instanceId: string, skillIndex: number) => {
     const skillActions = generalSkillActions.filter(
       (action) => action.instanceId === instanceId && action.skillIndex === skillIndex,
     );
@@ -479,30 +468,6 @@ export default function GameBoard() {
       playCard(handIndex);
     }
   }, [playCard, validPlayIndices]);
-
-  const handleBoardInteraction = useCallback((target: EventTarget | null) => {
-    if (!selectedAttacker && !pendingSkillAction) {
-      return;
-    }
-
-    if (!(target instanceof Element)) {
-      return;
-    }
-
-    if (target.closest('[data-anchor-id], button, [data-card-interactive="true"]')) {
-      return;
-    }
-
-    clearTargetingUiState();
-  }, [clearTargetingUiState, pendingSkillAction, selectedAttacker]);
-
-  const handleBoardPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
-    handleBoardInteraction(event.target);
-  }, [handleBoardInteraction]);
-
-  const handleBoardClick = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
-    handleBoardInteraction(event.target);
-  }, [handleBoardInteraction]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -578,8 +543,6 @@ export default function GameBoard() {
         paddingInline: 'var(--board-shell-padding-x)',
         paddingBlock: 'var(--board-shell-padding-y)',
       }}
-      onPointerDown={handleBoardPointerDown}
-      onClick={handleBoardClick}
     >
       {/* Decorative star-particle background — purely visual */}
       <StarParticleLayer />
@@ -618,7 +581,6 @@ export default function GameBoard() {
               targetable={selectedAttacker ? canAttackHero : canTargetEnemyHero}
               highlightedTarget={enemyHeroHighlighted}
               targetAnchorId="hero:enemy"
-              onClick={handleEnemyHeroClick}
               onPointerEnter={() => {
                 if (playerIndex !== null && (selectedAttacker ? canAttackHero : canTargetEnemyHero)) {
                   setHoveredTarget({ type: 'HERO', playerIndex: 1 - playerIndex });
@@ -637,7 +599,7 @@ export default function GameBoard() {
             <Battlefield
               minions={oppBattlefield}
               isOpponent
-              onMinionClick={handleMinionClick}
+              onMinionPointerDown={handleMinionPointerDown}
               selectedAttackerId={selectedAttacker}
               validTargetIds={activeTargetIds}
               hoveredTargetId={hoveredTarget?.type === 'MINION' ? hoveredTarget.instanceId : null}
@@ -662,7 +624,7 @@ export default function GameBoard() {
           <div className="flex-1 min-h-[180px]">
             <Battlefield
               minions={myBattlefield}
-              onMinionClick={handleMinionClick}
+              onMinionPointerDown={handleMinionPointerDown}
               actionableIds={validAttackerIds}
               selectedAttackerId={selectedAttacker}
               validTargetIds={activeTargetIds}
@@ -678,7 +640,7 @@ export default function GameBoard() {
             generals={generalsWithDisplayText}
             availableSkillKeys={availableGeneralSkillKeys}
             pendingSkillKey={pendingGeneralSkillKey}
-            onSkillClick={handleGeneralSkillClick}
+            onSkillPointerDown={handleGeneralSkillPointerDown}
           />
 
           {/* Player info bar: hero + minister */}
@@ -697,7 +659,7 @@ export default function GameBoard() {
               skillPending={pendingSkillAction?.type === 'HERO'}
               targetAnchorId="hero:me"
               skillAnchorId="hero-skill:me"
-              onSkillClick={handleHeroSkillClick}
+              onSkillPointerDown={handleHeroSkillPointerDown}
             />
             <MinisterPanel
               ministers={ministers}
@@ -706,7 +668,7 @@ export default function GameBoard() {
               skillPending={pendingSkillAction?.type === 'MINISTER'}
               canSwitch={validSwitchMinisters.size > 0}
               skillAnchorId="minister-skill:me"
-              onSkillClick={handleMinisterSkillClick}
+              onSkillPointerDown={handleMinisterSkillPointerDown}
               onSwitch={switchMinister}
             />
           </div>

@@ -189,55 +189,49 @@ describe('GameBoard targeting interactions', () => {
     expect(boardLayout.style.maxWidth).toBe('var(--board-shell-max-width)');
   });
 
-  it('clears selected attacker when clicking board background', () => {
+  it('clears selected attacker when pointer is released without a valid target', () => {
     seedPlayableBoard();
     const { container } = render(<GameBoard />);
 
     const attacker = container.querySelector('[data-anchor-id="minion:attacker-1"]') as HTMLElement;
     expect(attacker).not.toBeNull();
 
-    fireEvent.click(attacker);
+    fireEvent.pointerDown(attacker);
     expect(useGameStore.getState().selectedAttacker).toBe('attacker-1');
 
-    const boardRoot = container.firstElementChild as HTMLElement;
-    expect(boardRoot).not.toBeNull();
-    fireEvent.click(boardRoot);
-
+    // Release without hovering a valid target → cancel
+    fireEvent(window, new Event('pointerup', { bubbles: true }));
     expect(useGameStore.getState().selectedAttacker).toBeNull();
   });
 
-  it('clears selected attacker when Escape is pressed', () => {
+  it('clears selected attacker when Escape is pressed during drag', () => {
     seedPlayableBoard();
     const { container } = render(<GameBoard />);
 
     const attacker = container.querySelector('[data-anchor-id="minion:attacker-1"]') as HTMLElement;
     expect(attacker).not.toBeNull();
 
-    fireEvent.click(attacker);
+    fireEvent.pointerDown(attacker);
     expect(useGameStore.getState().selectedAttacker).toBe('attacker-1');
 
     fireEvent.keyDown(window, { key: 'Escape' });
-
     expect(useGameStore.getState().selectedAttacker).toBeNull();
   });
 
-  it('does not clear selected attacker when clicking interactive board targets', () => {
-    seedPlayableBoard();
+  it('pressing on non-actionable minion does not start targeting', () => {
+    seedPlayableBoard({
+      validActions: [], // no valid actions → minion is not actionable
+    });
     const { container } = render(<GameBoard />);
 
     const attacker = container.querySelector('[data-anchor-id="minion:attacker-1"]') as HTMLElement;
-    const myHero = container.querySelector('[data-anchor-id="hero:me"]') as HTMLElement;
     expect(attacker).not.toBeNull();
-    expect(myHero).not.toBeNull();
 
-    fireEvent.click(attacker);
-    expect(useGameStore.getState().selectedAttacker).toBe('attacker-1');
-
-    fireEvent.click(myHero);
-    expect(useGameStore.getState().selectedAttacker).toBe('attacker-1');
+    fireEvent.pointerDown(attacker);
+    expect(useGameStore.getState().selectedAttacker).toBeNull();
   });
 
-  it('attacks enemy hero when ATTACK -> HERO is valid', () => {
+  it('attacks enemy hero via drag (pointerDown → pointerEnter → pointerUp)', () => {
     const attack = vi.fn();
     seedPlayableBoard({ attack });
     const { container } = render(<GameBoard />);
@@ -248,8 +242,14 @@ describe('GameBoard targeting interactions', () => {
     expect(attacker).not.toBeNull();
     expect(enemyHero).not.toBeNull();
 
-    fireEvent.click(attacker);
-    fireEvent.click(enemyHero);
+    // Start drag on own minion
+    fireEvent.pointerDown(attacker);
+
+    // Hover over enemy hero (simulates dragging to target)
+    fireEvent.pointerEnter(enemyHero);
+
+    // Release on target
+    fireEvent(window, new Event('pointerup', { bubbles: true }));
 
     expect(attack).toHaveBeenCalledWith('attacker-1', { type: 'HERO', playerIndex: 1 });
   });

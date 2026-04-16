@@ -28,6 +28,8 @@
   --card-body-mid: #16213e;
   --card-body-to: #0f3460;
   --card-border-radius: 14px;
+  --battlefield-card-width: 120px;
+  --battlefield-card-height: 172px;
 
   /* Rarity borders (2px) */
   --rarity-common: #fe9a00;

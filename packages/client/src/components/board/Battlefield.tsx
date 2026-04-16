@@ -3,7 +3,7 @@ import { CardComponent } from './CardComponent.js';
 interface BattlefieldProps {
   minions: any[];
   isOpponent?: boolean;
-  onMinionClick?: (instanceId: string, isMine: boolean) => void;
+  onMinionPointerDown?: (instanceId: string, isMine: boolean) => void;
   actionableIds?: Set<string>;
   selectedAttackerId?: string | null;
   validTargetIds?: Set<string>;
@@ -15,7 +15,7 @@ interface BattlefieldProps {
 export function Battlefield({
   minions,
   isOpponent = false,
-  onMinionClick,
+  onMinionPointerDown,
   actionableIds,
   selectedAttackerId,
   validTargetIds,
@@ -47,7 +47,10 @@ export function Battlefield({
               data-anchor-id={`minion:${minion.instanceId}`}
               data-card-interactive="true"
               className="cursor-pointer transition-all duration-200 hover:-translate-y-1"
-              onClick={() => onMinionClick?.(minion.instanceId, !isOpponent)}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                onMinionPointerDown?.(minion.instanceId, !isOpponent);
+              }}
               onPointerEnter={() => {
                 if (isTargetable) {
                   onTargetHover?.(minion.instanceId);
@@ -68,7 +71,6 @@ export function Battlefield({
                 actionable={canAct}
                 validTarget={isHoveredTarget}
                 animationClass={animationMap?.get(minion.instanceId)}
-                onClick={() => onMinionClick?.(minion.instanceId, !isOpponent)}
               />
             </div>
           );

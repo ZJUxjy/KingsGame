@@ -11,14 +11,14 @@ interface GeneralSkillsPanelProps {
   }>;
   availableSkillKeys: Set<string>;
   pendingSkillKey: string | null;
-  onSkillClick: (instanceId: string, skillIndex: number) => void;
+  onSkillPointerDown: (instanceId: string, skillIndex: number) => void;
 }
 
 export function GeneralSkillsPanel({
   generals,
   availableSkillKeys,
   pendingSkillKey,
-  onSkillClick,
+  onSkillPointerDown,
 }: GeneralSkillsPanelProps) {
   const generalsWithSkills = generals.filter(
     (general) => (general.card.generalSkills?.length ?? 0) > 0,
@@ -62,7 +62,7 @@ export function GeneralSkillsPanel({
                   type="button"
                   data-anchor-id={`general-skill:${general.instanceId}:${skillIndex}`}
                   disabled={!canUse}
-                  onClick={() => onSkillClick(general.instanceId, skillIndex)}
+                  onPointerDown={(e) => { e.preventDefault(); onSkillPointerDown(general.instanceId, skillIndex); }}
                   className={`rounded px-1.5 py-0.5 text-[9px] font-bold transition-all duration-150${isPending && canUse ? ' general-skill-pending' : ''}`}
                   style={
                     canUse

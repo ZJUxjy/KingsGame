@@ -9,7 +9,7 @@ interface MinisterPanelProps {
   skillPending?: boolean;
   canSwitch?: boolean;
   skillAnchorId?: string;
-  onSkillClick?: () => void;
+  onSkillPointerDown?: () => void;
   onSwitch?: (ministerIndex: number) => void;
 }
 
@@ -35,7 +35,7 @@ export function MinisterPanel({
   skillPending,
   canSwitch,
   skillAnchorId,
-  onSkillClick,
+  onSkillPointerDown,
   onSwitch,
 }: MinisterPanelProps) {
   const locale = useLocaleStore((state) => state.locale);
@@ -83,7 +83,7 @@ export function MinisterPanel({
         <button
           type="button"
           data-anchor-id={skillAnchorId}
-          onClick={onSkillClick}
+          onPointerDown={(e) => { e.preventDefault(); onSkillPointerDown?.(); }}
           disabled={!canUseSkill}
           className={`px-2 py-0.5 rounded text-[10px] font-bold text-white transition-all duration-150${skillPending && canUseSkill ? ' skill-pending' : ''}`}
           style={

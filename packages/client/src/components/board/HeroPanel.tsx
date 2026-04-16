@@ -12,8 +12,7 @@ interface HeroPanelProps {
   highlightedTarget?: boolean;
   targetAnchorId?: string;
   skillAnchorId?: string;
-  onSkillClick?: () => void;
-  onClick?: () => void;
+  onSkillPointerDown?: () => void;
   onPointerEnter?: () => void;
   onPointerLeave?: () => void;
   panelTestId?: string;
@@ -33,8 +32,7 @@ export function HeroPanel({
   highlightedTarget,
   targetAnchorId,
   skillAnchorId,
-  onSkillClick,
-  onClick,
+  onSkillPointerDown,
   onPointerEnter,
   onPointerLeave,
   panelTestId,
@@ -74,7 +72,6 @@ export function HeroPanel({
         gap: 'clamp(8px, 1.2vw, 16px)',
         padding: 'clamp(6px, 1.2vh, 14px) clamp(8px, 1.2vw, 16px)',
       }}
-      onClick={onClick}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
     >
@@ -152,7 +149,7 @@ export function HeroPanel({
           type="button"
           data-anchor-id={skillAnchorId}
           data-card-interactive="true"
-          onClick={onSkillClick}
+          onPointerDown={(e) => { e.preventDefault(); onSkillPointerDown?.(); }}
           disabled={!canUseSkill}
           className={`flex-shrink-0 px-2 py-1 text-[10px] font-bold text-white rounded transition-all duration-150${skillPending && canUseSkill ? ' skill-pending' : ''}`}
           style={
