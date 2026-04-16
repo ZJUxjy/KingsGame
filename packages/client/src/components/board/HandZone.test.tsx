@@ -63,7 +63,7 @@ describe('HandZone drag interactions', () => {
   // Mock getBoundingClientRect globally so containerRef.current picks it up.
   // Hand zone container: top=480, card elements: top=500
   const HAND_RECT = { left: 0, top: 480, right: 800, bottom: 630, width: 800, height: 150, x: 0, y: 480, toJSON() {} };
-  const CARD_RECT = { left: 100, top: 500, right: 190, bottom: 630, width: 90, height: 130, x: 100, y: 500, toJSON() {} };
+  const CARD_RECT = { left: 100, top: 500, right: 220, bottom: 672, width: 120, height: 172, x: 100, y: 500, toJSON() {} };
 
   /**
    * Helper: simulate a full drag sequence on the first card.

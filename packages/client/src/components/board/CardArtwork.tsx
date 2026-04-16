@@ -56,10 +56,10 @@ function getDescriptionLayout(card: Card, size: CardSize): DescriptionLayout {
   }
 
   return {
-    maxCharsPerLine: size === 'collection' ? 10 : 9,
+    maxCharsPerLine: size === 'collection' ? 10 : 12,
     maxLines: 2,
-    startY: card.keywords.length > 0 ? 104 : 100,
-    lineHeight: 6,
+    startY: card.keywords.length > 0 ? 138 : 132,
+    lineHeight: 8,
   };
 }
 
@@ -112,7 +112,7 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
 
   return (
     <svg
-      viewBox="0 0 90 130"
+      viewBox="0 0 120 172"
       width="100%"
       height="100%"
       style={{ position: 'absolute', inset: 0 }}
@@ -138,52 +138,52 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
 
       {/* Art area with elliptical frame */}
       <g data-testid="card-art">
-        <rect x="0" y="0" width="90" height="78" fill={`url(#${typeGradId})`} />
+        <rect x="0" y="0" width="120" height="104" fill={`url(#${typeGradId})`} />
         <ellipse
           data-testid="card-art-frame"
-          cx="45"
-          cy="42"
-          rx="29"
-          ry="31"
+          cx="60"
+          cy="56"
+          rx="38"
+          ry="42"
           fill="rgba(0,0,0,0.34)"
           stroke="rgba(255,255,255,0.16)"
           strokeWidth="1.5"
         />
-        <text x="45" y="47" textAnchor="middle" fill="white" fontSize="20" opacity="0.58" fontWeight="700">
+        <text x="60" y="62" textAnchor="middle" fill="white" fontSize="26" opacity="0.58" fontWeight="700">
           {TYPE_BADGE_ICON[card.type] ?? '?'}
         </text>
       </g>
 
       {/* Cost badge – hexagonal crystal */}
       <g data-testid="card-cost">
-        <circle cx="14" cy="14" r="11" fill={`url(#${costGlowId})`} />
+        <circle cx="18" cy="18" r="14" fill={`url(#${costGlowId})`} />
         <path
-          d="M14 4 L22 9 L22 19 L14 24 L6 19 L6 9 Z"
+          d="M18 6 L28 12 L28 24 L18 30 L8 24 L8 12 Z"
           fill="#1d4ed8"
           stroke="var(--cost-border)"
           strokeWidth="1"
         />
-        <text x="14" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">
+        <text x="18" y="20" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">
           {card.cost}
         </text>
       </g>
 
       {/* Type badge pill */}
       <g data-testid="card-type-badge">
-        <rect x="66" y="64" width="20" height="12" rx="6" fill={`var(--badge-${typeKey})`} />
-        <text x="76" y="73" textAnchor="middle" fill="white" fontSize="7" fontWeight="bold">
+        <rect x="88" y="84" width="26" height="16" rx="7" fill={`var(--badge-${typeKey})`} />
+        <text x="101" y="95" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">
           {TYPE_BADGE_ICON[card.type] ?? card.type}
         </text>
       </g>
 
       {/* Name */}
-      <text x="45" y="88" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">
-        {card.name.length > 8 ? card.name.substring(0, 8) + '…' : card.name}
+      <text x="60" y="116" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
+        {card.name.length > 11 ? card.name.substring(0, 11) + '…' : card.name}
       </text>
 
       {/* Keywords */}
       {card.keywords.length > 0 && (
-        <text x="45" y="97" textAnchor="middle" fill="#facc15" fontSize="5.5" fontWeight="bold">
+        <text x="60" y="128" textAnchor="middle" fill="#facc15" fontSize="8" fontWeight="bold">
           {getKeywordText(card.keywords, locale)}
         </text>
       )}
@@ -192,14 +192,14 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
       {descriptionLines.length > 0 && (
         <text
           data-testid="card-description-snippet"
-          x="45"
+          x="60"
           y={descriptionLayout.startY}
           textAnchor="middle"
           fill="#d6d3d1"
-          fontSize="5.5"
+          fontSize="8"
         >
           {descriptionLines.map((line, index) => (
-            <tspan key={`${line}-${index}`} x="45" dy={index === 0 ? 0 : descriptionLayout.lineHeight}>
+            <tspan key={`${line}-${index}`} x="60" dy={index === 0 ? 0 : descriptionLayout.lineHeight}>
               {line}
             </tspan>
           ))}
@@ -210,12 +210,12 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
       {isMinion && (
         <g data-testid="card-atk">
           <path
-            d="M12 112 L22 118 L12 124 L2 118 Z"
+            d="M16 148 L28 155 L16 162 L4 155 Z"
             fill={`url(#${atkGradId})`}
             stroke="var(--atk-border)"
             strokeWidth="1"
           />
-          <text x="12" y="120" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">
+          <text x="16" y="158" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
             {attack}
           </text>
         </g>
@@ -225,19 +225,19 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
       {isMinion && (
         <g data-testid="card-hp">
           <circle
-            cx="78"
-            cy="118"
-            r="10"
+            cx="104"
+            cy="155"
+            r="13"
             fill={`url(#${hpGradId})`}
             stroke="var(--hp-border)"
             strokeWidth="1"
           />
           <text
-            x="78"
-            y="121"
+            x="104"
+            y="159"
             textAnchor="middle"
             fill={health < maxHealth ? 'var(--hp-text-damaged)' : 'var(--hp-text-full)'}
-            fontSize="8"
+            fontSize="11"
             fontWeight="bold"
           >
             {health}
@@ -257,7 +257,7 @@ export function CardBackArtwork({ svgIdBase }: CardBackArtworkProps) {
 
   return (
     <svg
-      viewBox="0 0 90 130"
+      viewBox="0 0 120 172"
       width="100%"
       height="100%"
     >
@@ -268,14 +268,14 @@ export function CardBackArtwork({ svgIdBase }: CardBackArtworkProps) {
         </radialGradient>
       </defs>
       <circle
-        cx="45"
-        cy="65"
-        r="23"
+        cx="60"
+        cy="85"
+        r="30"
         fill={`url(#${backGradId})`}
         stroke="rgba(148,163,184,0.25)"
         strokeWidth="1.5"
       />
-      <text x="45" y="71" textAnchor="middle" fill="rgba(148,163,184,0.4)" fontSize="18">
+      <text x="60" y="94" textAnchor="middle" fill="rgba(148,163,184,0.4)" fontSize="24">
         帝
       </text>
     </svg>

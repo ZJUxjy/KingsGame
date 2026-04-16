@@ -633,7 +633,7 @@ export default function GameBoard() {
           </div>
 
           {/* Enemy battlefield */}
-          <div className="shrink-0" style={{ height: 'var(--battlefield-row-height)' }}>
+          <div className="flex-1 min-h-[180px]">
             <Battlefield
               minions={oppBattlefield}
               isOpponent
@@ -659,7 +659,7 @@ export default function GameBoard() {
           )}
 
           {/* Player battlefield */}
-          <div className="shrink-0" style={{ height: 'var(--battlefield-row-height)' }}>
+          <div className="flex-1 min-h-[180px]">
             <Battlefield
               minions={myBattlefield}
               onMinionClick={handleMinionClick}
@@ -712,7 +712,7 @@ export default function GameBoard() {
           </div>
 
           {/* Player hand zone */}
-          <div className="shrink-0" style={{ height: 'var(--hand-row-height)' }}>
+          <div className="flex-1 min-h-[185px]">
             <HandZone
               cards={me.hand}
               onPlayCard={handlePlayCardFromHand}
