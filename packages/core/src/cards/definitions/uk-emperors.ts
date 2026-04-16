@@ -11,7 +11,7 @@ export const VICTORIA: Card = {
   cost: 6,
   attack: 0,
   health: 30,
-  description: 'Hero Skill: All friendly minions gain +1/+1. On play: gain 3 armor.',
+  description: '帝王技能：所有友方生物获得+1/+1。入场时获得3点护甲。',
   keywords: [],
   effects: [
     {
@@ -21,8 +21,8 @@ export const VICTORIA: Card = {
     },
   ],
   heroSkill: {
-    name: 'Imperial Command',
-    description: 'All friendly minions gain +1/+1',
+    name: '帝国号令',
+    description: '所有友方生物获得+1/+1',
     cost: 2,
     cooldown: 2,
     effect: {

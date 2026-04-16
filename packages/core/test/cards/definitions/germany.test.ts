@@ -99,6 +99,12 @@ describe('Germany Card Definitions', () => {
       expect(GERMANY_EMPEROR_DATA_LIST).toHaveLength(1);
     });
 
+    it('Friedrich should expose localized emperor and hero skill text', () => {
+      expect(EMPEROR_FRIEDRICH.emperorCard.description).toContain('帝王技能');
+      expect(EMPEROR_FRIEDRICH.emperorCard.heroSkill?.name).toBe('斜线阵');
+      expect(EMPEROR_FRIEDRICH.emperorCard.heroSkill?.description).toBe('对一个敌方生物造成2点伤害');
+    });
+
     for (const ed of GERMANY_EMPEROR_DATA_LIST) {
       describe(`EmperorData for ${ed.emperorCard.name}`, () => {
         it('should have at least 3 ministers', () => {

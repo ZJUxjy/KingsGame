@@ -11,7 +11,7 @@ export const FRIEDRICH: Card = {
   cost: 5,
   attack: 0,
   health: 30,
-  description: 'Hero Skill: Deal 2 damage to an enemy minion. On Play: All friendly minions get +1 attack.',
+  description: '帝王技能：对一个敌方生物造成2点伤害。入场时所有友方生物获得+1攻击。',
   keywords: [],
   effects: [
     {
@@ -21,8 +21,8 @@ export const FRIEDRICH: Card = {
     },
   ],
   heroSkill: {
-    name: 'Oblique Order',
-    description: 'Deal 2 damage to an enemy minion',
+    name: '斜线阵',
+    description: '对一个敌方生物造成2点伤害',
     cost: 1,
     cooldown: 1,
     effect: {

@@ -11,7 +11,7 @@ export const LINCOLN: Card = {
   cost: 5,
   attack: 0,
   health: 30,
-  description: 'Hero Skill: Heal all friendly minions for 2. On play: all friendly minions gain +1 health.',
+  description: '帝王技能：所有友方生物恢复2点生命。入场时所有友方生物获得+1生命。',
   keywords: [],
   effects: [
     {
@@ -21,8 +21,8 @@ export const LINCOLN: Card = {
     },
   ],
   heroSkill: {
-    name: 'Emancipation',
-    description: 'Heal all friendly minions for 2',
+    name: '解放宣言',
+    description: '所有友方生物恢复2点生命',
     cost: 2,
     cooldown: 2,
     effect: {

@@ -99,6 +99,12 @@ describe('UK Card Definitions', () => {
       expect(UK_EMPEROR_DATA_LIST).toHaveLength(1);
     });
 
+    it('Victoria should expose localized emperor and hero skill text', () => {
+      expect(EMPEROR_VICTORIA.emperorCard.description).toContain('帝王技能');
+      expect(EMPEROR_VICTORIA.emperorCard.heroSkill?.name).toBe('帝国号令');
+      expect(EMPEROR_VICTORIA.emperorCard.heroSkill?.description).toBe('所有友方生物获得+1/+1');
+    });
+
     for (const ed of UK_EMPEROR_DATA_LIST) {
       describe(`EmperorData for ${ed.emperorCard.name}`, () => {
         it('should have at least 3 ministers', () => {

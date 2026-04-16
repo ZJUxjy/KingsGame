@@ -99,6 +99,12 @@ describe('USA Card Definitions', () => {
       expect(USA_EMPEROR_DATA_LIST).toHaveLength(1);
     });
 
+    it('Lincoln should expose localized emperor and hero skill text', () => {
+      expect(EMPEROR_LINCOLN.emperorCard.description).toContain('帝王技能');
+      expect(EMPEROR_LINCOLN.emperorCard.heroSkill?.name).toBe('解放宣言');
+      expect(EMPEROR_LINCOLN.emperorCard.heroSkill?.description).toBe('所有友方生物恢复2点生命');
+    });
+
     for (const ed of USA_EMPEROR_DATA_LIST) {
       describe(`EmperorData for ${ed.emperorCard.name}`, () => {
         it('should have at least 3 ministers', () => {
