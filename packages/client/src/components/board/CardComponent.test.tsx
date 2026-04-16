@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, within } from '@testing-library/react';
 import { CardComponent } from './CardComponent.js';
 
@@ -159,34 +159,168 @@ describe('CardComponent – redesign structure', () => {
     const { container } = render(
       <CardComponent
         card={makeCard({
-          type: 'STRATAGEM',
-          description: '持续妙计：所有友方生物获得+2攻击力直到回合结束。',
+          type: 'SORCERY',
+          description: '随机消灭一个敌方生物，然后令对手随机弃一张牌。',
         })}
         size="collection"
       />,
     );
 
-    const root = within(container).getByTestId('card');
-    Object.defineProperty(root, 'getBoundingClientRect', {
-      configurable: true,
-      value: () => ({
-        top: 16,
-        bottom: 262,
-        left: 40,
-        right: 208,
-        width: 168,
-        height: 246,
-        x: 40,
-        y: 16,
-        toJSON: () => ({}),
-      }),
-    });
+    const root = within(container).getByTestId('card') as HTMLDivElement;
+    root.getBoundingClientRect = vi.fn(() => ({
+      x: 0,
+      y: 8,
+      top: 8,
+      right: 168,
+      bottom: 254,
+      left: 0,
+      width: 168,
+      height: 246,
+      toJSON() {
+        return {};
+      },
+    })) as () => DOMRect;
 
     fireEvent.pointerEnter(root);
 
     const tooltip = within(container).getByTestId('card-description-tooltip');
-    expect(tooltip.className).toContain('translate-y-[10px]');
-    expect(tooltip.className).toContain('top-full');
+    expect(tooltip.getAttribute('data-tooltip-placement')).toBe('below');
+  });
+
+  it('allows stratagem cards to use a denser three-line summary in collection size', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          type: 'STRATAGEM',
+          description: '持续妙计：令所有友方生物在本回合获得+2攻击力并抽一张牌，然后使一个敌方生物本回合无法攻击。',
+        })}
+        size="collection"
+      />,
+    );
+
+    const lines = container.querySelectorAll('[data-testid="card-description-snippet"] tspan');
+    expect(lines.length).toBe(3);
+  });
+
+  it('keeps punctuation attached to the previous wrapped line in collection summaries', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          type: 'STRATAGEM',
+          description: '一二三四五六七八九十。十二三四五六七八九十',
+        })}
+        size="collection"
+      />,
+    );
+
+    const lines = Array.from(
+      container.querySelectorAll('[data-testid="card-description-snippet"] tspan'),
+    ).map((line) => line.textContent ?? '');
+
+    expect(lines[0]?.endsWith('。')).toBe(true);
+    expect(lines[1]?.startsWith('。')).toBe(false);
+  });
+
+  it('does not render a description snippet when description is empty', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({ type: 'STRATAGEM', description: '' })}
+        size="collection"
+      />,
+    );
+
+    expect(container.querySelector('[data-testid="card-description-snippet"]')).toBeNull();
+  });
+
+  it('does not add an ellipsis when the summary fits exactly on one line', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          type: 'STRATAGEM',
+          description: '一二三四五六七八九十',
+        })}
+        size="collection"
+      />,
+    );
+
+    expect(container.querySelector('[data-testid="card-description-snippet"]')?.textContent).toBe('一二三四五六七八九十');
+  });
+
+  it('uses a wider tooltip preset for sorcery cards', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          type: 'SORCERY',
+          description: '随机消灭一个敌方生物，然后令对手随机弃一张牌。',
+        })}
+        size="collection"
+      />,
+    );
+
+    fireEvent.pointerEnter(within(container).getByTestId('card'));
+
+    const tooltip = within(container).getByTestId('card-description-tooltip');
+    expect(tooltip.getAttribute('data-tooltip-size')).toBe('wide');
+  });
+
+  it('uses a large tooltip preset for general cards and shows their skills', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          type: 'GENERAL',
+          description: '冲锋。技能：强袭、号令、坚守。',
+          generalSkills: [
+            { name: '强袭', description: '对一个敌方生物造成4点伤害', cost: 2, usesPerTurn: 1, effect: { trigger: 'ON_PLAY', type: 'DAMAGE', params: {} } },
+            { name: '号令', description: '所有友方生物获得+2攻击力', cost: 3, usesPerTurn: 2, effect: { trigger: 'ON_PLAY', type: 'MODIFY_STAT', params: {} } },
+          ],
+        })}
+        size="collection"
+      />,
+    );
+
+    fireEvent.pointerEnter(within(container).getByTestId('card'));
+
+    const tooltip = within(container).getByTestId('card-description-tooltip');
+    expect(tooltip.getAttribute('data-tooltip-size')).toBe('large');
+    const skills = container.querySelectorAll('[data-testid="card-tooltip-skill"]');
+    expect(skills.length).toBe(2);
+    expect(tooltip.textContent).toContain('将领技能');
+    expect(tooltip.textContent).toContain('强袭');
+    expect(tooltip.textContent).toContain('号令');
+    expect(tooltip.textContent).toContain('费用 2');
+    expect(tooltip.textContent).toContain('每回合 1 次');
+    expect(tooltip.textContent).toContain('费用 3');
+    expect(tooltip.textContent).toContain('每回合 2 次');
+  });
+
+  it('uses a large tooltip preset for emperor cards and shows hero skill metadata', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          name: '秦始皇',
+          type: 'EMPEROR',
+          description: '雄才大略的帝王。',
+          heroSkill: {
+            name: '书同文',
+            description: '抽两张牌，然后弃一张牌。',
+            cost: 2,
+            cooldown: 1,
+            effect: { trigger: 'ON_PLAY', type: 'DRAW', params: {} },
+          },
+        })}
+        size="collection"
+      />,
+    );
+
+    fireEvent.pointerEnter(within(container).getByTestId('card'));
+
+    const tooltip = within(container).getByTestId('card-description-tooltip');
+    expect(tooltip.getAttribute('data-tooltip-size')).toBe('large');
+    expect(tooltip.textContent).toContain('帝王技能');
+    expect(tooltip.textContent).toContain('书同文');
+    expect(tooltip.textContent).toContain('抽两张牌');
+    expect(tooltip.textContent).toContain('费用 2');
+    expect(tooltip.textContent).toContain('冷却 1 回合');
   });
 
   it('renders cost badge with card cost value', () => {

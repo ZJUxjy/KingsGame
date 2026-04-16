@@ -29,19 +29,62 @@ interface CardArtworkProps {
   locale: SupportedLocale;
 }
 
+interface DescriptionLayout {
+  maxCharsPerLine: number;
+  maxLines: number;
+  startY: number;
+  lineHeight: number;
+}
+
+function getDescriptionLayout(card: Card, size: CardSize): DescriptionLayout {
+  if (size === 'detail') {
+    return {
+      maxCharsPerLine: 17,
+      maxLines: card.type === 'GENERAL' ? 5 : 4,
+      startY: card.keywords.length > 0 ? 104 : 100,
+      lineHeight: 6,
+    };
+  }
+
+  if (size === 'collection' && (card.type === 'STRATAGEM' || card.type === 'SORCERY')) {
+    return {
+      maxCharsPerLine: 10,
+      maxLines: 3,
+      startY: card.keywords.length > 0 ? 102 : 98,
+      lineHeight: 5.5,
+    };
+  }
+
+  return {
+    maxCharsPerLine: size === 'collection' ? 10 : 9,
+    maxLines: 2,
+    startY: card.keywords.length > 0 ? 104 : 100,
+    lineHeight: 6,
+  };
+}
+
 function splitDescription(description: string, maxCharsPerLine: number, maxLines: number): string[] {
   if (!description) {
     return [];
   }
 
-  // Use one wrapping strategy for all locales so mixed-language strings do not
-  // split into a standalone English line plus a truncated CJK "word".
-  const normalized = Array.from(description.trim().replace(/\s+/g, ' '));
+  const normalized = description.replace(/\s+/g, '');
   const lines: string[] = [];
+  const leadingPunctuation = /^[，。！？；：、）】》」』’”]/;
 
   for (let index = 0; index < normalized.length && lines.length < maxLines; index += maxCharsPerLine) {
     const remaining = normalized.length - index;
-    const rawLine = normalized.slice(index, index + maxCharsPerLine).join('').trimEnd();
+    let rawLine = normalized.slice(index, index + maxCharsPerLine);
+
+    if (lines.length > 0 && rawLine && leadingPunctuation.test(rawLine[0])) {
+      lines[lines.length - 1] += rawLine[0];
+      rawLine = rawLine.slice(1);
+    }
+
+    if (!rawLine) {
+      continue;
+    }
+
     const isLastLine = lines.length === maxLines - 1 && remaining > maxCharsPerLine;
     lines.push(isLastLine ? `${rawLine.slice(0, Math.max(0, rawLine.length - 1))}…` : rawLine);
   }
@@ -55,10 +98,11 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
   const attack = instance?.currentAttack ?? card.attack ?? 0;
   const health = instance?.currentHealth ?? card.health ?? 0;
   const maxHealth = instance?.currentMaxHealth ?? card.health ?? 0;
+  const descriptionLayout = getDescriptionLayout(card, size);
   const descriptionLines = splitDescription(
     card.description,
-    size === 'detail' ? 17 : size === 'collection' ? 10 : 9,
-    size === 'detail' ? 4 : 2,
+    descriptionLayout.maxCharsPerLine,
+    descriptionLayout.maxLines,
   );
 
   const costGlowId = `${svgIdBase}-cost-glow`;
@@ -149,13 +193,13 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
         <text
           data-testid="card-description-snippet"
           x="45"
-          y={card.keywords.length > 0 ? 104 : 100}
+          y={descriptionLayout.startY}
           textAnchor="middle"
           fill="#d6d3d1"
           fontSize="5.5"
         >
           {descriptionLines.map((line, index) => (
-            <tspan key={`${line}-${index}`} x="45" dy={index === 0 ? 0 : 6}>
+            <tspan key={`${line}-${index}`} x="45" dy={index === 0 ? 0 : descriptionLayout.lineHeight}>
               {line}
             </tspan>
           ))}
