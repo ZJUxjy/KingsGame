@@ -23,15 +23,15 @@ export function Battlefield({
   onTargetHover,
   animationMap,
 }: BattlefieldProps) {
-  const gap = minions.length >= 6 ? -18 : minions.length >= 5 ? -10 : minions.length >= 4 ? 0 : 14;
+  const gap = minions.length >= 6 ? -12 : minions.length >= 5 ? -6 : minions.length >= 4 ? 2 : 10;
 
   return (
     <div
-      className="h-[180px] flex items-end justify-center px-4 transition-all duration-300"
+      className="h-[150px] flex items-end justify-center px-4 transition-all duration-300"
       style={{ gap: `${gap}px` }}
     >
       {minions.length === 0 ? (
-        <div className="h-[150px] w-full max-w-[360px] rounded-3xl border border-dashed border-gray-700/80 bg-gray-900/35" />
+        <div className="h-[130px] w-full max-w-[340px] rounded-3xl border border-dashed border-gray-700/80 bg-gray-900/35" />
       ) : (
         minions.map((minion: any) => {
           const isSelected = minion.instanceId === selectedAttackerId;
