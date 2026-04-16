@@ -90,6 +90,12 @@ describe('UK Card Definitions', () => {
         expect(m.cooldown).toBeGreaterThanOrEqual(0);
       }
     });
+
+    it('all ministers should start with skillUsedThisTurn false', () => {
+      for (const minister of UK_MINISTERS) {
+        expect(minister.skillUsedThisTurn).toBe(false);
+      }
+    });
   });
 
   // ─── EmperorData ──────────────────────────────────────────────────
