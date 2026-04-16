@@ -168,3 +168,26 @@
 .animate-heal { animation: heal-glow 0.6s ease-out forwards; }
 
 .card-drag-shadow { box-shadow: 0 28px 48px rgba(15, 23, 42, 0.55); }
+
+.btn-endturn {
+  background: linear-gradient(180deg, var(--endturn-from) 0%, var(--endturn-mid) 60%, var(--endturn-to) 100%);
+  border: 1px solid var(--endturn-border);
+  box-shadow: 0 0 12px var(--endturn-glow);
+  color: white;
+  cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.15s;
+}
+.btn-endturn:hover:not(:disabled) {
+  filter: brightness(1.15);
+  box-shadow: 0 0 18px var(--endturn-glow);
+}
+.btn-endturn:active:not(:disabled) {
+  filter: brightness(0.9);
+}
+.btn-endturn:disabled {
+  background: #374151;
+  color: #6b7280;
+  border-color: transparent;
+  box-shadow: none;
+  cursor: not-allowed;
+}

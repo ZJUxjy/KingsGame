@@ -7,11 +7,24 @@ interface TurnIndicatorProps {
 
 export function TurnIndicator({ turnNumber, isMyTurn }: TurnIndicatorProps) {
   return (
-    <div className="flex items-center justify-center h-[50px] bg-gray-800/50 border-y border-gray-700">
+    <div
+      className="flex flex-col items-center gap-0.5 text-center rounded px-2 py-1"
+      style={{
+        background: 'var(--turn-bg)',
+        border: '1px solid var(--turn-border)',
+      }}
+    >
+      <span style={{ fontSize: '10px', color: 'var(--turn-label)' }}>
+        第{turnNumber}回合
+      </span>
       <span
-        className={`text-lg font-bold ${isMyTurn ? 'text-yellow-400' : 'text-gray-400'}`}
+        style={{
+          fontSize: '11px',
+          fontWeight: 'bold',
+          color: isMyTurn ? 'var(--turn-number)' : '#94a3b8',
+        }}
       >
-        第{turnNumber}回合 &middot; {isMyTurn ? '你的回合' : '对方回合'}
+        {isMyTurn ? '你的回合' : '对方回合'}
       </span>
     </div>
   );
