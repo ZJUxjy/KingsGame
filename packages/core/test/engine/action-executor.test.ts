@@ -398,10 +398,11 @@ describe('ActionExecutor', () => {
       expect(attacker.remainingAttacks).toBe(0);
     });
 
-    it('should allow a ready RUSH minion to attack hero', () => {
+    it('should allow a ready RUSH minion to attack hero on subsequent turns', () => {
       const { state, bus } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'rusher', keywords: ['RUSH'] });
       attacker.remainingAttacks = 1;
+      // justPlayed = false (already set by addMinionToBattlefield) — simulates a later turn
 
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'HERO',
@@ -411,6 +412,57 @@ describe('ActionExecutor', () => {
       expect(result.success).toBe(true);
       expect(state.players[1].hero.health).toBe(28);
       expect(attacker.remainingAttacks).toBe(0);
+    });
+
+    it('should NOT allow a freshly played RUSH minion to attack the hero on the turn it is played', () => {
+      const { state, bus } = setup();
+      const card = makeMinionCard({ id: 'rush_fresh', attack: 3, keywords: ['RUSH'] });
+      const attacker = createCardInstance(card, 0);
+      // justPlayed = true (default from createCardInstance), remainingAttacks = 1 (RUSH)
+      state.players[0].battlefield.push(attacker);
+
+      const result = executeAttack(state, bus, attacker.instanceId, {
+        type: 'HERO',
+        playerIndex: 1,
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.errorCode).toBe('INVALID_TARGET');
+      }
+      expect(state.players[1].hero.health).toBe(30);
+    });
+
+    it('should allow a freshly played RUSH minion to attack an enemy minion on the turn it is played', () => {
+      const { state, bus } = setup();
+      const card = makeMinionCard({ id: 'rush_fresh2', attack: 3, keywords: ['RUSH'] });
+      const attacker = createCardInstance(card, 0);
+      state.players[0].battlefield.push(attacker);
+      const enemyMinion = addMinionToBattlefield(state, 1, { id: 'enemy_target', health: 5 });
+
+      const result = executeAttack(state, bus, attacker.instanceId, {
+        type: 'MINION',
+        instanceId: enemyMinion.instanceId,
+      });
+
+      expect(result.success).toBe(true);
+      expect(enemyMinion.currentHealth).toBeLessThan(5);
+    });
+
+    it('should allow a freshly played CHARGE minion to attack the hero on the turn it is played', () => {
+      const { state, bus } = setup();
+      const card = makeMinionCard({ id: 'charge_fresh', attack: 4, keywords: ['CHARGE'] });
+      const attacker = createCardInstance(card, 0);
+      // justPlayed = true (default), remainingAttacks = 1 (CHARGE)
+      state.players[0].battlefield.push(attacker);
+
+      const result = executeAttack(state, bus, attacker.instanceId, {
+        type: 'HERO',
+        playerIndex: 1,
+      });
+
+      expect(result.success).toBe(true);
+      expect(state.players[1].hero.health).toBe(26); // 30 - 4
     });
 
     it('should allow CHARGE minion to attack hero', () => {

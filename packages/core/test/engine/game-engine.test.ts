@@ -263,6 +263,103 @@ describe('GameEngine', () => {
 
       expect(attackActions).toHaveLength(0);
     });
+
+    it('RUSH minion on turn played: can attack enemy minions but NOT the hero', () => {
+      const engine = createTestEngine();
+      const state = engine.getGameState();
+
+      const rushMinion = createCardInstance(
+        makeMinionCard({ id: 'rush_minion', attack: 3, keywords: ['RUSH'] as any }),
+        0,
+      );
+      // justPlayed = true (default), remainingAttacks = 1 (set by createCardInstance for RUSH)
+      expect(rushMinion.justPlayed).toBe(true);
+      state.players[0].battlefield.push(rushMinion);
+
+      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_minion' }), 1);
+      state.players[1].battlefield.push(enemyMinion);
+
+      const actions = engine.getValidActions(state.currentPlayerIndex);
+      const rushActions = actions.filter(
+        (action) => action.type === 'ATTACK' && action.attackerInstanceId === rushMinion.instanceId,
+      );
+
+      // Can attack the enemy minion
+      expect(rushActions).toContainEqual({
+        type: 'ATTACK',
+        attackerInstanceId: rushMinion.instanceId,
+        targetInstanceId: enemyMinion.instanceId,
+      });
+      // Cannot attack the hero
+      expect(rushActions).not.toContainEqual({
+        type: 'ATTACK',
+        attackerInstanceId: rushMinion.instanceId,
+        targetInstanceId: 'HERO',
+      });
+    });
+
+    it('RUSH minion on subsequent turns: can attack both enemy minions and the hero', () => {
+      const engine = createTestEngine();
+      const state = engine.getGameState();
+
+      const rushMinion = createCardInstance(
+        makeMinionCard({ id: 'rush_minion2', attack: 3, keywords: ['RUSH'] as any }),
+        0,
+      );
+      rushMinion.justPlayed = false; // simulate subsequent turn
+      state.players[0].battlefield.push(rushMinion);
+
+      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_minion2' }), 1);
+      state.players[1].battlefield.push(enemyMinion);
+
+      const actions = engine.getValidActions(state.currentPlayerIndex);
+      const rushActions = actions.filter(
+        (action) => action.type === 'ATTACK' && action.attackerInstanceId === rushMinion.instanceId,
+      );
+
+      expect(rushActions).toContainEqual({
+        type: 'ATTACK',
+        attackerInstanceId: rushMinion.instanceId,
+        targetInstanceId: enemyMinion.instanceId,
+      });
+      expect(rushActions).toContainEqual({
+        type: 'ATTACK',
+        attackerInstanceId: rushMinion.instanceId,
+        targetInstanceId: 'HERO',
+      });
+    });
+
+    it('CHARGE minion on turn played: can attack both enemy minions and the hero', () => {
+      const engine = createTestEngine();
+      const state = engine.getGameState();
+
+      const chargeMinion = createCardInstance(
+        makeMinionCard({ id: 'charge_minion', attack: 4, keywords: ['CHARGE'] as any }),
+        0,
+      );
+      // justPlayed = true (default), remainingAttacks = 1 (set by createCardInstance for CHARGE)
+      expect(chargeMinion.justPlayed).toBe(true);
+      state.players[0].battlefield.push(chargeMinion);
+
+      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_minion3' }), 1);
+      state.players[1].battlefield.push(enemyMinion);
+
+      const actions = engine.getValidActions(state.currentPlayerIndex);
+      const chargeActions = actions.filter(
+        (action) => action.type === 'ATTACK' && action.attackerInstanceId === chargeMinion.instanceId,
+      );
+
+      expect(chargeActions).toContainEqual({
+        type: 'ATTACK',
+        attackerInstanceId: chargeMinion.instanceId,
+        targetInstanceId: 'HERO',
+      });
+      expect(chargeActions).toContainEqual({
+        type: 'ATTACK',
+        attackerInstanceId: chargeMinion.instanceId,
+        targetInstanceId: enemyMinion.instanceId,
+      });
+    });
   });
 
   // ─── Play Card ────────────────────────────────────────────────────
