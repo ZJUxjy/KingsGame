@@ -1,7 +1,8 @@
 interface TurnIndicatorProps {
   turnNumber: number;
   isMyTurn: boolean;
-  onEndTurn: () => void;
+  /** @deprecated SidePanel owns the end-turn action; this prop is no longer used. */
+  onEndTurn?: () => void;
 }
 
 export function TurnIndicator({ turnNumber, isMyTurn }: TurnIndicatorProps) {

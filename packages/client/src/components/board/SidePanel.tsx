@@ -97,8 +97,8 @@ export function SidePanel({
         }`}
         style={
           isMyTurn
-            ? { boxShadow: 'var(--end-turn-glow, 0 0 12px rgba(220,38,38,0.6))', backgroundColor: 'var(--end-turn-bg-active)' }
-            : { backgroundColor: 'var(--end-turn-disabled-bg, #374151)', color: 'var(--end-turn-disabled-color, #6b7280)' }
+            ? { boxShadow: 'var(--endturn-glow, 0 0 12px rgba(220,38,38,0.6))', backgroundColor: 'var(--endturn-from, #dc2626)' }
+            : { backgroundColor: '#374151', color: '#6b7280' }
         }
       >
         结束回合

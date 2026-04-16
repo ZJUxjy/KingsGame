@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, fireEvent, cleanup } from '@testing-library/react';
+import { SidePanel } from './SidePanel.js';
 
 afterEach(cleanup);
-import { SidePanel } from './SidePanel.js';
 
 function defaultProps(overrides: Partial<Parameters<typeof SidePanel>[0]> = {}) {
   return {

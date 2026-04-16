@@ -2,6 +2,9 @@
 
 /* ── Design Tokens (from Figma) ── */
 :root {
+  /* Particle animation */
+  --star-opacity: 0.6;
+
   /* Board background */
   --board-bg-center: rgba(13, 27, 62, 1);
   --board-bg-mid: rgba(6, 13, 31, 1);
