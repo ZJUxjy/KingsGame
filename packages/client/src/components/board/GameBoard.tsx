@@ -465,26 +465,26 @@ export default function GameBoard() {
   const myTurn = isMyTurn();
 
   // Merge dying minions back into battlefield for death animation
-  const myDying = pendingRemovals.filter((m: any) => m.ownerIndex === playerIndex);
-  const oppDying = pendingRemovals.filter((m: any) => m.ownerIndex !== playerIndex);
-  const myBattlefield = [...(me.battlefield as any[]), ...myDying];
-  const oppBattlefield = [...(opponent.battlefield as any[]), ...oppDying];
+  const myDying = pendingRemovals.filter((m) => m.ownerIndex === playerIndex);
+  const oppDying = pendingRemovals.filter((m) => m.ownerIndex !== playerIndex);
+  const myBattlefield = [...me.battlefield, ...myDying];
+  const oppBattlefield = [...opponent.battlefield, ...oppDying];
 
   // Extract hero data with defaults
-  const myHero = me.hero as any;
-  const oppHero = opponent.hero as any;
+  const myHero = me.hero;
+  const oppHero = opponent.hero;
 
   const myHeroName =
-    myHero?.heroSkill?.name ?? myHero?.name ?? '帝王';
+    myHero?.heroSkill?.name ?? '帝王';
   const myHeroSkillName =
     myHero?.heroSkill?.name ?? '';
   const myHeroSkillCost = myHero?.heroSkill?.cost;
 
   const oppHeroName =
-    oppHero?.heroSkill?.name ?? oppHero?.name ?? '帝王';
+    oppHero?.heroSkill?.name ?? '帝王';
 
   // Minister data
-  const ministers = (me.ministerPool as any[]) ?? [];
+  const ministers = me.ministerPool ?? [];
 
   const enemyHeroHighlighted = hoveredTarget?.type === 'HERO'
     && playerIndex !== null
@@ -578,7 +578,7 @@ export default function GameBoard() {
           </div>
 
           <GeneralSkillsPanel
-            generals={(me.battlefield as any[]).filter((minion) => minion.card?.type === 'GENERAL')}
+            generals={me.battlefield.filter((minion) => minion.card?.type === 'GENERAL')}
             availableSkillKeys={availableGeneralSkillKeys}
             pendingSkillKey={pendingGeneralSkillKey}
             onSkillClick={handleGeneralSkillClick}
@@ -614,7 +614,7 @@ export default function GameBoard() {
           {/* Player hand zone */}
           <div className="h-[150px] shrink-0">
             <HandZone
-              cards={me.hand as any[]}
+              cards={me.hand}
               onPlayCard={handlePlayCardFromHand}
               validPlayIndices={validPlayIndices}
             />

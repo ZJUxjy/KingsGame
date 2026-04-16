@@ -1,5 +1,15 @@
 import { create } from 'zustand';
-import type { GamePhase, ValidAction, WinReason, TargetRef } from '@king-card/shared';
+import type {
+  GamePhase,
+  ValidAction,
+  WinReason,
+  TargetRef,
+  CardInstance,
+  HeroState,
+  Minister,
+  Card,
+  ActiveStratagem,
+} from '@king-card/shared';
 import { socketService } from '../services/socketService.js';
 
 export type { ValidAction } from '@king-card/shared';
@@ -16,39 +26,32 @@ export interface SerializedGameState {
     id: string;
     name: string;
     civilization: string;
-    hero: {
-      health: number;
-      maxHealth: number;
-      armor: number;
-      heroSkill: unknown;
-      skillUsedThisTurn: boolean;
-      skillCooldownRemaining: number;
-    };
-    hand: unknown[];
-    battlefield: unknown[];
+    hero: HeroState;
+    hand: Card[];
+    battlefield: CardInstance[];
     energyCrystal: number;
     maxEnergy: number;
     deckCount: number;
     activeMinisterIndex: number;
-    ministerPool: unknown[];
-    activeStratagems: unknown[];
+    ministerPool: Minister[];
+    activeStratagems: ActiveStratagem[];
     cannotDrawNextTurn: boolean;
-    boundCards: unknown[];
-    graveyard: unknown[];
+    boundCards: Card[];
+    graveyard: Card[];
   };
   opponent: {
     id: string;
     name: string;
     civilization: string;
-    hero: unknown;
+    hero: HeroState;
     hand: unknown[];
-    battlefield: unknown[];
+    battlefield: CardInstance[];
     energyCrystal: number;
     maxEnergy: number;
     deckCount: number;
     activeMinisterIndex: number;
-    ministerPool: unknown[];
-    activeStratagems: unknown[];
+    ministerPool: Minister[];
+    activeStratagems: ActiveStratagem[];
     cannotDrawNextTurn: boolean;
     boundCards: unknown[];
     graveyard: unknown[];

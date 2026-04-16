@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import type { CardInstance } from '@king-card/shared';
 import type { SerializedGameState } from '../stores/gameStore.js';
 
 /**
@@ -8,7 +9,7 @@ import type { SerializedGameState } from '../stores/gameStore.js';
 export function useAnimations(gameState: SerializedGameState | null) {
   const prevState = useRef<SerializedGameState | null>(null);
   const [animationMap, setAnimationMap] = useState<Map<string, string>>(new Map());
-  const [pendingRemovals, setPendingRemovals] = useState<any[]>([]);
+  const [pendingRemovals, setPendingRemovals] = useState<CardInstance[]>([]);
 
   useEffect(() => {
     if (!gameState || !prevState.current) {
@@ -21,13 +22,13 @@ export function useAnimations(gameState: SerializedGameState | null) {
     const newAnimations = new Map<string, string>();
 
     const prevMinionIds = new Set([
-      ...prev.me.battlefield.map((m: any) => m.instanceId),
-      ...prev.opponent.battlefield.map((m: any) => m.instanceId),
+      ...prev.me.battlefield.map((m) => m.instanceId),
+      ...prev.opponent.battlefield.map((m) => m.instanceId),
     ]);
 
     const nextMinionIds = new Set([
-      ...next.me.battlefield.map((m: any) => m.instanceId),
-      ...next.opponent.battlefield.map((m: any) => m.instanceId),
+      ...next.me.battlefield.map((m) => m.instanceId),
+      ...next.opponent.battlefield.map((m) => m.instanceId),
     ]);
 
     // New minions on battlefield → card-play animation
@@ -40,11 +41,11 @@ export function useAnimations(gameState: SerializedGameState | null) {
     // Minions that lost health → damage flash; gained health → heal
     const prevHpMap = new Map<string, number>();
     const prevAttacksMap = new Map<string, number>();
-    for (const m of [...prev.me.battlefield, ...prev.opponent.battlefield] as any[]) {
+    for (const m of [...prev.me.battlefield, ...prev.opponent.battlefield]) {
       prevHpMap.set(m.instanceId, m.currentHealth);
       prevAttacksMap.set(m.instanceId, m.remainingAttacks ?? 0);
     }
-    for (const m of [...next.me.battlefield, ...next.opponent.battlefield] as any[]) {
+    for (const m of [...next.me.battlefield, ...next.opponent.battlefield]) {
       const prevHp = prevHpMap.get(m.instanceId);
       const prevAttacks = prevAttacksMap.get(m.instanceId);
       if (prevAttacks !== undefined && (m.remainingAttacks ?? 0) < prevAttacks) {
@@ -58,12 +59,12 @@ export function useAnimations(gameState: SerializedGameState | null) {
     }
 
     // Minions removed from battlefield → death animation with delayed removal
-    const dying: any[] = [];
+    const dying: CardInstance[] = [];
     for (const id of prevMinionIds) {
       if (!nextMinionIds.has(id)) {
         newAnimations.set(id, 'animate-death');
         const minion = [...prev.me.battlefield, ...prev.opponent.battlefield].find(
-          (m: any) => m.instanceId === id,
+          (m) => m.instanceId === id,
         );
         if (minion) dying.push(minion);
       }
