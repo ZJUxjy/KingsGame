@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, within } from '@testing-library/react';
+import { describe, expect, it, vi, afterEach } from 'vitest';
+import { fireEvent, render, screen, within, cleanup } from '@testing-library/react';
 import { CardComponent } from './CardComponent.js';
+
+afterEach(() => { cleanup(); });
 
 function collectIds(root: Element): string[] {
   return Array.from(root.querySelectorAll('[id]'))
@@ -71,13 +73,13 @@ describe('CardComponent – card back', () => {
 });
 
 describe('CardComponent – redesign structure', () => {
-  it('renders 90×130 card dimensions', () => {
+  it('renders 120×172 card dimensions', () => {
     const { container } = render(
       <CardComponent card={makeCard()} instance={makeInstance()} />,
     );
     const root = container.firstElementChild as HTMLElement;
-    expect(root.style.width).toBe('90px');
-    expect(root.style.height).toBe('130px');
+    expect(root.style.width).toBe('120px');
+    expect(root.style.height).toBe('172px');
   });
 
   it('renders the collection size without throwing', () => {
@@ -142,17 +144,17 @@ describe('CardComponent – redesign structure', () => {
     );
 
     const root = within(container).getByTestId('card');
-    expect(queryByTestId('card-description-tooltip')).toBeNull();
+    expect(screen.queryByTestId('card-description-tooltip')).toBeNull();
 
     fireEvent.pointerEnter(root);
 
-    const tooltip = within(container).getByTestId('card-description-tooltip');
+    const tooltip = screen.getByTestId('card-description-tooltip');
     expect(tooltip.getAttribute('role')).toBe('tooltip');
     expect(root.getAttribute('aria-describedby')).toBe(tooltip.getAttribute('id'));
     expect(tooltip.textContent).toContain('持续妙计');
 
     fireEvent.pointerLeave(root);
-    expect(queryByTestId('card-description-tooltip')).toBeNull();
+    expect(screen.queryByTestId('card-description-tooltip')).toBeNull();
   });
 
   it('flips the tooltip below the card when there is not enough space above', () => {
@@ -183,8 +185,10 @@ describe('CardComponent – redesign structure', () => {
 
     fireEvent.pointerEnter(root);
 
-    const tooltip = within(container).getByTestId('card-description-tooltip');
+    const tooltip = screen.getByTestId('card-description-tooltip');
     expect(tooltip.getAttribute('data-tooltip-placement')).toBe('below');
+
+    fireEvent.pointerLeave(root);
   });
 
   it('allows stratagem cards to use a denser three-line summary in collection size', () => {
@@ -259,8 +263,10 @@ describe('CardComponent – redesign structure', () => {
 
     fireEvent.pointerEnter(within(container).getByTestId('card'));
 
-    const tooltip = within(container).getByTestId('card-description-tooltip');
+    const tooltip = screen.getByTestId('card-description-tooltip');
     expect(tooltip.getAttribute('data-tooltip-size')).toBe('wide');
+
+    fireEvent.pointerLeave(within(container).getByTestId('card'));
   });
 
   it('uses a large tooltip preset for general cards and shows their skills', () => {
@@ -280,9 +286,9 @@ describe('CardComponent – redesign structure', () => {
 
     fireEvent.pointerEnter(within(container).getByTestId('card'));
 
-    const tooltip = within(container).getByTestId('card-description-tooltip');
+    const tooltip = screen.getByTestId('card-description-tooltip');
     expect(tooltip.getAttribute('data-tooltip-size')).toBe('large');
-    const skills = container.querySelectorAll('[data-testid="card-tooltip-skill"]');
+    const skills = document.querySelectorAll('[data-testid="card-tooltip-skill"]');
     expect(skills.length).toBe(2);
     expect(tooltip.textContent).toContain('将领技能');
     expect(tooltip.textContent).toContain('强袭');
@@ -291,6 +297,8 @@ describe('CardComponent – redesign structure', () => {
     expect(tooltip.textContent).toContain('每回合 1 次');
     expect(tooltip.textContent).toContain('费用 3');
     expect(tooltip.textContent).toContain('每回合 2 次');
+
+    fireEvent.pointerLeave(within(container).getByTestId('card'));
   });
 
   it('uses a large tooltip preset for emperor cards and shows hero skill metadata', () => {
@@ -314,13 +322,15 @@ describe('CardComponent – redesign structure', () => {
 
     fireEvent.pointerEnter(within(container).getByTestId('card'));
 
-    const tooltip = within(container).getByTestId('card-description-tooltip');
+    const tooltip = screen.getByTestId('card-description-tooltip');
     expect(tooltip.getAttribute('data-tooltip-size')).toBe('large');
     expect(tooltip.textContent).toContain('帝王技能');
     expect(tooltip.textContent).toContain('书同文');
     expect(tooltip.textContent).toContain('抽两张牌');
     expect(tooltip.textContent).toContain('费用 2');
     expect(tooltip.textContent).toContain('冷却 1 回合');
+
+    fireEvent.pointerLeave(within(container).getByTestId('card'));
   });
 
   it('renders cost badge with card cost value', () => {

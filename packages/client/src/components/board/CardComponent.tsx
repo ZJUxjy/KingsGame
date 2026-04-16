@@ -1,4 +1,5 @@
-import { useId, useRef, useState } from 'react';
+import { useId, useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { Card, CardInstance, Rarity } from '@king-card/shared';
 import { CardArtwork, CardBackArtwork } from './CardArtwork.js';
 import { getCardDisplayText } from '../../utils/cardText.js';
@@ -51,8 +52,8 @@ function formatHeroCooldown(cooldown: number, locale: 'zh-CN' | 'en-US'): string
 }
 
 const SIZE_MAP: Record<CardSize, { width: number; height: number }> = {
-  hand: { width: 90, height: 130 },
-  battlefield: { width: 90, height: 130 },
+  hand: { width: 120, height: 172 },
+  battlefield: { width: 120, height: 172 },
   detail: { width: 288, height: 420 },
   collection: { width: 168, height: 246 },
 };
@@ -101,8 +102,16 @@ export function CardComponent({
     : height;
   const [isHovered, setIsHovered] = useState(false);
   const [tooltipPlacement, setTooltipPlacement] = useState<TooltipPlacement>('above');
+  const [cardRect, setCardRect] = useState<DOMRect | null>(null);
   const locale = useLocaleStore((state) => state.locale);
   const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isHovered) { setCardRect(null); return; }
+    const el = rootRef.current;
+    if (!el) return;
+    setCardRect(el.getBoundingClientRect());
+  }, [isHovered]);
 
   if (isHidden || !card) {
     return (
@@ -195,14 +204,22 @@ export function CardComponent({
           )}
         </div>
 
-      {isHovered && hasTooltipContent && (
+      {isHovered && hasTooltipContent && createPortal(
         <div
           id={tooltipId}
           role="tooltip"
           data-testid="card-description-tooltip"
           data-tooltip-size={tooltipSize}
           data-tooltip-placement={tooltipPlacement}
-          className={`pointer-events-none absolute left-1/2 z-30 ${getTooltipWidthClass(tooltipSize)} max-w-[calc(100vw-24px)] -translate-x-1/2 rounded-xl border border-white/15 bg-black/70 px-3 py-2 text-xs leading-5 text-stone-100 shadow-[0_18px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm ${tooltipPlacement === 'below' ? 'top-full mt-2' : 'top-0 -translate-y-[calc(100%+10px)]'}`}
+          className={`pointer-events-none fixed ${getTooltipWidthClass(tooltipSize)} max-w-[calc(100vw-24px)] rounded-xl border border-white/15 bg-black/70 px-3 py-2 text-xs leading-5 text-stone-100 shadow-[0_18px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm`}
+          style={{
+            left: cardRect ? cardRect.left + cardRect.width / 2 : 0,
+            zIndex: 9999,
+            ...(tooltipPlacement === 'below'
+              ? { top: cardRect ? cardRect.bottom + 8 : 0 }
+              : { bottom: cardRect ? window.innerHeight - cardRect.top + 8 : 0 }),
+            transform: 'translateX(-50%)',
+          }}
         >
           <div className="mb-1 text-sm font-bold text-amber-200">{displayCard.name}</div>
           {displayCard.description && <div>{displayCard.description}</div>}
@@ -244,7 +261,8 @@ export function CardComponent({
               ))}
             </div>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
