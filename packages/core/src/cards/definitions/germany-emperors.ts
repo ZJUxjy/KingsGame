@@ -4,7 +4,7 @@ import type { Card } from '@king-card/shared';
 
 export const FRIEDRICH: Card = {
   id: 'germany_friedrich',
-  name: 'Friedrich der Große',
+  name: '腓特烈大帝',
   civilization: 'GERMANY',
   type: 'EMPEROR',
   rarity: 'LEGENDARY',

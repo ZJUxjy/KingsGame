@@ -4,7 +4,7 @@ import type { Card } from '@king-card/shared';
 
 export const LINCOLN: Card = {
   id: 'usa_lincoln',
-  name: 'Abraham Lincoln',
+  name: '亚伯拉罕·林肯',
   civilization: 'USA',
   type: 'EMPEROR',
   rarity: 'LEGENDARY',

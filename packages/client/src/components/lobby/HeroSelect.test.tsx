@@ -37,11 +37,11 @@ describe('HeroSelect', () => {
     expect(screen.getByRole('button', { name: /华夏/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /大和/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /美利坚/ })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Abraham Lincoln/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /亚伯拉罕·林肯/ })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /美利坚/ }));
 
-    expect(screen.getByRole('button', { name: /Abraham Lincoln/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /亚伯拉罕·林肯/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /秦始皇/ })).toBeNull();
   });
 
@@ -49,7 +49,7 @@ describe('HeroSelect', () => {
     render(<HeroSelect />);
 
     fireEvent.click(screen.getByRole('button', { name: /美利坚/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Abraham Lincoln/ }));
+    fireEvent.click(screen.getByRole('button', { name: /亚伯拉罕·林肯/ }));
     fireEvent.click(screen.getByRole('button', { name: '开始对战' }));
 
     expect(joinGame).toHaveBeenCalledWith(lincolnIndex);
@@ -62,7 +62,7 @@ describe('HeroSelect', () => {
     render(<HeroSelect />);
 
     fireEvent.click(screen.getByRole('button', { name: /普鲁士/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Friedrich der Große/ }));
+    fireEvent.click(screen.getByRole('button', { name: /腓特烈大帝/ }));
     fireEvent.click(screen.getByRole('button', { name: '匹配对手' }));
 
     expect(joinPvp).toHaveBeenCalledWith(ALL_EMPEROR_DATA_LIST.length - 1);

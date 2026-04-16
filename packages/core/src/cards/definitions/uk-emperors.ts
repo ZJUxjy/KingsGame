@@ -4,7 +4,7 @@ import type { Card } from '@king-card/shared';
 
 export const VICTORIA: Card = {
   id: 'uk_victoria',
-  name: 'Queen Victoria',
+  name: '维多利亚女王',
   civilization: 'UK',
   type: 'EMPEROR',
   rarity: 'LEGENDARY',
