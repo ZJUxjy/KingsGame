@@ -473,12 +473,12 @@ export function executeAttack(
       const attackerAfterCounter = findMinion(state, attackerInstanceId);
       if (!attackerAfterCounter) {
         const onKillEffectCtx: EffectContext = {
-          ...effectCtx,
-          source: targetMinion,
-          target: attackerRef,
+          state,
           mutator,
-          playerIndex: currentPlayerIndex,
-          opponentIndex: 1 - currentPlayerIndex,
+          source: targetMinion,
+          target: attacker,
+          playerIndex: targetMinion.ownerIndex,
+          eventBus: createEffectEventBus(collectingBus),
           rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
         };
         resolveEffects('ON_KILL', onKillEffectCtx);

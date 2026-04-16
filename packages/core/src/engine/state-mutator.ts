@@ -243,7 +243,7 @@ export function createStateMutator(
         }
         // If health dropped to 0 or below, destroy the minion
         if (minion.currentHealth <= 0) {
-          destroyMinion(minion.instanceId);
+          createStateMutator(state, eventBus, rng).destroyMinion(minion.instanceId);
         }
       }
 

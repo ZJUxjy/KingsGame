@@ -151,6 +151,11 @@ export interface CardInstance {
   justPlayed: boolean;
   sleepTurns: number;
   garrisonTurns: number;
+  /**
+   * True once the GARRISON ON_TURN_START buff has been applied so it is not
+   * re-applied every subsequent turn while garrisonTurns remains at 0.
+   */
+  garrisonActivated?: boolean;
   usedGeneralSkills: number;
   buffs: Buff[];
   position?: number;

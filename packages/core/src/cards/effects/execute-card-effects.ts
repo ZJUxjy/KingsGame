@@ -356,7 +356,7 @@ export function executeCardEffects(trigger: CardEffect['trigger'], ctx: EffectCo
           const target = effect.params.target ?? 'HERO';
           if (target === 'HERO') {
             ctx.mutator.heal({ type: 'HERO', playerIndex: ctx.playerIndex }, getNumericParam(effect.params, 'amount'));
-          } else if (effect.params.targetInstanceId) {
+          } else if (typeof effect.params.targetInstanceId === 'string') {
             ctx.mutator.heal({ type: 'MINION', instanceId: effect.params.targetInstanceId }, getNumericParam(effect.params, 'amount'));
           }
         }

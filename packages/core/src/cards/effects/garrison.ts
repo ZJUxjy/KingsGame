@@ -19,7 +19,11 @@ const garrisonHandler: EffectHandler = {
     const { mutator, source } = ctx;
 
     // Skip if garrison hasn't completed or already activated
-    if (!source.card.keywords.includes('GARRISON') || source.garrisonTurns > 0) {
+    if (
+      !source.card.keywords.includes('GARRISON') ||
+      source.garrisonTurns > 0 ||
+      source.garrisonActivated
+    ) {
       return [];
     }
 
@@ -39,8 +43,8 @@ const garrisonHandler: EffectHandler = {
       healthBonus,
     );
 
-    // Mark as activated so the buff only applies once
-    source.garrisonTurns = -1;
+    // Mark as activated so the buff only applies once (leave garrisonTurns at 0)
+    source.garrisonActivated = true;
 
     return [];
   },
