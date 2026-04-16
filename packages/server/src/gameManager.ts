@@ -1,5 +1,5 @@
 import { GameEngine, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
-import { buildDeck, AI_DECK_EMPEROR_INDEX } from './deckBuilder.js';
+import { buildDeck, getRandomAiEmperorIndex } from './deckBuilder.js';
 
 export interface GameSession {
   id: string;
@@ -17,7 +17,7 @@ export class GameManager {
     const id = crypto.randomUUID();
 
     const emperor1 = ALL_EMPEROR_DATA_LIST[playerEmperorIndex];
-    const emperor2Index = mode === 'pve' ? AI_DECK_EMPEROR_INDEX : 0;
+    const emperor2Index = mode === 'pve' ? getRandomAiEmperorIndex() : 0;
     const emperor2 = ALL_EMPEROR_DATA_LIST[emperor2Index];
 
     const deck1 = buildDeck(emperor1);

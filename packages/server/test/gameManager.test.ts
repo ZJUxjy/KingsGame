@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { CHINA_EMPEROR_DATA_LIST } from '@king-card/core';
-import type { Card, EmperorData } from '@king-card/shared';
-import { buildDeck, AI_DECK_EMPEROR_INDEX } from '../src/deckBuilder.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { ALL_EMPEROR_DATA_LIST, CHINA_EMPEROR_DATA_LIST, USA_EMPEROR_DATA_LIST } from '@king-card/core';
+import { buildDeck, getRandomAiEmperorIndex } from '../src/deckBuilder.js';
 import { GameManager } from '../src/gameManager.js';
 
 describe('buildDeck', () => {
@@ -32,29 +31,47 @@ describe('buildDeck', () => {
     }
   });
 
-  it('AI_DECK_EMPEROR_INDEX is 1 (Han)', () => {
-    expect(AI_DECK_EMPEROR_INDEX).toBe(1);
+  it('only uses same-civilization or neutral cards in the fill portion', () => {
+    const emperorData = USA_EMPEROR_DATA_LIST[0];
+    const deck = buildDeck(emperorData);
+    const boundCount = emperorData.boundGenerals.length + emperorData.boundSorceries.length;
+
+    for (let i = boundCount; i < deck.length; i++) {
+      expect(['USA', 'NEUTRAL']).toContain(deck[i].civilization);
+    }
+  });
+
+  it('getRandomAiEmperorIndex returns an in-range emperor index', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.99);
+
+    expect(getRandomAiEmperorIndex()).toBe(ALL_EMPEROR_DATA_LIST.length - 1);
   });
 });
 
 describe('GameManager', () => {
   let manager: GameManager;
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     manager = new GameManager();
   });
 
   it('createGame creates a game with valid engine', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const session = manager.createGame('pve', 0);
 
     expect(session.id).toBeTruthy();
     expect(session.engine).toBeDefined();
     expect(session.state).toBe('waiting');
     expect(session.mode).toBe('pve');
-    expect(session.playerEmperorIndices).toEqual([0, AI_DECK_EMPEROR_INDEX]);
+    expect(session.playerEmperorIndices).toEqual([0, 3]);
   });
 
   it('createGame engine has non-empty hands for both players', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const session = manager.createGame('pve', 0);
     const state = session.engine.getGameState();
 
@@ -70,6 +87,7 @@ describe('GameManager', () => {
   });
 
   it('getGame returns the created game', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const session = manager.createGame('pve', 0);
     const retrieved = manager.getGame(session.id);
 
@@ -82,6 +100,7 @@ describe('GameManager', () => {
   });
 
   it('destroyGame removes the game', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const session = manager.createGame('pve', 0);
     manager.destroyGame(session.id);
 
@@ -89,6 +108,7 @@ describe('GameManager', () => {
   });
 
   it('setPlayerSocket assigns socket ID correctly', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const session = manager.createGame('pve', 0);
     manager.setPlayerSocket(session.id, 0, 'socket-abc');
     manager.setPlayerSocket(session.id, 1, 'socket-xyz');
@@ -99,7 +119,9 @@ describe('GameManager', () => {
   });
 
   it('getAllGames returns all created games', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.2);
     manager.createGame('pve', 0);
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     manager.createGame('pve', 1);
 
     const all = manager.getAllGames();
@@ -107,7 +129,9 @@ describe('GameManager', () => {
   });
 
   it('getAllGames does not include destroyed games', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
     const session = manager.createGame('pve', 0);
+    vi.spyOn(Math, 'random').mockReturnValue(0.2);
     manager.createGame('pve', 1);
     manager.destroyGame(session.id);
 
