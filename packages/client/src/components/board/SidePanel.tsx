@@ -35,8 +35,8 @@ function DeckWidget({ count, side }: { count: number; side: 'enemy' | 'player' }
           }}
         />
         <div
-          className="absolute inset-0 rounded border border-white/15 flex items-center justify-center"
-          style={{ background: 'linear-gradient(160deg, var(--cardback-from) 0%, var(--cardback-to) 100%)' }}
+          className="absolute inset-0 rounded flex items-center justify-center"
+          style={{ background: 'linear-gradient(160deg, var(--cardback-from) 0%, var(--cardback-to) 100%)', border: '1px solid var(--cardback-border)' }}
         >
           <span className="text-lg font-bold text-white leading-none">{count}</span>
         </div>
@@ -93,6 +93,7 @@ function ManaCrystals({ filled, max }: { filled: number; max: number }) {
       <span style={{ fontSize: '10px', color: 'var(--mana-count)' }}>
         {filled}/{max}
       </span>
+      <span style={{ fontSize: '9px', color: 'var(--mana-label)' }}>法力水晶</span>
     </div>
   );
 }

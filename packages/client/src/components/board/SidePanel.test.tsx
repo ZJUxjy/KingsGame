@@ -95,4 +95,9 @@ describe('SidePanel', () => {
     expect(buttons.length).toBe(1);
     expect(buttons[0].textContent).toContain('结束回合');
   });
+
+  it('renders 法力水晶 mana label', () => {
+    const { getByText } = render(<SidePanel {...defaultProps()} />);
+    expect(getByText('法力水晶')).toBeTruthy();
+  });
 });
