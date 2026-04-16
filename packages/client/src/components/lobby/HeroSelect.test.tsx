@@ -34,6 +34,8 @@ describe('HeroSelect', () => {
   it('shows all civilizations and reveals emperors only for the selected civilization', () => {
     render(<HeroSelect />);
 
+    expect(screen.getByText('步骤 1')).toBeTruthy();
+    expect(screen.getByText('步骤 2')).toBeTruthy();
     expect(screen.getByRole('button', { name: /华夏/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /大和/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /美利坚/ })).toBeTruthy();

@@ -29,6 +29,7 @@ describe('CollectionPage', () => {
 
     render(<CollectionPage />);
 
+    expect(screen.getByText('收藏')).toBeTruthy();
     expect(screen.getByText(chinaCard.name)).toBeTruthy();
     expect(screen.queryByText(japanCard.name)).toBeNull();
 

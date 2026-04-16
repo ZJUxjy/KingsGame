@@ -1,8 +1,15 @@
 import { useGameStore } from '../../stores/gameStore.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 
 export default function Lobby() {
   const setUiPhase = useGameStore((s) => s.setUiPhase);
   const connect = useGameStore((s) => s.connect);
+  const locale = useLocaleStore((state) => state.locale);
+
+  const title = locale === 'en-US' ? 'King Card' : '帝王牌';
+  const pveLabel = locale === 'en-US' ? 'Solo Mode' : '单人模式';
+  const pvpLabel = locale === 'en-US' ? 'Two-Player Mode' : '双人模式';
+  const collectionLabel = locale === 'en-US' ? 'Card Collection' : '卡牌收藏';
 
   const handlePvE = () => {
     connect('http://localhost:3001');
@@ -24,7 +31,7 @@ export default function Lobby() {
     <div
       className="h-screen flex flex-col items-center justify-center bg-board-gradient"
     >
-      <h1 className="text-7xl font-bold text-yellow-400 mb-16">帝王牌</h1>
+      <h1 className="text-7xl font-bold text-yellow-400 mb-16">{title}</h1>
 
       <div className="flex gap-8">
         {/* PvE Mode Card */}
@@ -37,7 +44,7 @@ export default function Lobby() {
         >
           <span className="text-3xl">⚔️</span>
           <span className="text-2xl font-bold text-yellow-400">
-            单人模式
+            {pveLabel}
           </span>
           <span className="text-sm text-gray-400">PvE</span>
         </button>
@@ -52,7 +59,7 @@ export default function Lobby() {
         >
           <span className="text-3xl">🤝</span>
           <span className="text-2xl font-bold text-blue-400">
-            双人模式
+            {pvpLabel}
           </span>
           <span className="text-sm text-gray-400">PvP</span>
         </button>
@@ -66,7 +73,7 @@ export default function Lobby() {
         >
           <span className="text-3xl">📚</span>
           <span className="text-2xl font-bold text-amber-300">
-            卡牌收藏
+            {collectionLabel}
           </span>
           <span className="text-sm text-gray-400">Collection</span>
         </button>

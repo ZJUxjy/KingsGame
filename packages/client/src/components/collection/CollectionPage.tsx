@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CIVILIZATION_META, type Civilization } from '@king-card/shared';
 import { useGameStore } from '../../stores/gameStore.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 import { CollectionGrid } from './CollectionGrid.js';
 import { CollectionSidebar } from './CollectionSidebar.js';
 import { CollectionToolbar } from './CollectionToolbar.js';
@@ -13,6 +14,7 @@ import {
 
 export default function CollectionPage() {
   const setUiPhase = useGameStore((s) => s.setUiPhase);
+  const locale = useLocaleStore((state) => state.locale);
   const [civilization, setCivilization] = useState<Civilization>('CHINA');
   const [selectedType, setSelectedType] = useState<CollectionCardTypeFilter>('ALL');
   const [search, setSearch] = useState('');
@@ -28,8 +30,8 @@ export default function CollectionPage() {
       search: '',
       emperorId: null,
       showBoundOnly: false,
-    }),
-    [civilization],
+    }, locale),
+    [civilization, locale],
   );
 
   const cards = useMemo(
@@ -39,9 +41,17 @@ export default function CollectionPage() {
       search,
       emperorId: selectedEmperorId,
       showBoundOnly,
-    }),
-    [civilization, search, selectedEmperorId, selectedType, showBoundOnly],
+    }, locale),
+    [civilization, locale, search, selectedEmperorId, selectedType, showBoundOnly],
   );
+
+  const collectionLabel = locale === 'en-US' ? 'COLLECTION' : '收藏';
+  const title = locale === 'en-US'
+    ? `${CIVILIZATION_META[civilization].name} Card Collection`
+    : `${CIVILIZATION_META[civilization].name} 卡牌收藏`;
+  const description = locale === 'en-US'
+    ? 'A Hearthstone-like wood-and-parchment collection layout adapted to emperors, bound cards, and civilization pools.'
+    : '参考炉石收藏页的木框与羊皮纸结构，但语义适配帝王、绑定卡与文明卡池。';
 
   const totalCards = baseCards.length;
 
@@ -79,9 +89,9 @@ export default function CollectionPage() {
       <div className="mx-auto flex max-w-[1680px] gap-6">
         <div className="min-w-0 flex-1">
           <div className="mb-5 rounded-[30px] border border-amber-100/20 bg-black/15 px-6 py-5 text-stone-100">
-            <div className="text-sm tracking-[0.35em] text-amber-100/70">COLLECTION</div>
-            <div className="mt-2 text-4xl font-black text-amber-50">{CIVILIZATION_META[civilization].name} 卡牌收藏</div>
-            <div className="mt-2 text-base text-amber-50/75">参考炉石收藏页的木框与羊皮纸结构，但语义适配帝王、绑定卡与文明卡池。</div>
+            <div className="text-sm tracking-[0.35em] text-amber-100/70">{collectionLabel}</div>
+            <div className="mt-2 text-4xl font-black text-amber-50">{title}</div>
+            <div className="mt-2 text-base text-amber-50/75">{description}</div>
           </div>
 
           <CollectionToolbar

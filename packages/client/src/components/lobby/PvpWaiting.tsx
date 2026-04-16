@@ -1,8 +1,12 @@
 import { useGameStore } from '../../stores/gameStore.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 import { socketService } from '../../services/socketService.js';
 
 export default function PvpWaiting() {
   const _reset = useGameStore((s) => s._reset);
+  const locale = useLocaleStore((state) => state.locale);
+  const waitingLabel = locale === 'en-US' ? 'Waiting For Opponent…' : '等待对手加入…';
+  const cancelLabel = locale === 'en-US' ? 'Back To Main Menu' : '返回主菜单';
 
   const handleCancel = () => {
     try {
@@ -15,7 +19,7 @@ export default function PvpWaiting() {
 
   return (
     <div className="h-screen flex flex-col items-center justify-center bg-board-gradient">
-      <h2 className="text-4xl font-bold text-blue-400 mb-8">等待对手加入…</h2>
+      <h2 className="text-4xl font-bold text-blue-400 mb-8">{waitingLabel}</h2>
 
       <div className="flex gap-2 mb-12">
         <span className="w-3 h-3 bg-blue-400 rounded-full animate-bounce [animation-delay:0ms]" />
@@ -27,7 +31,7 @@ export default function PvpWaiting() {
         onClick={handleCancel}
         className="px-8 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold text-lg cursor-pointer transition-colors"
       >
-        返回主菜单
+        {cancelLabel}
       </button>
     </div>
   );

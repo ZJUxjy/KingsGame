@@ -2,6 +2,7 @@ import {
   ALL_EMPEROR_DATA_LIST,
   CHINA_ALL_CARDS,
   JAPAN_ALL_CARDS,
+  USA_ALL_CARDS,
 } from '@king-card/core';
 import { describe, expect, it } from 'vitest';
 import {
@@ -38,6 +39,34 @@ describe('collection-utils', () => {
     });
 
     expect(cards.some((card) => card.id === sampleChinaCard!.id)).toBe(true);
+  });
+
+  it('matches localized Chinese search text for cards whose source copy is English', () => {
+    const gi = USA_ALL_CARDS.find((card) => card.id === 'usa_gi')!;
+
+    const cards = getCollectionCards({
+      civilization: 'USA',
+      type: 'ALL',
+      search: '大兵',
+      emperorId: null,
+      showBoundOnly: false,
+    });
+
+    expect(cards.some((card) => card.id === gi.id)).toBe(true);
+  });
+
+  it('matches english search text when locale is en-US', () => {
+    const gi = USA_ALL_CARDS.find((card) => card.id === 'usa_gi')!;
+
+    const cards = getCollectionCards({
+      civilization: 'USA',
+      type: 'ALL',
+      search: 'american soldier',
+      emperorId: null,
+      showBoundOnly: false,
+    }, 'en-US');
+
+    expect(cards.some((card) => card.id === gi.id)).toBe(true);
   });
 
   it('returns only bound cards when an emperor is selected and showBoundOnly is true', () => {

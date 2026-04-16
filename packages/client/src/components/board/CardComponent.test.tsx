@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, within } from '@testing-library/react';
+import { fireEvent, render, within } from '@testing-library/react';
 import { CardComponent } from './CardComponent.js';
 
 function collectIds(root: Element): string[] {
@@ -98,6 +98,97 @@ describe('CardComponent – redesign structure', () => {
     expect(container.querySelector('[data-testid="card-hp"]')).toBeNull();
   });
 
+  it('renders a description snippet for non-detail cards', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          type: 'STRATAGEM',
+          description: '持续妙计：所有友方生物获得+2攻击力直到回合结束。',
+        })}
+        size="collection"
+      />,
+    );
+
+    const snippet = within(container).getByTestId('card-description-snippet');
+    expect(snippet.textContent).toContain('持续妙计');
+  });
+
+  it('wraps mixed-language snippets by character count instead of isolating Chinese text as one word', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          type: 'STRATAGEM',
+          description: 'Rush. 突袭突袭突袭突袭突袭',
+        })}
+        size="collection"
+      />,
+    );
+
+    const snippet = within(container).getByTestId('card-description-snippet');
+    const firstLine = snippet.querySelector('tspan');
+
+    expect(firstLine?.textContent).toContain('突');
+  });
+
+  it('shows a detailed description tooltip on hover', () => {
+    const { container, queryByTestId } = render(
+      <CardComponent
+        card={makeCard({
+          type: 'STRATAGEM',
+          description: '持续妙计：所有友方生物获得+2攻击力直到回合结束。',
+        })}
+        size="collection"
+      />,
+    );
+
+    const root = within(container).getByTestId('card');
+    expect(queryByTestId('card-description-tooltip')).toBeNull();
+
+    fireEvent.pointerEnter(root);
+
+    const tooltip = within(container).getByTestId('card-description-tooltip');
+    expect(tooltip.getAttribute('role')).toBe('tooltip');
+    expect(root.getAttribute('aria-describedby')).toBe(tooltip.getAttribute('id'));
+    expect(tooltip.textContent).toContain('持续妙计');
+
+    fireEvent.pointerLeave(root);
+    expect(queryByTestId('card-description-tooltip')).toBeNull();
+  });
+
+  it('flips the tooltip below the card when there is not enough space above', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          type: 'STRATAGEM',
+          description: '持续妙计：所有友方生物获得+2攻击力直到回合结束。',
+        })}
+        size="collection"
+      />,
+    );
+
+    const root = within(container).getByTestId('card');
+    Object.defineProperty(root, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        top: 16,
+        bottom: 262,
+        left: 40,
+        right: 208,
+        width: 168,
+        height: 246,
+        x: 40,
+        y: 16,
+        toJSON: () => ({}),
+      }),
+    });
+
+    fireEvent.pointerEnter(root);
+
+    const tooltip = within(container).getByTestId('card-description-tooltip');
+    expect(tooltip.className).toContain('translate-y-[10px]');
+    expect(tooltip.className).toContain('top-full');
+  });
+
   it('renders cost badge with card cost value', () => {
     const { container } = render(
       <CardComponent card={makeCard({ cost: 5 })} instance={makeInstance()} />,
@@ -137,6 +228,32 @@ describe('CardComponent – redesign structure', () => {
     const artArea = container.querySelector('[data-testid="card-art"]') as HTMLElement;
     expect(artArea).not.toBeNull();
     expect(artArea.querySelector('ellipse')).not.toBeNull();
+  });
+
+  it('uses a larger portrait ellipse that occupies most of the card face', () => {
+    const { container } = render(
+      <CardComponent card={makeCard()} instance={makeInstance()} />,
+    );
+
+    const ellipse = container.querySelector('[data-testid="card-art-frame"]') as SVGElement;
+    expect(Number(ellipse.getAttribute('rx'))).toBeGreaterThanOrEqual(28);
+    expect(Number(ellipse.getAttribute('ry'))).toBeGreaterThanOrEqual(28);
+  });
+
+  it('localizes english card copy before rendering', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({
+          name: 'Marine',
+          type: 'MINION',
+          description: 'Rush.',
+          keywords: ['RUSH'],
+        })}
+      />,
+    );
+
+    expect(container.textContent).toContain('海军陆战队');
+    expect(container.textContent).toContain('突袭');
   });
 
   it('renders type badge pill for MINION', () => {

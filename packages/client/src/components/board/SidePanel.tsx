@@ -1,4 +1,5 @@
 import { TurnIndicator } from './TurnIndicator.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 
 export interface SidePanelProps {
   enemyDeckCount: number;
@@ -11,6 +12,11 @@ export interface SidePanelProps {
 }
 
 function DeckWidget({ count, side }: { count: number; side: 'enemy' | 'player' }) {
+  const locale = useLocaleStore((state) => state.locale);
+  const label = side === 'enemy'
+    ? locale === 'en-US' ? 'Enemy Deck' : '敌方牌库'
+    : locale === 'en-US' ? 'Your Deck' : '我方牌库';
+
   return (
     <div
       data-deck-widget={side}
@@ -42,7 +48,7 @@ function DeckWidget({ count, side }: { count: number; side: 'enemy' | 'player' }
         </div>
       </div>
       <span className="text-[10px]" style={{ color: 'var(--sidebar-label)' }}>
-        {side === 'enemy' ? '敌方牌库' : '我方牌库'}
+        {label}
       </span>
     </div>
   );
@@ -67,6 +73,9 @@ function MidlineDivider() {
 }
 
 function ManaCrystals({ filled, max }: { filled: number; max: number }) {
+  const locale = useLocaleStore((state) => state.locale);
+  const manaLabel = locale === 'en-US' ? 'Mana Crystals' : '法力水晶';
+
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="flex flex-wrap justify-center gap-1 w-full px-1">
@@ -93,7 +102,7 @@ function ManaCrystals({ filled, max }: { filled: number; max: number }) {
       <span style={{ fontSize: '10px', color: 'var(--mana-count)' }}>
         {filled}/{max}
       </span>
-      <span style={{ fontSize: '9px', color: 'var(--mana-label)' }}>法力水晶</span>
+      <span style={{ fontSize: '9px', color: 'var(--mana-label)' }}>{manaLabel}</span>
     </div>
   );
 }
@@ -107,6 +116,9 @@ export function SidePanel({
   isMyTurn,
   onEndTurn,
 }: SidePanelProps) {
+  const locale = useLocaleStore((state) => state.locale);
+  const endTurnLabel = locale === 'en-US' ? 'End Turn' : '结束回合';
+
   return (
     <div
       className="flex flex-col items-center justify-between py-3 gap-2 h-full"
@@ -131,7 +143,7 @@ export function SidePanel({
         disabled={!isMyTurn}
         className="mx-3 self-stretch py-1.5 rounded text-xs font-bold btn-endturn"
       >
-        结束回合
+        {endTurnLabel}
       </button>
 
       <MidlineDivider />

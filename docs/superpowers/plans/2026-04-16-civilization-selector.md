@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 HeroSelect 从硬编码 3 个中国帝王重构为"先选文明 → 再选帝王"的两步流程，支持全部 5 个文明 7 个帝王，并修复 AI 固定选汉武帝、非中国文明描述语言不一致等已知问题。
+**Goal:** 将 HeroSelect 从硬编码 3 个中国帝王重构为"先选文明 → 再选帝王"的两步流程，支持全部 5 个文明 7 个帝王，并修复 AI 固定选汉武帝、非中国文明描述语言不一致、牌组跨文明混牌等已知问题。
 
-**Architecture:** 客户端引入共享常量 `CIVILIZATION_META`（文明元数据：名称、描述、图标），HeroSelect 改为两阶段选择器。帝王数据从 core 包的 `ALL_EMPEROR_DATA_LIST` 动态获取，不再硬编码。服务端 `AI_DECK_EMPEROR_INDEX` 改为随机选取。非中国文明卡牌描述统一为中文。
+**Architecture:** 客户端引入共享常量 `CIVILIZATION_META`（文明元数据：名称、描述、图标），HeroSelect 改为两阶段选择器。帝王数据从 core 包的文明卡牌数组静态导入，不再硬编码。服务端 `deckBuilder.ts` 改为按文明过滤填充牌组，且 AI 随机选取帝王。非中国文明帝王描述统一为中文。
 
 **Tech Stack:** React 19, Zustand 5, Tailwind CSS v4, TypeScript, Socket.IO
 
@@ -16,14 +16,13 @@
 |--------|------|----------------|
 | Create | `packages/shared/src/civilization-meta.ts` | 文明元数据常量（名称、描述、图标） |
 | Modify | `packages/shared/src/index.ts` | 导出新常量 |
-| Modify | `packages/shared/src/types.ts` | 无变更（已有 Civilization 类型） |
-| Modify | `packages/client/src/components/lobby/HeroSelect.tsx` | 重构为两阶段文明/帝王选择器 |
-| Modify | `packages/server/src/deckBuilder.ts` | AI 随机选帝王替代固定 index 1 |
-| Modify | `packages/server/src/gameManager.ts` | 使用随机 AI 帝王索引 |
 | Modify | `packages/core/src/cards/definitions/usa-emperors.ts` | 描述改中文 |
 | Modify | `packages/core/src/cards/definitions/uk-emperors.ts` | 描述改中文 |
 | Modify | `packages/core/src/cards/definitions/germany-emperors.ts` | 描述改中文 |
-| Create | `docs/superpowers/plans/2026-04-16-civilization-selector.md` | 本计划文件 |
+| Modify | `packages/server/src/deckBuilder.ts` | 按文明过滤填充 + 随机选取 AI 帝王 |
+| Modify | `packages/server/src/gameManager.ts` | 使用随机 AI 帝王索引 |
+| Modify | `packages/server/test/gameManager.test.ts` | 适配随机 AI 帝王 + 文明牌组过滤 |
+| Modify | `packages/client/src/components/lobby/HeroSelect.tsx` | 重构为两阶段文明/帝王选择器 |
 
 ---
 
@@ -123,6 +122,8 @@ git commit -m "feat(shared): add civilization metadata constants"
 - Modify: `packages/core/src/cards/definitions/usa-emperors.ts`
 - Modify: `packages/core/src/cards/definitions/uk-emperors.ts`
 - Modify: `packages/core/src/cards/definitions/germany-emperors.ts`
+
+> 注：日本帝王（織田信長）的 description、heroSkill.name/description 已经是中文，无需修改。
 
 - [ ] **Step 1: 修改 USA 帝王描述为中文**
 
@@ -249,15 +250,18 @@ git commit -m "fix(core): unify non-China emperor descriptions to Chinese"
 
 ---
 
-### Task 3: AI 随机选择帝王
+### Task 3: 修复牌组构建 — 按文明过滤 + AI 随机选帝王
 
 **Files:**
 - Modify: `packages/server/src/deckBuilder.ts`
 - Modify: `packages/server/src/gameManager.ts`
+- Modify: `packages/server/test/gameManager.test.ts`
 
-- [ ] **Step 1: 修改 deckBuilder 导出随机选取函数**
+> 当前问题：`buildDeck` 用 `ALL_CARDS.filter(c => c.type !== 'EMPEROR')` 填充牌组，会混入所有文明的卡牌。规则是牌组只能由本文明牌 + 中立牌组成。当前没有中立牌，所以只填充本文明牌。
 
-修改 `packages/server/src/deckBuilder.ts`，移除固定的 `AI_DECK_EMPEROR_INDEX`，改为导出随机选取函数：
+- [ ] **Step 1: 重写 deckBuilder.ts — 按文明过滤填充 + 导出随机选取函数**
+
+修改 `packages/server/src/deckBuilder.ts`：
 
 ```typescript
 import { ALL_CARDS, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
@@ -267,6 +271,13 @@ import { GAME_CONSTANTS } from '@king-card/shared';
 const nonEmperorCards = ALL_CARDS.filter((c) => c.type !== 'EMPEROR');
 
 export function buildDeck(emperorData: EmperorData): Card[] {
+  const emperorCiv = emperorData.emperorCard.civilization;
+
+  // 只使用本文明卡牌 + 中立卡牌填充牌组
+  const civCards = nonEmperorCards.filter(
+    (c) => c.civilization === emperorCiv || c.civilization === 'NEUTRAL',
+  );
+
   const deck: Card[] = [
     ...emperorData.boundGenerals,
     ...emperorData.boundSorceries,
@@ -274,7 +285,7 @@ export function buildDeck(emperorData: EmperorData): Card[] {
 
   let fillIdx = 0;
   while (deck.length < GAME_CONSTANTS.DECK_SIZE) {
-    deck.push(nonEmperorCards[fillIdx % nonEmperorCards.length]);
+    deck.push(civCards[fillIdx % civCards.length]);
     fillIdx++;
   }
 
@@ -286,9 +297,9 @@ export function getRandomAiEmperorIndex(): number {
 }
 ```
 
-- [ ] **Step 2: 修改 gameManager 使用随机 AI 帝王**
+- [ ] **Step 2: 修改 gameManager.ts 使用随机 AI 帝王**
 
-修改 `packages/server/src/gameManager.ts`，将 `AI_DECK_EMPEROR_INDEX` 替换为 `getRandomAiEmperorIndex()`：
+修改 `packages/server/src/gameManager.ts`：
 
 ```typescript
 import { GameEngine, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
@@ -328,16 +339,116 @@ export class GameManager {
 }
 ```
 
-- [ ] **Step 3: 验证 server 包编译**
+- [ ] **Step 3: 更新 gameManager.test.ts 适配随机 AI 帝王**
 
-Run: `pnpm --filter @king-card/server build 2>&1 | tail -5`
-Expected: 无错误
+修改 `packages/server/test/gameManager.test.ts`：
 
-- [ ] **Step 4: Commit**
+1. 移除 `AI_DECK_EMPEROR_INDEX` 的导入和对应测试
+2. 改为验证 AI 帝王索引在合法范围内
+3. 验证牌组只包含本文明或中立卡牌
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import { ALL_EMPEROR_DATA_LIST } from '@king-card/core';
+import type { EmperorData } from '@king-card/shared';
+import { buildDeck, getRandomAiEmperorIndex } from '../src/deckBuilder.js';
+import { GameManager } from '../src/gameManager.js';
+
+describe('buildDeck', () => {
+  for (const emperorData of ALL_EMPEROR_DATA_LIST) {
+    describe(`emperor: ${emperorData.emperorCard.name}`, () => {
+      it('returns exactly 30 cards', () => {
+        const deck = buildDeck(emperorData);
+        expect(deck).toHaveLength(30);
+      });
+
+      it('includes all boundGenerals and boundSorceries at the start', () => {
+        const deck = buildDeck(emperorData);
+        const boundCards = [...emperorData.boundGenerals, ...emperorData.boundSorceries];
+        expect(boundCards.length).toBeGreaterThan(0);
+        for (let i = 0; i < boundCards.length; i++) {
+          expect(deck[i].id).toBe(boundCards[i].id);
+        }
+      });
+
+      it('fill portion contains only same-civilization or NEUTRAL cards', () => {
+        const deck = buildDeck(emperorData);
+        const emperorCiv = emperorData.emperorCard.civilization;
+        const boundCount = emperorData.boundGenerals.length + emperorData.boundSorceries.length;
+
+        for (let i = boundCount; i < deck.length; i++) {
+          expect(
+            deck[i].civilization === emperorCiv || deck[i].civilization === 'NEUTRAL',
+          ).toBe(true);
+        }
+      });
+
+      it('does not include any EMPEROR type cards', () => {
+        const deck = buildDeck(emperorData);
+        for (const card of deck) {
+          expect(card.type).not.toBe('EMPEROR');
+        }
+      });
+    });
+  }
+
+  it('getRandomAiEmperorIndex returns a valid index', () => {
+    for (let i = 0; i < 20; i++) {
+      const idx = getRandomAiEmperorIndex();
+      expect(idx).toBeGreaterThanOrEqual(0);
+      expect(idx).toBeLessThan(ALL_EMPEROR_DATA_LIST.length);
+    }
+  });
+});
+
+describe('GameManager', () => {
+  let manager: GameManager;
+
+  beforeEach(() => {
+    manager = new GameManager();
+  });
+
+  it('createGame creates a PvE game with valid engine', () => {
+    const session = manager.createGame('pve', 0);
+
+    expect(session.id).toBeTruthy();
+    expect(session.engine).toBeDefined();
+    expect(session.state).toBe('waiting');
+    expect(session.mode).toBe('pve');
+    expect(session.playerEmperorIndices[0]).toBe(0);
+    expect(session.playerEmperorIndices[1]).toBeGreaterThanOrEqual(0);
+    expect(session.playerEmperorIndices[1]).toBeLessThan(ALL_EMPEROR_DATA_LIST.length);
+  });
+
+  it('createGame engine has non-empty hands for both players', () => {
+    const session = manager.createGame('pve', 0);
+    const state = session.engine.getGameState();
+
+    expect(state.players[0].hand.length).toBeGreaterThan(0);
+    expect(state.players[1].hand.length).toBeGreaterThan(0);
+  });
+
+  it('createGame for PvP defaults second emperor to index 0', () => {
+    const session = manager.createGame('pvp', 2);
+
+    expect(session.mode).toBe('pvp');
+    expect(session.playerEmperorIndices).toEqual([2, 0]);
+  });
+
+  // ... 其余测试不变（getGame, destroyGame, setPlayerSocket, getAllGames 等） ...
+});
+```
+
+- [ ] **Step 4: 验证 server 包编译和测试**
+
+Run: `pnpm --filter @king-card/server test 2>&1 | tail -20`
+Expected: 所有测试通过
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add packages/server/src/deckBuilder.ts packages/server/src/gameManager.ts
-git commit -m "fix(server): randomize AI emperor selection instead of always Han Wudi"
+git add packages/server/src/deckBuilder.ts packages/server/src/gameManager.ts packages/server/test/gameManager.test.ts
+git commit -m "fix(server): restrict deck to same-civilization cards and randomize AI emperor"
 ```
 
 ---
@@ -347,6 +458,10 @@ git commit -m "fix(server): randomize AI emperor selection instead of always Han
 **Files:**
 - Modify: `packages/client/src/components/lobby/HeroSelect.tsx`
 
+> 设计要点：
+> - 使用静态导入 `ALL_EMPEROR_DATA_LIST` + 客户端分组，避免动态 import 整个 core 包
+> - 中国有 3 个帝王，其他文明各 1 个，帝王选择阶段使用 flex 布局自动适配数量
+
 - [ ] **Step 1: 重写 HeroSelect 组件**
 
 完全重写 `packages/client/src/components/lobby/HeroSelect.tsx`：
@@ -355,37 +470,31 @@ git commit -m "fix(server): randomize AI emperor selection instead of always Han
 import { useState, useMemo } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { CIVILIZATION_ORDER, CIVILIZATION_META } from '@king-card/shared';
-import type { Civilization } from '@king-card/shared';
-import type { EmperorData } from '@king-card/shared';
+import type { Civilization, EmperorData } from '@king-card/shared';
+import { ALL_EMPEROR_DATA_LIST } from '@king-card/core';
+
+/** 按 civilization 字段将帝王数据分组 */
+const EMPEROR_DATA_BY_CIV = ALL_EMPEROR_DATA_LIST.reduce<
+  Record<string, EmperorData[]>
+>((acc, ed) => {
+  const civ = ed.emperorCard.civilization;
+  if (!acc[civ]) acc[civ] = [];
+  acc[civ].push(ed);
+  return acc;
+}, {});
 
 /**
- * Dynamically import emperor data from core.
- * We use a static mapping to avoid importing the entire core bundle at lobby time.
+ * 计算帝王在 ALL_EMPEROR_DATA_LIST 中的全局索引。
+ * ALL_EMPEROR_DATA_LIST 顺序: CHINA(0-2), JAPAN(3), USA(4), UK(5), GERMANY(6)
  */
-const EMPEROR_DATA_BY_CIV: Record<string, EmperorData[]> = await import(
-  '@king-card/core'
-).then((m) => ({
-  CHINA: m.CHINA_EMPEROR_DATA_LIST,
-  JAPAN: m.JAPAN_EMPEROR_DATA_LIST,
-  USA: m.USA_EMPEROR_DATA_LIST,
-  UK: m.UK_EMPEROR_DATA_LIST,
-  GERMANY: m.GERMANY_EMPEROR_DATA_LIST,
-}));
-
-/**
- * Compute the global emperor index in ALL_EMPEROR_DATA_LIST for a given civ+localIndex.
- * ALL_EMPEROR_DATA_LIST order: CHINA(0-2), JAPAN(3), USA(4), UK(5), GERMANY(6)
- */
-const CIV_OFFSETS: Record<string, number> = {
-  CHINA: 0,
-  JAPAN: 3,
-  USA: 4,
-  UK: 5,
-  GERMANY: 6,
-};
-
 function getGlobalEmperorIndex(civ: string, localIndex: number): number {
-  return (CIV_OFFSETS[civ] ?? 0) + localIndex;
+  const order: Civilization[] = ['CHINA', 'JAPAN', 'USA', 'UK', 'GERMANY'];
+  let offset = 0;
+  for (const c of order) {
+    if (c === civ) return offset + localIndex;
+    offset += (EMPEROR_DATA_BY_CIV[c] ?? []).length;
+  }
+  return offset + localIndex;
 }
 
 export default function HeroSelect() {
@@ -467,9 +576,9 @@ export default function HeroSelect() {
         </div>
       )}
 
-      {/* Phase 2: Emperor selection */}
+      {/* Phase 2: Emperor selection (flex layout adapts to count) */}
       {selectedCiv && (
-        <div className="flex gap-6 mb-12">
+        <div className="flex flex-wrap justify-center gap-6 mb-12">
           {emperors.map((emperorData, localIdx) => {
             const card = emperorData.emperorCard;
             const skill = card.heroSkill;
@@ -538,9 +647,10 @@ Run: `pnpm dev:all`
 在浏览器中访问 http://localhost:3000/：
 1. 点击"单人模式"
 2. 应该看到 5 个文明的网格（华夏、大和、美利坚、不列颠、普鲁士）
-3. 点击任一文明，应显示该文明下的帝王列表
-4. 选择一个帝王，点击"开始对战"，游戏应正常启动
-5. 点击"← 返回"应能回到文明选择
+3. 点击华夏，应显示 3 个帝王（秦始皇、汉武帝、唐太宗）
+4. 点击大和，应显示 1 个帝王（織田信長）
+5. 选择一个帝王，点击"开始对战"，游戏应正常启动
+6. 点击"← 返回"应能回到文明选择
 
 - [ ] **Step 4: Commit**
 
@@ -559,7 +669,7 @@ git commit -m "feat(client): two-phase civilization/emperor selector supporting 
 - [ ] **Step 1: 运行全量构建**
 
 Run: `pnpm build 2>&1 | tail -20`
-Expected: 所有 5 个包编译成功
+Expected: 所有包编译成功
 
 - [ ] **Step 2: 运行全量测试**
 
@@ -574,6 +684,7 @@ Expected: 所有测试通过
 3. 选美利坚 → Lincoln → PvE 启动 → 技能描述为中文
 4. 选不列颠 → Victoria → PvE 启动 → 技能描述为中文
 5. 选普鲁士 → Friedrich → PvE 启动 → 技能描述为中文
+6. 检查 AI 牌组 — 通过游戏过程观察 AI 出牌，确认只使用本文明卡牌
 
 - [ ] **Step 4: 最终 Commit（如有任何修复）**
 
@@ -593,8 +704,10 @@ git commit -m "chore: verify all civilizations work end-to-end"
 | UI 支持选择所有文明 | Task 4 |
 | 先选文明再选帝王的两步流程 | Task 4 |
 | AI 不再固定选汉武帝 | Task 3 |
+| 牌组不能跨文明混牌 | Task 3 |
 | 非中国文明描述统一中文 | Task 2 |
 | 文明元数据可复用 | Task 1 |
+| 测试适配随机 AI 帝王 | Task 3 |
 | 全量构建和测试验证 | Task 5 |
 
 ### 2. Placeholder Scan
@@ -605,7 +718,12 @@ git commit -m "chore: verify all civilizations work end-to-end"
 
 - `Civilization` 类型来自 `@king-card/shared`，Task 1 新增的 `CIVILIZATION_ORDER` 和 `CIVILIZATION_META` 使用同一类型
 - `EmperorData` 类型来自 `@king-card/shared`，与 core 包导出一致
-- `getGlobalEmperorIndex` 的 offset 计算（CHINA:0, JAPAN:3, USA:4, UK:5, GERMANY:6）与 `ALL_EMPEROR_DATA_LIST` 的组装顺序完全匹配（参见 `packages/core/src/cards/definitions/index.ts` 第 442-448 行）
+- `getGlobalEmperorIndex` 通过遍历 `ALL_EMPEROR_DATA_LIST` 的分组顺序动态计算 offset，与 `ALL_EMPEROR_DATA_LIST` 的实际组装顺序一致
+
+### 4. Known Trade-offs
+
+- **静态导入 core 包**：HeroSelect 会将整个 `@king-card/core` 引入客户端 bundle。当前 core 是纯逻辑无 Node.js 依赖，bundle 增量可控。如果后续卡牌数据膨胀，可以考虑将帝王元数据单独提取到 shared 包。
+- **当前无中立牌**：`deckBuilder` 预留了 `c.civilization === 'NEUTRAL'` 的过滤条件，未来添加中立牌时无需修改构建逻辑。
 
 ---
 

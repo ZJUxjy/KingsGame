@@ -1,12 +1,9 @@
+import type { Minister } from '@king-card/shared';
+import { useLocaleStore } from '../../stores/localeStore.js';
+import { getMinistersDisplayText } from '../../utils/cardText.js';
+
 interface MinisterPanelProps {
-  ministers: {
-    id: string;
-    name: string;
-    type: string;
-    activeSkill: { name: string; cost: number; description: string };
-    skillUsedThisTurn: boolean;
-    cooldown: number;
-  }[];
+  ministers: Minister[];
   activeIndex: number;
   canUseSkill?: boolean;
   skillPending?: boolean;
@@ -16,11 +13,19 @@ interface MinisterPanelProps {
   onSwitch?: (ministerIndex: number) => void;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  STRATEGIST: '谋士',
-  WARRIOR: '武将',
-  ADMINISTRATOR: '行政',
-  ENVOY: '使节',
+const TYPE_LABELS = {
+  'zh-CN': {
+    STRATEGIST: '谋士',
+    WARRIOR: '武将',
+    ADMINISTRATOR: '行政',
+    ENVOY: '使节',
+  },
+  'en-US': {
+    STRATEGIST: 'Strategist',
+    WARRIOR: 'Warrior',
+    ADMINISTRATOR: 'Administrator',
+    ENVOY: 'Envoy',
+  },
 };
 
 export function MinisterPanel({
@@ -33,7 +38,11 @@ export function MinisterPanel({
   onSkillClick,
   onSwitch,
 }: MinisterPanelProps) {
-  const active = ministers[activeIndex];
+  const locale = useLocaleStore((state) => state.locale);
+  const displayMinisters = getMinistersDisplayText(ministers, locale);
+  const active = displayMinisters[activeIndex];
+  const typeLabels = TYPE_LABELS[locale];
+
   if (!active) return null;
 
   return (
@@ -67,7 +76,7 @@ export function MinisterPanel({
             {active.name}
           </span>
           <span className="text-[9px] text-gray-400">
-            {TYPE_LABELS[active.type] ?? active.type}
+            {typeLabels[active.type] ?? active.type}
           </span>
         </div>
         {/* Skill button */}
@@ -97,9 +106,9 @@ export function MinisterPanel({
         </button>
       </div>
       {/* Switch buttons */}
-      {ministers.length > 1 && canSwitch && (
+      {displayMinisters.length > 1 && canSwitch && (
         <div className="flex gap-1">
-          {ministers.map(
+          {displayMinisters.map(
             (m, i) =>
               i !== activeIndex && (
                 <button

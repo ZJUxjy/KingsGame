@@ -1,24 +1,6 @@
 import type { Card, CardInstance } from '@king-card/shared';
-
-const KEYWORD_LABELS: Record<string, string> = {
-  BATTLECRY: '战吼',
-  DEATHRATTLE: '亡语',
-  AURA: '光环',
-  TAUNT: '嘲讽',
-  RUSH: '突袭',
-  CHARGE: '冲锋',
-  ASSASSIN: '刺杀',
-  COMBO_STRIKE: '连击',
-  STEALTH_KILL: '暗杀',
-  MOBILIZE: '动员',
-  GARRISON: '驻守',
-  IRON_FIST: '铁拳',
-  RESEARCH: '研究',
-  BLOCKADE: '封锁',
-  COLONY: '殖民',
-  BLITZ: '闪击',
-  MOBILIZATION_ORDER: '动员令',
-};
+import type { SupportedLocale } from '../../utils/locale.js';
+import { getKeywordText } from '../../utils/cardText.js';
 
 type TypeTokenKey = 'soldier' | 'spell' | 'general';
 
@@ -44,15 +26,40 @@ interface CardArtworkProps {
   instance?: CardInstance;
   svgIdBase: string;
   size: CardSize;
+  locale: SupportedLocale;
 }
 
-export function CardArtwork({ card, instance, svgIdBase, size }: CardArtworkProps) {
+function splitDescription(description: string, maxCharsPerLine: number, maxLines: number): string[] {
+  if (!description) {
+    return [];
+  }
+
+  // Use one wrapping strategy for all locales so mixed-language strings do not
+  // split into a standalone English line plus a truncated CJK "word".
+  const normalized = Array.from(description.trim().replace(/\s+/g, ' '));
+  const lines: string[] = [];
+
+  for (let index = 0; index < normalized.length && lines.length < maxLines; index += maxCharsPerLine) {
+    const remaining = normalized.length - index;
+    const rawLine = normalized.slice(index, index + maxCharsPerLine).join('').trimEnd();
+    const isLastLine = lines.length === maxLines - 1 && remaining > maxCharsPerLine;
+    lines.push(isLastLine ? `${rawLine.slice(0, Math.max(0, rawLine.length - 1))}…` : rawLine);
+  }
+
+  return lines;
+}
+
+export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArtworkProps) {
   const typeKey = typeTokenKey(card.type);
   const isMinion = card.type === 'MINION' || card.type === 'GENERAL';
   const attack = instance?.currentAttack ?? card.attack ?? 0;
   const health = instance?.currentHealth ?? card.health ?? 0;
   const maxHealth = instance?.currentMaxHealth ?? card.health ?? 0;
-  const showDetails = size === 'detail';
+  const descriptionLines = splitDescription(
+    card.description,
+    size === 'detail' ? 17 : size === 'collection' ? 10 : 9,
+    size === 'detail' ? 4 : 2,
+  );
 
   const costGlowId = `${svgIdBase}-cost-glow`;
   const typeGradId = `${svgIdBase}-type-grad`;
@@ -87,9 +94,18 @@ export function CardArtwork({ card, instance, svgIdBase, size }: CardArtworkProp
 
       {/* Art area with elliptical frame */}
       <g data-testid="card-art">
-        <rect x="0" y="0" width="90" height="42" fill={`url(#${typeGradId})`} />
-        <ellipse cx="45" cy="21" rx="24" ry="16" fill="rgba(0,0,0,0.3)" />
-        <text x="45" y="25" textAnchor="middle" fill="white" fontSize="12" opacity="0.5" fontWeight="700">
+        <rect x="0" y="0" width="90" height="78" fill={`url(#${typeGradId})`} />
+        <ellipse
+          data-testid="card-art-frame"
+          cx="45"
+          cy="42"
+          rx="29"
+          ry="31"
+          fill="rgba(0,0,0,0.34)"
+          stroke="rgba(255,255,255,0.16)"
+          strokeWidth="1.5"
+        />
+        <text x="45" y="47" textAnchor="middle" fill="white" fontSize="20" opacity="0.58" fontWeight="700">
           {TYPE_BADGE_ICON[card.type] ?? '?'}
         </text>
       </g>
@@ -110,31 +126,40 @@ export function CardArtwork({ card, instance, svgIdBase, size }: CardArtworkProp
 
       {/* Type badge pill */}
       <g data-testid="card-type-badge">
-        <rect x="66" y="30" width="20" height="12" rx="6" fill={`var(--badge-${typeKey})`} />
-        <text x="76" y="39" textAnchor="middle" fill="white" fontSize="7" fontWeight="bold">
+        <rect x="66" y="64" width="20" height="12" rx="6" fill={`var(--badge-${typeKey})`} />
+        <text x="76" y="73" textAnchor="middle" fill="white" fontSize="7" fontWeight="bold">
           {TYPE_BADGE_ICON[card.type] ?? card.type}
         </text>
       </g>
 
       {/* Name */}
-      <text x="45" y="52" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">
-        {card.name.length > 7 ? card.name.substring(0, 7) + '…' : card.name}
+      <text x="45" y="88" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">
+        {card.name.length > 8 ? card.name.substring(0, 8) + '…' : card.name}
       </text>
 
       {/* Keywords */}
       {card.keywords.length > 0 && (
-        <text x="45" y="62" textAnchor="middle" fill="#facc15" fontSize="6" fontWeight="bold">
-          {card.keywords.map((k: string) => KEYWORD_LABELS[k] ?? k).join(' ')}
+        <text x="45" y="97" textAnchor="middle" fill="#facc15" fontSize="5.5" fontWeight="bold">
+          {getKeywordText(card.keywords, locale)}
         </text>
       )}
 
-      {/* Description – only in detail size */}
-      {showDetails && card.description && (
-        <foreignObject x="4" y="66" width="82" height="40">
-          <span style={{ fontSize: 6, color: '#9ca3af', lineHeight: 1.2 }}>
-            {card.description}
-          </span>
-        </foreignObject>
+      {/* Description snippet */}
+      {descriptionLines.length > 0 && (
+        <text
+          data-testid="card-description-snippet"
+          x="45"
+          y={card.keywords.length > 0 ? 104 : 100}
+          textAnchor="middle"
+          fill="#d6d3d1"
+          fontSize="5.5"
+        >
+          {descriptionLines.map((line, index) => (
+            <tspan key={`${line}-${index}`} x="45" dy={index === 0 ? 0 : 6}>
+              {line}
+            </tspan>
+          ))}
+        </text>
       )}
 
       {/* ATK badge – diamond */}

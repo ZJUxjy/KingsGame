@@ -12,6 +12,8 @@ import { TargetingArrow } from './TargetingArrow.js';
 import GameOverlay from './GameOverlay.js';
 import Toast from './Toast.js';
 import type { TargetRef, ValidAction } from '@king-card/shared';
+import { useLocaleStore } from '../../stores/localeStore.js';
+import { getCardDisplayText, getGeneralSkillsDisplayText, getHeroSkillDisplayText } from '../../utils/cardText.js';
 
 // ---------------------------------------------------------------------------
 // Decorative helpers (exported for unit tests)
@@ -98,6 +100,7 @@ export default function GameBoard() {
   const pendingSkillAction = useGameStore((s) => s.pendingSkillAction);
   const playerIndex = useGameStore((s) => s.playerIndex);
   const isMyTurn = useGameStore((s) => s.isMyTurn);
+  const locale = useLocaleStore((state) => state.locale);
 
   // Store actions
   const playCard = useGameStore((s) => s.playCard);
@@ -235,7 +238,7 @@ export default function GameBoard() {
     : null;
   const pendingSkillPrompt = pendingSkillAction
     ? pendingSkillTargets.targetIds.size > 0 || pendingSkillTargets.canTargetEnemyHero
-      ? '选择技能目标'
+      ? locale === 'en-US' ? 'Choose a skill target' : '选择技能目标'
       : null
     : null;
 
@@ -456,7 +459,7 @@ export default function GameBoard() {
   if (!gameState) {
     return (
       <div className="h-screen flex items-center justify-center text-gray-400 text-xl">
-        连接中...
+        {locale === 'en-US' ? 'Connecting...' : '连接中...'}
       </div>
     );
   }
@@ -473,18 +476,29 @@ export default function GameBoard() {
   // Extract hero data with defaults
   const myHero = me.hero;
   const oppHero = opponent.hero;
+  const myHeroSkill = getHeroSkillDisplayText(myHero?.heroSkill, locale);
+  const oppHeroSkill = getHeroSkillDisplayText(oppHero?.heroSkill, locale);
 
   const myHeroName =
-    myHero?.heroSkill?.name ?? '帝王';
+    myHeroSkill?.name ?? '帝王';
   const myHeroSkillName =
-    myHero?.heroSkill?.name ?? '';
+    myHeroSkill?.name ?? '';
   const myHeroSkillCost = myHero?.heroSkill?.cost;
 
   const oppHeroName =
-    oppHero?.heroSkill?.name ?? '帝王';
+    oppHeroSkill?.name ?? '帝王';
 
   // Minister data
   const ministers = me.ministerPool ?? [];
+  const generalsWithDisplayText = me.battlefield
+    .filter((minion) => minion.card?.type === 'GENERAL')
+    .map((minion) => ({
+      ...minion,
+      card: {
+        ...getCardDisplayText(minion.card, locale),
+        generalSkills: getGeneralSkillsDisplayText(minion.card.generalSkills, locale),
+      },
+    }));
 
   const enemyHeroHighlighted = hoveredTarget?.type === 'HERO'
     && playerIndex !== null
@@ -578,7 +592,7 @@ export default function GameBoard() {
           </div>
 
           <GeneralSkillsPanel
-            generals={me.battlefield.filter((minion) => minion.card?.type === 'GENERAL')}
+            generals={generalsWithDisplayText}
             availableSkillKeys={availableGeneralSkillKeys}
             pendingSkillKey={pendingGeneralSkillKey}
             onSkillClick={handleGeneralSkillClick}
