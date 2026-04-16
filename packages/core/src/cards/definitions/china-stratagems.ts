@@ -1,94 +1,66 @@
 import type { Card } from '@king-card/shared';
+import { applied, china, onPlay } from '../builders/index.js';
 
 // ─── China Stratagem Cards (4) ──────────────────────────────────────
 
-export const ZHUCHENGLING: Card = {
-  id: 'china_zhuchengling',
+export const ZHUCHENGLING = china.stratagem({
+  slug: 'zhuchengling',
   name: '筑城令',
-  civilization: 'CHINA',
-  type: 'STRATAGEM',
   rarity: 'COMMON',
   cost: 2,
   description: '所有友方生物获得+3生命值和嘲讽（本回合）。',
-  keywords: [],
   effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'MODIFY_STAT',
-      params: { targetFilter: 'ALL_FRIENDLY_MINIONS', healthDelta: 3 },
-    },
-    {
-      trigger: 'ON_PLAY',
-      type: 'APPLY_BUFF',
-      params: {
-        targetFilter: 'ALL_FRIENDLY_MINIONS',
-        healthBonus: 0,
-        keywordsGranted: ['TAUNT'],
-        type: 'TEMPORARY',
-        remainingTurns: 1,
-      },
-    },
+    onPlay.modifyStat({
+      targetFilter: 'ALL_FRIENDLY_MINIONS',
+      healthDelta: 3,
+    }),
+    onPlay.applyBuff({
+      targetFilter: 'ALL_FRIENDLY_MINIONS',
+      healthBonus: 0,
+      keywordsGranted: ['TAUNT'],
+      type: 'TEMPORARY',
+      remainingTurns: 1,
+    }),
   ],
-};
+});
 
-export const ZONGDONGYUAN: Card = {
-  id: 'china_zongdongyuan',
+export const ZONGDONGYUAN = china.stratagem({
+  slug: 'zongdongyuan',
   name: '总动员',
-  civilization: 'CHINA',
-  type: 'STRATAGEM',
   rarity: 'RARE',
   cost: 4,
   description: '所有友方生物获得+2/+2。',
-  keywords: [],
   effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'MODIFY_STAT',
-      params: { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 2, healthDelta: 2 },
-    },
+    onPlay.modifyStat({
+      targetFilter: 'ALL_FRIENDLY_MINIONS',
+      attackDelta: 2,
+      healthDelta: 2,
+    }),
   ],
-};
+});
 
-export const BINGFA_SANSHILIUJI: Card = {
-  id: 'china_bingfa_sanshliuji',
+export const BINGFA_SANSHILIUJI = china.stratagem({
+  slug: 'bingfa_sanshiliuji',
   name: '兵法三十六计',
-  civilization: 'CHINA',
-  type: 'STRATAGEM',
   rarity: 'COMMON',
   cost: 3,
   description: '抽两张牌。',
-  keywords: [],
-  effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'DRAW',
-      params: { count: 2 },
-    },
-  ],
-};
+  effects: [onPlay.draw(2)],
+});
 
-export const MINGXIU_ZHANDAO: Card = {
-  id: 'china_mingxiu_zhandao',
+export const MINGXIU_ZHANDAO = china.stratagem({
+  slug: 'mingxiu_zhandao',
   name: '明修栈道',
-  civilization: 'CHINA',
-  type: 'STRATAGEM',
   rarity: 'RARE',
   cost: 2,
   description: '持续妙计（2回合）：所有手牌费用-1。',
-  keywords: [],
   effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'ACTIVATE_STRATAGEM',
-      params: {
-        duration: 2,
-        appliedEffects: [
-          { type: 'COST_MODIFIER', params: { costReduction: 1 } },
-        ],
-      },
-    },
+    onPlay.activateStratagem({
+      duration: 2,
+      appliedEffects: [applied.costModifier(1)],
+    }),
   ],
-};
+});
 
 export const CHINA_STRATAGEMS: Card[] = [
   ZHUCHENGLING,

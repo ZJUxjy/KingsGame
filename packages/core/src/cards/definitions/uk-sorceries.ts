@@ -1,124 +1,69 @@
 import type { Card } from '@king-card/shared';
+import { onPlay, uk } from '../builders/index.js';
 
 // ─── UK Sorcery Cards (6) ───────────────────────────────────────────
 
-export const GREAT_FIRE: Card = {
-  id: 'uk_great_fire',
+export const GREAT_FIRE = uk.sorcery({
+  slug: 'great_fire',
   name: 'Great Fire',
-  civilization: 'UK',
-  type: 'SORCERY',
-  rarity: 'EPIC',
   cost: 5,
   description: 'Deal 3 damage to all minions.',
-  keywords: [],
-  effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'DAMAGE',
-      params: { targetFilter: 'ALL_MINIONS', amount: 3 },
-    },
-  ],
-};
+  effects: [onPlay.damage('ALL_MINIONS', 3)],
+});
 
-export const ENCLOSURE_ACT: Card = {
-  id: 'uk_enclosure',
+export const ENCLOSURE_ACT = uk.sorcery({
+  slug: 'enclosure',
   name: 'Enclosure Act',
-  civilization: 'UK',
-  type: 'SORCERY',
-  rarity: 'EPIC',
   cost: 3,
   description: 'Opponent discards 1 random card.',
-  keywords: [],
-  effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'RANDOM_DISCARD',
-      params: { targetPlayer: 'OPPONENT', count: 1 },
-    },
-  ],
-};
+  effects: [onPlay.randomDiscard({ targetPlayer: 'OPPONENT', count: 1 })],
+});
 
-export const SPANISH_ARMADA: Card = {
-  id: 'uk_spanish_armada',
+export const SPANISH_ARMADA = uk.sorcery({
+  slug: 'spanish_armada',
   name: '击溃无敌舰队',
-  civilization: 'UK',
-  type: 'SORCERY',
-  rarity: 'EPIC',
   cost: 4,
   description: '对所有敌方生物造成2点伤害。',
-  keywords: [],
-  effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'DAMAGE',
-      params: { targetFilter: 'ALL_ENEMY_MINIONS', amount: 2 },
-    },
-  ],
-};
+  effects: [onPlay.damage('ALL_ENEMY_MINIONS', 2)],
+});
 
-export const ROYAL_CHARTER: Card = {
-  id: 'uk_royal_charter',
+export const ROYAL_CHARTER = uk.sorcery({
+  slug: 'royal_charter',
   name: '皇家特许',
-  civilization: 'UK',
-  type: 'SORCERY',
-  rarity: 'EPIC',
   cost: 3,
   description: '抽一张牌并获得2点护甲。',
-  keywords: [],
-  effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'DRAW',
-      params: { count: 1 },
-    },
-    {
-      trigger: 'ON_PLAY',
-      type: 'GAIN_ARMOR',
-      params: { amount: 2 },
-    },
-  ],
-};
+  effects: [onPlay.draw(1), onPlay.gainArmor(2)],
+});
 
-export const FINEST_HOUR: Card = {
-  id: 'uk_finest_hour',
+export const FINEST_HOUR = uk.sorcery({
+  slug: 'finest_hour',
   name: '最光辉时刻',
-  civilization: 'UK',
-  type: 'SORCERY',
-  rarity: 'EPIC',
   cost: 4,
   description: '所有友方生物获得+1/+1。',
-  keywords: [],
   effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'MODIFY_STAT',
-      params: { targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1, healthDelta: 1 },
-    },
+    onPlay.modifyStat({
+      targetFilter: 'ALL_FRIENDLY_MINIONS',
+      attackDelta: 1,
+      healthDelta: 1,
+    }),
   ],
-};
+});
 
-export const RADAR_NETWORK: Card = {
-  id: 'uk_radar_network',
+export const RADAR_NETWORK = uk.sorcery({
+  slug: 'radar_network',
   name: '雷达网络',
-  civilization: 'UK',
-  type: 'SORCERY',
-  rarity: 'EPIC',
   cost: 4,
   description: '抽一张牌，并对一个随机敌方生物造成3点伤害。',
-  keywords: [],
   effects: [
-    {
-      trigger: 'ON_PLAY',
-      type: 'DRAW',
-      params: { count: 1 },
-    },
-    {
-      trigger: 'ON_PLAY',
-      type: 'DAMAGE',
-      params: { target: 'RANDOM_ENEMY_MINION', amount: 3 },
-    },
+    onPlay.draw(1),
+    // 原定义使用 `target: 'RANDOM_ENEMY_MINION'`（非标准 SingleTarget），
+    // 走 custom 逃生舱原样保留既有引擎行为。
+    onPlay.custom('DAMAGE', {
+      target: 'RANDOM_ENEMY_MINION',
+      amount: 3,
+    }),
   ],
-};
+});
 
 export const UK_SORCERIES: Card[] = [
   GREAT_FIRE,
