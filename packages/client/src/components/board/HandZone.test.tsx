@@ -235,4 +235,22 @@ describe('HandZone drag interactions', () => {
     Element.prototype.getBoundingClientRect = origGetBCR;
     expect(onPlayCard).not.toHaveBeenCalled();
   });
+
+  it('renders hand minion stats from plain card data', () => {
+    const cards = [makeCard({ attack: 5, health: 6 })];
+    const { container } = render(
+      <HandZone
+        cards={cards}
+        onPlayCard={onPlayCard}
+        validPlayIndices={new Set([0])}
+        containerWidth={800}
+      />,
+    );
+
+    const atkBadge = container.querySelector('[data-testid="card-atk"]');
+    const hpBadge = container.querySelector('[data-testid="card-hp"]');
+
+    expect(atkBadge?.textContent).toBe('5');
+    expect(hpBadge?.textContent).toBe('6');
+  });
 });

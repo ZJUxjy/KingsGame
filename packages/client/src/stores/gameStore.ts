@@ -145,16 +145,44 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   // Actions (emit to server)
   connect: (url: string) => {
-    socketService.connect(url);
-    set({ connected: true });
+    const socket = socketService.connect(url);
+    // Wait for actual connection before setting connected=true
+    if (socket.connected) {
+      set({ connected: true });
+    } else {
+      socket.once('connect', () => {
+        set({ connected: true });
+      });
+      socket.once('connect_error', (err: Error) => {
+        set({ connected: false, error: `连接服务器失败: ${err.message}` });
+      });
+    }
   },
 
   joinGame: (emperorIndex: number) => {
-    socketService.getSocket().emit('game:join', { emperorIndex });
+    try {
+      const socket = socketService.getSocket();
+      if (!socket.connected) {
+        set({ error: '未连接到服务器，请稍候重试' });
+        return;
+      }
+      socket.emit('game:join', { emperorIndex });
+    } catch {
+      set({ error: '未连接到服务器，请返回大厅重试' });
+    }
   },
 
   joinPvp: (emperorIndex: number) => {
-    socketService.getSocket().emit('game:pvpJoin', { emperorIndex });
+    try {
+      const socket = socketService.getSocket();
+      if (!socket.connected) {
+        set({ error: '未连接到服务器，请稍候重试' });
+        return;
+      }
+      socket.emit('game:pvpJoin', { emperorIndex });
+    } catch {
+      set({ error: '未连接到服务器，请返回大厅重试' });
+    }
   },
 
   playCard: (handIndex: number, boardPosition?: number) => {

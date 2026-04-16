@@ -22,9 +22,9 @@ const stubHeroState: HeroState = {
 const { emit, mockSocketService } = vi.hoisted(() => ({
   emit: vi.fn(),
   mockSocketService: {
-    connect: vi.fn(),
+    connect: vi.fn(() => ({ connected: true, once: vi.fn() })),
     disconnect: vi.fn(),
-    getSocket: vi.fn(() => ({ emit })),
+    getSocket: vi.fn(() => ({ emit, connected: true })),
     isConnected: vi.fn(() => false),
   },
 }));

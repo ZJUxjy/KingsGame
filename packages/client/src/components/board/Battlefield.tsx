@@ -59,6 +59,7 @@ export function Battlefield({
               <CardComponent
                 card={minion.card}
                 instance={minion}
+                size="battlefield"
                 selected={isSelected}
                 actionable={canAct}
                 validTarget={isHoveredTarget}

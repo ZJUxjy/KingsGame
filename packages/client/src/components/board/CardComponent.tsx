@@ -1,4 +1,6 @@
+import { useId } from 'react';
 import type { Card, CardInstance, Rarity } from '@king-card/shared';
+import { CardArtwork, CardBackArtwork } from './CardArtwork.js';
 
 const KEYWORD_LABELS: Record<string, string> = {
   BATTLECRY: '战吼',
@@ -35,16 +37,12 @@ function typeTokenKey(type: string): TypeTokenKey {
   return 'soldier';
 }
 
-const TYPE_BADGE_LABEL: Record<string, string> = {
-  MINION: '步兵',
-  SPELL: '法术',
-  GENERAL: '将领',
-};
+type CardSize = 'hand' | 'battlefield' | 'detail';
 
-const TYPE_ICON: Record<string, string> = {
-  MINION: '兵',
-  SPELL: '法',
-  GENERAL: '将',
+const SIZE_MAP: Record<CardSize, { width: number; height: number }> = {
+  hand: { width: 90, height: 130 },
+  battlefield: { width: 90, height: 130 },
+  detail: { width: 288, height: 420 },
 };
 
 interface CardComponentProps {
@@ -60,6 +58,7 @@ interface CardComponentProps {
   onPointerLeave?: () => void;
   className?: string;
   isHidden?: boolean;
+  size?: CardSize;
 }
 
 export function CardComponent({
@@ -75,42 +74,34 @@ export function CardComponent({
   onPointerLeave,
   className,
   isHidden,
+  size = 'battlefield',
 }: CardComponentProps) {
+  const svgIdBase = useId().replace(/:/g, '_');
+  const { width, height } = SIZE_MAP[size];
+
   if (isHidden || !card) {
     return (
       <div
+        data-testid="card-back"
         className={`relative select-none flex items-center justify-center overflow-hidden ${className ?? ''}`}
         style={{
-          width: 90,
-          height: 130,
+          width,
+          height,
           borderRadius: 'var(--card-border-radius)',
           background: 'linear-gradient(135deg, var(--cardback-from) 0%, var(--cardback-to) 100%)',
           border: '2px solid var(--cardback-border)',
         }}
       >
-        <div
-          style={{
-            width: 46,
-            height: 46,
-            borderRadius: '50%',
-            border: '1.5px solid rgba(148,163,184,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: 18 }}>帝</span>
-        </div>
+        <CardBackArtwork svgIdBase={svgIdBase} />
       </div>
     );
   }
 
-  const typeKey = typeTokenKey(card.type);
   const rarityBorder = RARITY_BORDER_VAR[card.rarity] ?? 'var(--rarity-common)';
+  const attack = instance?.currentAttack ?? card.attack ?? 0;
+  const health = instance?.currentHealth ?? card.health ?? 0;
+  const maxHealth = instance?.currentMaxHealth ?? card.health ?? 0;
   const isMinion = card.type === 'MINION' || card.type === 'GENERAL';
-  const atk = instance ? instance.currentAttack : (card.attack ?? 0);
-  const hp = instance ? instance.currentHealth : (card.health ?? 0);
-  const maxHp = instance ? instance.currentMaxHealth : (card.health ?? 0);
 
   return (
     <div
@@ -124,8 +115,8 @@ export function CardComponent({
         ${animationClass ?? ''}
         ${className ?? ''}`}
       style={{
-        width: 90,
-        height: 130,
+        width,
+        height,
         borderRadius: 'var(--card-border-radius)',
         background: 'linear-gradient(180deg, var(--card-body-from) 0%, var(--card-body-mid) 50%, var(--card-body-to) 100%)',
         border: `2px solid ${rarityBorder}`,
@@ -135,115 +126,7 @@ export function CardComponent({
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
     >
-      {/* Art area with type gradient */}
-      <div
-        data-testid="card-art"
-        className="absolute top-0 left-0 right-0 flex items-center justify-center"
-        style={{
-          height: 42,
-          background: `linear-gradient(135deg, var(--type-${typeKey}-from) 0%, var(--type-${typeKey}-to) 100%)`,
-        }}
-      >
-        <span style={{ fontSize: 18, opacity: 0.55, color: 'white', fontWeight: 700 }}>
-          {TYPE_ICON[card.type] ?? '?'}
-        </span>
-      </div>
-
-      {/* Cost badge (top-left, blue glow) */}
-      <div
-        data-testid="card-cost"
-        className="absolute z-10 flex items-center justify-center text-[11px] font-bold text-white"
-        style={{
-          top: 4,
-          left: 4,
-          width: 20,
-          height: 20,
-          borderRadius: '50%',
-          background: '#1d4ed8',
-          border: '1.5px solid var(--cost-border)',
-          boxShadow: '0 0 6px var(--cost-glow)',
-        }}
-      >
-        {card.cost}
-      </div>
-
-      {/* Type badge pill (bottom-right of art area) */}
-      <div
-        data-testid="card-type-badge"
-        className="absolute z-10 flex items-center justify-center text-[8px] font-bold text-white"
-        style={{
-          top: 30,
-          right: 4,
-          padding: '1px 5px',
-          borderRadius: 8,
-          background: `var(--badge-${typeKey})`,
-        }}
-      >
-        {TYPE_BADGE_LABEL[card.type] ?? card.type}
-      </div>
-
-      {/* Name */}
-      <div className="absolute left-0 right-0 text-center px-1" style={{ top: 44 }}>
-        <span className="text-[10px] font-bold leading-tight">
-          {card.name.length > 7 ? card.name.substring(0, 7) + '…' : card.name}
-        </span>
-      </div>
-
-      {/* Keywords */}
-      {card.keywords.length > 0 && (
-        <div className="absolute left-0 right-0 text-center px-1" style={{ top: 57 }}>
-          <span className="text-[7px] text-yellow-400 font-bold leading-none">
-            {card.keywords.map((k) => KEYWORD_LABELS[k] ?? k).join(' ')}
-          </span>
-        </div>
-      )}
-
-      {/* Description */}
-      <div
-        className="absolute left-1 right-1 text-center overflow-hidden"
-        style={{ top: 66, bottom: 24 }}
-      >
-        <span className="text-[7px] text-gray-400 leading-tight line-clamp-2">
-          {card.description}
-        </span>
-      </div>
-
-      {/* ATK badge */}
-      {isMinion && (
-        <div
-          data-testid="card-atk"
-          className="absolute bottom-1 left-1 flex items-center justify-center text-[10px] font-bold text-white"
-          style={{
-            width: 24,
-            height: 18,
-            borderRadius: 5,
-            background: `linear-gradient(135deg, var(--atk-from), var(--atk-to))`,
-            border: '1px solid var(--atk-border)',
-            boxShadow: '0 0 4px var(--atk-glow)',
-          }}
-        >
-          {atk}
-        </div>
-      )}
-
-      {/* HP badge */}
-      {isMinion && (
-        <div
-          data-testid="card-hp"
-          className="absolute bottom-1 right-1 flex items-center justify-center text-[10px] font-bold"
-          style={{
-            width: 24,
-            height: 18,
-            borderRadius: 5,
-            background: `linear-gradient(135deg, var(--hp-from), var(--hp-to))`,
-            border: '1px solid var(--hp-border)',
-            boxShadow: '0 0 4px var(--hp-glow)',
-            color: hp < maxHp ? 'var(--hp-text-damaged)' : 'var(--hp-text-full)',
-          }}
-        >
-          {hp}
-        </div>
-      )}
+      <CardArtwork card={card} instance={instance} svgIdBase={svgIdBase} size={size} />
 
       {/* Garrison overlay */}
       {instance && instance.garrisonTurns > 0 && (

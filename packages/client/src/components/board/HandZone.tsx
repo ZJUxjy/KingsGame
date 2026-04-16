@@ -187,12 +187,12 @@ export function HandZone({
             }}
           >
             {isOpponent ? (
-              <OpponentCardBack playable={playable} />
+              <CardComponent isHidden size="hand" />
             ) : (
               <CardComponent
                 card={card as Card}
-                instance={card as CardInstance}
                 actionable={playable}
+                size="hand"
                 onPointerDown={(e) => handlePointerDown(i, e)}
                 className={isDragging ? 'card-drag-shadow' : ''}
               />
@@ -200,36 +200,6 @@ export function HandZone({
           </div>
         );
       })}
-    </div>
-  );
-}
-
-function OpponentCardBack({ playable }: { playable: boolean }) {
-  return (
-    <div
-      className={`relative flex items-center justify-center select-none overflow-hidden transition-shadow duration-200
-        ${playable ? 'shadow-[0_0_12px_2px_rgba(234,179,8,0.4)]' : ''}`}
-      style={{
-        width: 90,
-        height: 130,
-        borderRadius: 'var(--card-border-radius)',
-        background: 'linear-gradient(135deg, var(--cardback-from) 0%, var(--cardback-to) 100%)',
-        border: '2px solid var(--cardback-border)',
-      }}
-    >
-      <div
-        style={{
-          width: 46,
-          height: 46,
-          borderRadius: '50%',
-          border: '1.5px solid rgba(148,163,184,0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <span style={{ color: 'rgba(148,163,184,0.4)', fontSize: 18 }}>帝</span>
-      </div>
     </div>
   );
 }

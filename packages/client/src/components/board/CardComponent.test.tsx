@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, within } from '@testing-library/react';
 import { CardComponent } from './CardComponent.js';
+
+function collectIds(root: Element): string[] {
+  return Array.from(root.querySelectorAll('[id]'))
+    .map((node) => node.getAttribute('id') ?? '')
+    .filter(Boolean);
+}
 
 function makeCard(overrides: Record<string, unknown> = {}) {
   return {
@@ -34,8 +40,7 @@ describe('CardComponent – card back', () => {
     const { container } = render(
       <CardComponent card={makeCard()} isHidden />,
     );
-    // No cost badge, no stats — just back decoration
-    expect(container.querySelector('[data-testid="card-cost"]')).toBeNull();
+    expect(container.querySelector('[data-testid="card-back"]')).not.toBeNull();
     // Decorative character should be visible
     expect(container.textContent).toContain('帝');
   });
@@ -43,6 +48,25 @@ describe('CardComponent – card back', () => {
   it('renders card-back design when no card provided', () => {
     const { container } = render(<CardComponent isHidden />);
     expect(container.textContent).toContain('帝');
+  });
+
+  it('creates unique SVG ids for duplicate hidden cards', () => {
+    const { container } = render(
+      <>
+        <CardComponent card={makeCard({ id: 'duplicate-card' })} isHidden />
+        <CardComponent card={makeCard({ id: 'duplicate-card' })} isHidden />
+      </>,
+    );
+
+    const backs = container.querySelectorAll('[data-testid="card-back"]');
+    expect(backs).toHaveLength(2);
+
+    const firstIds = collectIds(backs[0]);
+    const secondIds = collectIds(backs[1]);
+
+    expect(firstIds.length).toBeGreaterThan(0);
+    expect(secondIds.length).toBeGreaterThan(0);
+    expect(firstIds.filter((id) => secondIds.includes(id))).toHaveLength(0);
   });
 });
 
@@ -69,7 +93,7 @@ describe('CardComponent – redesign structure', () => {
       <CardComponent card={makeCard()} instance={makeInstance()} />,
     );
     const costEl = within(container).getByTestId('card-cost');
-    expect(costEl.style.boxShadow).toContain('var(--cost-glow)');
+    expect(costEl.querySelector('path')).not.toBeNull();
   });
 
   it('renders rarity border color for EPIC card', () => {
@@ -94,7 +118,7 @@ describe('CardComponent – redesign structure', () => {
     );
     const artArea = container.querySelector('[data-testid="card-art"]') as HTMLElement;
     expect(artArea).not.toBeNull();
-    expect(artArea.style.background).toContain('var(--type-spell-from)');
+    expect(artArea.querySelector('ellipse')).not.toBeNull();
   });
 
   it('renders type badge pill for MINION', () => {
@@ -104,13 +128,38 @@ describe('CardComponent – redesign structure', () => {
     expect(within(container).getByTestId('card-type-badge')).not.toBeNull();
   });
 
+  it('renders attack and health for hand cards without instance data', () => {
+    const { container } = render(
+      <CardComponent card={makeCard({ attack: 6, health: 7 })} />,
+    );
+
+    expect(within(container).getByTestId('card-atk').textContent).toBe('6');
+    expect(within(container).getByTestId('card-hp').textContent).toBe('7');
+  });
+
+  it('renders Chinese type badge for STRATAGEM', () => {
+    const { container } = render(
+      <CardComponent card={makeCard({ type: 'STRATAGEM' })} />,
+    );
+
+    expect(within(container).getByTestId('card-type-badge').textContent).toBe('计');
+  });
+
+  it('renders Chinese type badge for SORCERY', () => {
+    const { container } = render(
+      <CardComponent card={makeCard({ type: 'SORCERY' })} />,
+    );
+
+    expect(within(container).getByTestId('card-type-badge').textContent).toBe('术');
+  });
+
   it('renders ATK badge for MINION card', () => {
     const { container } = render(
       <CardComponent card={makeCard({ type: 'MINION' })} instance={makeInstance({ currentAttack: 3 })} />,
     );
     const atkBadge = within(container).getByTestId('card-atk');
     expect(atkBadge.textContent).toBe('3');
-    expect(atkBadge.style.background).toContain('var(--atk-from)');
+    expect(atkBadge.querySelector('path')).not.toBeNull();
   });
 
   it('renders HP badge for MINION card', () => {
@@ -119,7 +168,7 @@ describe('CardComponent – redesign structure', () => {
     );
     const hpBadge = within(container).getByTestId('card-hp');
     expect(hpBadge.textContent).toBe('4');
-    expect(hpBadge.style.background).toContain('var(--hp-from)');
+    expect(hpBadge.querySelector('circle')).not.toBeNull();
   });
 
   it('applies damaged color token when HP is below max', () => {
@@ -130,7 +179,7 @@ describe('CardComponent – redesign structure', () => {
       />,
     );
     const hpBadge = within(container).getByTestId('card-hp');
-    expect(hpBadge.style.color).toContain('var(--hp-text-damaged)');
+    expect(hpBadge.querySelector('text')?.getAttribute('fill')).toBe('var(--hp-text-damaged)');
   });
 
   it('applies full-health color token when HP equals max', () => {
@@ -141,7 +190,7 @@ describe('CardComponent – redesign structure', () => {
       />,
     );
     const hpBadge = within(container).getByTestId('card-hp');
-    expect(hpBadge.style.color).toContain('var(--hp-text-full)');
+    expect(hpBadge.querySelector('text')?.getAttribute('fill')).toBe('var(--hp-text-full)');
   });
 
   it('does not render ATK/HP badges for SPELL card', () => {
@@ -169,6 +218,31 @@ describe('CardComponent – redesign structure', () => {
       <CardComponent card={makeCard()} instance={makeInstance({ garrisonTurns: 0 })} />,
     );
     expect(container.querySelector('[data-testid="garrison-overlay"]')).toBeNull();
+  });
+
+  it('creates unique SVG ids for duplicate visible cards', () => {
+    const { container } = render(
+      <>
+        <CardComponent
+          card={makeCard({ id: 'duplicate-card', name: '重复牌' })}
+          instance={makeInstance({ instanceId: 'inst-a' })}
+        />
+        <CardComponent
+          card={makeCard({ id: 'duplicate-card', name: '重复牌' })}
+          instance={makeInstance({ instanceId: 'inst-b' })}
+        />
+      </>,
+    );
+
+    const cards = container.querySelectorAll('[data-testid="card"]');
+    expect(cards).toHaveLength(2);
+
+    const firstIds = collectIds(cards[0]);
+    const secondIds = collectIds(cards[1]);
+
+    expect(firstIds.length).toBeGreaterThan(0);
+    expect(secondIds.length).toBeGreaterThan(0);
+    expect(firstIds.filter((id) => secondIds.includes(id))).toHaveLength(0);
   });
 });
 

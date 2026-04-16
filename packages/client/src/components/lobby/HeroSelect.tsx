@@ -11,6 +11,8 @@ export default function HeroSelect() {
   const joinGame = useGameStore((s) => s.joinGame);
   const joinPvp = useGameStore((s) => s.joinPvp);
   const gameMode = useGameStore((s) => s.gameMode);
+  const connected = useGameStore((s) => s.connected);
+  const error = useGameStore((s) => s.error);
   const [selected, setSelected] = useState<number | null>(null);
 
   const handleStart = () => {
@@ -51,12 +53,24 @@ export default function HeroSelect() {
         ))}
       </div>
 
+      {error && (
+        <div className="mb-4 px-6 py-2 rounded-lg bg-red-900/80 text-red-200 text-sm">
+          {error}
+        </div>
+      )}
+
+      {!connected && !error && (
+        <div className="mb-4 px-6 py-2 rounded-lg bg-yellow-900/80 text-yellow-200 text-sm animate-pulse">
+          正在连接服务器...
+        </div>
+      )}
+
       <button
         onClick={handleStart}
-        disabled={selected === null}
+        disabled={selected === null || !connected}
         className={`px-12 py-4 rounded-xl text-xl font-bold transition-all duration-200
                     ${
-                      selected !== null
+                      selected !== null && connected
                         ? 'bg-yellow-600 text-white hover:bg-yellow-500 cursor-pointer'
                         : 'bg-gray-700 text-gray-500 cursor-not-allowed'
                     }`}

@@ -91,6 +91,7 @@ const { listeners, mockSocket, mockSocketService, setSocketAvailable } = vi.hois
   let socketAvailable = false;
 
   const hoistedMockSocket = {
+    connected: false,
     on: vi.fn((event: string, listener: SocketListener) => {
       hoistedListeners.set(event, listener);
       return hoistedMockSocket;
@@ -101,6 +102,11 @@ const { listeners, mockSocket, mockSocketService, setSocketAvailable } = vi.hois
       }
       return hoistedMockSocket;
     }),
+    once: vi.fn((event: string, listener: SocketListener) => {
+      hoistedListeners.set(event, listener);
+      return hoistedMockSocket;
+    }),
+    emit: vi.fn(),
   };
 
   return {
@@ -109,6 +115,7 @@ const { listeners, mockSocket, mockSocketService, setSocketAvailable } = vi.hois
     mockSocketService: {
       connect: vi.fn(() => {
         socketAvailable = true;
+        hoistedMockSocket.connected = true;
         return hoistedMockSocket;
       }),
       isConnected: vi.fn(() => false),
