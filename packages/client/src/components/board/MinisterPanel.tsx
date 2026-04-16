@@ -38,29 +38,62 @@ export function MinisterPanel({
 
   return (
     <div className="flex items-center gap-2">
-      {/* Active minister */}
-      <div className="flex items-center gap-2 bg-gray-800 rounded px-2 py-1">
-        <div className="w-8 h-8 rounded-full bg-amber-900 border border-amber-700 flex items-center justify-center text-xs">
-          &#x1F4DC;
+      {/* Active minister block */}
+      <div
+        className="flex items-center gap-2 rounded-lg px-2 py-1"
+        style={{
+          background: 'rgba(10, 15, 35, 0.75)',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          backdropFilter: 'blur(4px)',
+        }}
+      >
+        {/* Avatar */}
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0"
+          style={{
+            background: 'linear-gradient(135deg, var(--portrait-player-badge-bg), #7c2d12)',
+            border: '1.5px solid var(--portrait-player-border)',
+            boxShadow: '0 0 6px var(--portrait-player-glow)',
+          }}
+        >
+          📜
         </div>
-        <div className="flex flex-col">
-          <span className="text-amber-300 text-xs font-bold">{active.name}</span>
-          <span className="text-[10px] text-gray-400">
+        {/* Name / type */}
+        <div className="flex flex-col min-w-0">
+          <span
+            className="text-[11px] font-bold truncate"
+            style={{ color: 'var(--portrait-player-badge-text)' }}
+          >
+            {active.name}
+          </span>
+          <span className="text-[9px] text-gray-400">
             {TYPE_LABELS[active.type] ?? active.type}
           </span>
         </div>
+        {/* Skill button */}
         <button
           data-anchor-id={skillAnchorId}
           onClick={onSkillClick}
           disabled={!canUseSkill}
-          className={`px-2 py-0.5 rounded text-[10px] font-bold
-            ${canUseSkill
-              ? skillPending
-                ? 'bg-amber-500 text-black cursor-pointer'
-                : 'bg-amber-700 hover:bg-amber-600 cursor-pointer'
-              : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
+          className="px-2 py-0.5 rounded text-[10px] font-bold text-white transition-all duration-150"
+          style={
+            canUseSkill
+              ? {
+                  background: 'linear-gradient(135deg, var(--skill-from), var(--skill-to))',
+                  border: '1px solid var(--skill-border)',
+                  boxShadow: '0 0 6px var(--skill-glow)',
+                  opacity: skillPending ? 0.75 : 1,
+                  cursor: 'pointer',
+                }
+              : {
+                  background: '#374151',
+                  color: '#9ca3af',
+                  border: '1px solid transparent',
+                  cursor: 'not-allowed',
+                }
+          }
         >
-          {active.activeSkill.name} ({active.activeSkill.cost})
+          {active.activeSkill.name}({active.activeSkill.cost})
         </button>
       </div>
       {/* Switch buttons */}
@@ -72,7 +105,11 @@ export function MinisterPanel({
                 <button
                   key={m.id}
                   onClick={() => onSwitch?.(i)}
-                  className="px-2 py-0.5 rounded text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 cursor-pointer"
+                  className="px-2 py-0.5 rounded text-[10px] text-gray-400 cursor-pointer transition-colors duration-150 hover:text-gray-200"
+                  style={{
+                    background: 'rgba(10, 15, 35, 0.6)',
+                    border: '1px solid rgba(148, 163, 184, 0.12)',
+                  }}
                 >
                   {m.name}
                 </button>
