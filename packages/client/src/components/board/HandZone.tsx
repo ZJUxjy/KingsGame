@@ -11,8 +11,8 @@ interface HandZoneProps {
   validPlayIndices?: Set<number>;
 }
 
-const DEFAULT_CONTAINER_WIDTH = 700;
-const CONTAINER_HEIGHT = 150;
+const DEFAULT_CONTAINER_WIDTH = 800;
+const CONTAINER_HEIGHT = 185;
 
 export function HandZone({
   cards,
@@ -163,11 +163,11 @@ export function HandZone({
               position: isDragging ? 'fixed' : 'absolute',
               left: isDragging && dragState ? dragPosition.x - dragState.offsetX : '50%',
               top: isDragging && dragState ? dragPosition.y - dragState.offsetY : '50%',
-              width: 90,
-              height: 130,
+              width: 120,
+              height: 172,
               touchAction: playable ? 'none' : 'auto',
-              marginLeft: isDragging ? 0 : -45,
-              marginTop: isDragging ? 0 : -65,
+              marginLeft: isDragging ? 0 : -60,
+              marginTop: isDragging ? 0 : -86,
               transform: isDragging
                 ? `rotate(${Math.max(-10, Math.min(10, (dragPosition.x - width / 2) / 80))}deg) scale(1.08)`
                 : `translateX(${t.x}px) translateY(${t.y}px) rotate(${t.rotation}deg)`,
