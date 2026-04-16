@@ -122,6 +122,28 @@ describe('CardComponent – redesign structure', () => {
     expect(hpBadge.style.background).toContain('var(--hp-from)');
   });
 
+  it('applies damaged color token when HP is below max', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({ type: 'MINION' })}
+        instance={makeInstance({ currentHealth: 2, currentMaxHealth: 4 })}
+      />,
+    );
+    const hpBadge = within(container).getByTestId('card-hp');
+    expect(hpBadge.style.color).toContain('var(--hp-text-damaged)');
+  });
+
+  it('applies full-health color token when HP equals max', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({ type: 'MINION' })}
+        instance={makeInstance({ currentHealth: 4, currentMaxHealth: 4 })}
+      />,
+    );
+    const hpBadge = within(container).getByTestId('card-hp');
+    expect(hpBadge.style.color).toContain('var(--hp-text-full)');
+  });
+
   it('does not render ATK/HP badges for SPELL card', () => {
     const { container } = render(
       <CardComponent card={makeCard({ type: 'SPELL' })} />,

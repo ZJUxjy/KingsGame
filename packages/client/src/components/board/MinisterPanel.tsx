@@ -75,14 +75,13 @@ export function MinisterPanel({
           data-anchor-id={skillAnchorId}
           onClick={onSkillClick}
           disabled={!canUseSkill}
-          className="px-2 py-0.5 rounded text-[10px] font-bold text-white transition-all duration-150"
+          className={`px-2 py-0.5 rounded text-[10px] font-bold text-white transition-all duration-150${skillPending ? ' skill-pending' : ''}`}
           style={
             canUseSkill
               ? {
                   background: 'linear-gradient(135deg, var(--skill-from), var(--skill-to))',
                   border: '1px solid var(--skill-border)',
-                  boxShadow: '0 0 6px var(--skill-glow)',
-                  opacity: skillPending ? 0.75 : 1,
+                  boxShadow: skillPending ? undefined : '0 0 6px var(--skill-glow)',
                   cursor: 'pointer',
                 }
               : {

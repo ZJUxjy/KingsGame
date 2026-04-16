@@ -21,7 +21,6 @@
   --card-body-from: #1a1a2e;
   --card-body-mid: #16213e;
   --card-body-to: #0f3460;
-  --card-radius: 14px;
   --card-border-radius: 14px;
 
   /* Rarity borders (2px) */
@@ -59,12 +58,24 @@
   --hp-border: #4ade80;
   --hp-glow: rgba(22, 163, 74, 0.5);
 
-  /* Health bar */
+  /* Health bar – normal */
   --hpbar-from: #00bc7d;
   --hpbar-to: #05df72;
   --hpbar-glow: rgba(74, 222, 128, 0.6);
   --hpbar-bg: rgba(0, 0, 0, 0.5);
   --hpbar-border: rgba(255, 255, 255, 0.1);
+  /* Health bar – warning (< 50 %) */
+  --hpbar-warn-from: #f59e0b;
+  --hpbar-warn-to: #d97706;
+  --hpbar-warn-glow: rgba(245, 158, 11, 0.7);
+  /* Health bar – danger (< 25 %) */
+  --hpbar-danger-from: #dc2626;
+  --hpbar-danger-to: #991b1b;
+  --hpbar-danger-glow: rgba(220, 38, 38, 0.8);
+
+  /* HP badge text colors */
+  --hp-text-full: #4ade80;
+  --hp-text-damaged: #f87171;
 
   /* Hero portrait */
   --portrait-enemy-border: #a855f7;
@@ -170,6 +181,12 @@
 .animate-float-particle { animation: float-particle 3s ease-in-out infinite; }
 
 .card-drag-shadow { box-shadow: 0 28px 48px rgba(15, 23, 42, 0.55); }
+
+@keyframes skill-pending-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--skill-glow); }
+  50% { box-shadow: 0 0 18px rgba(14, 165, 233, 0.85), inset 0 0 8px rgba(14, 165, 233, 0.3); }
+}
+.skill-pending { animation: skill-pending-pulse 1s ease-in-out infinite; }
 
 .btn-endturn {
   background: linear-gradient(180deg, var(--endturn-from) 0%, var(--endturn-mid) 60%, var(--endturn-to) 100%);

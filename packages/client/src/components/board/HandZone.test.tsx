@@ -175,7 +175,7 @@ describe('HandZone drag interactions', () => {
       return CARD_RECT as DOMRect;
     };
 
-    // Find all CardComponent root divs (w-[120px] h-[170px] class)
+    // Find all CardComponent root divs (identified by data-testid="card")
     const allCardRoots = handContainer.querySelectorAll('[data-testid="card"]');
     const secondCardRoot = allCardRoots[1] as HTMLElement;
     expect(secondCardRoot).toBeTruthy();

@@ -38,6 +38,19 @@ export function HeroPanel({
   onPointerLeave,
 }: HeroPanelProps) {
   const hpPercent = Math.max(0, (health / maxHealth) * 100);
+  const hpState = hpPercent < 25 ? 'danger' : hpPercent < 50 ? 'warn' : 'normal';
+  const hpBarFrom =
+    hpState === 'danger' ? 'var(--hpbar-danger-from)' :
+    hpState === 'warn'   ? 'var(--hpbar-warn-from)' :
+    'var(--hpbar-from)';
+  const hpBarTo =
+    hpState === 'danger' ? 'var(--hpbar-danger-to)' :
+    hpState === 'warn'   ? 'var(--hpbar-warn-to)' :
+    'var(--hpbar-to)';
+  const hpBarGlow =
+    hpState === 'danger' ? 'var(--hpbar-danger-glow)' :
+    hpState === 'warn'   ? 'var(--hpbar-warn-glow)' :
+    'var(--hpbar-glow)';
   const portraitBorder = isOpponent ? 'var(--portrait-enemy-border)' : 'var(--portrait-player-border)';
   const portraitGlow = isOpponent ? 'var(--portrait-enemy-glow)' : 'var(--portrait-player-glow)';
   const portraitBg = isOpponent
@@ -108,8 +121,8 @@ export function HeroPanel({
               className="h-full transition-all duration-300"
               style={{
                 width: `${hpPercent}%`,
-                background: 'linear-gradient(90deg, var(--hpbar-from) 0%, var(--hpbar-to) 100%)',
-                boxShadow: '0 0 6px var(--hpbar-glow)',
+                background: `linear-gradient(90deg, ${hpBarFrom} 0%, ${hpBarTo} 100%)`,
+                boxShadow: `0 0 6px ${hpBarGlow}`,
               }}
             />
           </div>
@@ -130,14 +143,13 @@ export function HeroPanel({
           data-anchor-id={skillAnchorId}
           onClick={onSkillClick}
           disabled={!canUseSkill}
-          className="flex-shrink-0 px-2 py-1 text-[10px] font-bold text-white rounded transition-all duration-150"
+          className={`flex-shrink-0 px-2 py-1 text-[10px] font-bold text-white rounded transition-all duration-150${skillPending ? ' skill-pending' : ''}`}
           style={
             canUseSkill
               ? {
                   background: 'linear-gradient(135deg, var(--skill-from), var(--skill-to))',
                   border: '1px solid var(--skill-border)',
-                  boxShadow: '0 0 8px var(--skill-glow)',
-                  opacity: skillPending ? 0.75 : 1,
+                  boxShadow: skillPending ? undefined : '0 0 8px var(--skill-glow)',
                   cursor: 'pointer',
                 }
               : {

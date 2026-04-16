@@ -238,7 +238,7 @@ export function CardComponent({
             background: `linear-gradient(135deg, var(--hp-from), var(--hp-to))`,
             border: '1px solid var(--hp-border)',
             boxShadow: '0 0 4px var(--hp-glow)',
-            color: hp < maxHp ? '#f87171' : '#4ade80',
+            color: hp < maxHp ? 'var(--hp-text-damaged)' : 'var(--hp-text-full)',
           }}
         >
           {hp}

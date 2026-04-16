@@ -11,7 +11,7 @@ interface HandZoneProps {
   validPlayIndices?: Set<number>;
 }
 
-const DEFAULT_CONTAINER_WIDTH = 800;
+const DEFAULT_CONTAINER_WIDTH = 700;
 const CONTAINER_HEIGHT = 150;
 
 export function HandZone({
@@ -176,7 +176,7 @@ export function HandZone({
             onMouseEnter={(e) => {
               if (isDragging) return;
               const el = e.currentTarget;
-              el.style.transform = `translateX(${t.x}px) translateY(${t.y - 20}px) rotate(${t.rotation}deg) scale(1.08)`;
+              el.style.transform = `translateX(${t.x}px) translateY(${t.y - 15}px) rotate(${t.rotation}deg) scale(1.08)`;
               el.style.zIndex = String(cards.length + 1);
             }}
             onMouseLeave={(e) => {
@@ -194,7 +194,7 @@ export function HandZone({
                 instance={card as CardInstance}
                 actionable={playable}
                 onPointerDown={(e) => handlePointerDown(i, e)}
-                className={isDragging ? 'shadow-[0_28px_48px_rgba(0,0,0,0.55)]' : ''}
+                className={isDragging ? 'card-drag-shadow' : ''}
               />
             )}
           </div>
