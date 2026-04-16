@@ -386,6 +386,11 @@ export function executeAttack(
   const opponentIndex = 1 - state.currentPlayerIndex;
   const opponent = state.players[opponentIndex];
 
+  // RUSH check: a RUSH minion cannot attack the hero on the turn it is played
+  if (target.type === 'HERO' && attacker.justPlayed && hasKeyword(attacker, 'RUSH')) {
+    return error('INVALID_TARGET', 'RUSH minions cannot attack the hero on the turn they are played');
+  }
+
   // TAUNT check: if target does not have TAUNT, and there are enemy TAUNT minions
   // (without STEALTH_KILL), the attack must target a TAUNT minion
   if (target.type === 'HERO') {
