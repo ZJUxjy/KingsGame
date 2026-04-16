@@ -524,7 +524,7 @@ export default function GameBoard() {
   // --- Early return ---
   if (!gameState) {
     return (
-      <div className="h-screen flex items-center justify-center text-gray-400 text-xl">
+      <div className="min-h-screen flex items-center justify-center text-gray-400 text-xl">
         {locale === 'en-US' ? 'Connecting...' : '连接中...'}
       </div>
     );
@@ -572,7 +572,12 @@ export default function GameBoard() {
 
   return (
     <div
-      className="min-w-[1024px] h-screen overflow-hidden relative bg-board-gradient"
+      data-testid="game-board-shell"
+      className="min-h-screen w-full overflow-hidden relative bg-board-gradient flex justify-center"
+      style={{
+        paddingInline: 'var(--board-shell-padding-x)',
+        paddingBlock: 'var(--board-shell-padding-y)',
+      }}
       onPointerDown={handleBoardPointerDown}
       onClick={handleBoardClick}
     >
@@ -587,13 +592,23 @@ export default function GameBoard() {
       />
 
       {/* Main board layout: play area + right sidebar */}
-      <div className="relative z-10 h-full max-w-[1280px] mx-auto flex flex-row">
+      <div
+        data-testid="game-board-layout"
+        className="relative z-10 w-full flex flex-row"
+        style={{
+          maxWidth: 'var(--board-shell-max-width)',
+          minHeight: 'calc(100vh - (var(--board-shell-padding-y) * 2))',
+        }}
+      >
 
         {/* ── Left / centre play area ── */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden" style={{ rowGap: 'var(--board-row-gap)' }}>
 
           {/* Enemy hero bar */}
-          <div className="flex items-center px-4 h-[100px] shrink-0">
+          <div
+            className="flex items-center px-4 shrink-0"
+            style={{ height: 'var(--hero-row-height)' }}
+          >
             <HeroPanel
               heroName={oppHeroName}
               health={oppHero?.health ?? 30}
@@ -618,7 +633,7 @@ export default function GameBoard() {
           </div>
 
           {/* Enemy battlefield */}
-          <div className="h-[150px] shrink-0">
+          <div className="shrink-0" style={{ height: 'var(--battlefield-row-height)' }}>
             <Battlefield
               minions={oppBattlefield}
               isOpponent
@@ -644,7 +659,7 @@ export default function GameBoard() {
           )}
 
           {/* Player battlefield */}
-          <div className="h-[150px] shrink-0">
+          <div className="shrink-0" style={{ height: 'var(--battlefield-row-height)' }}>
             <Battlefield
               minions={myBattlefield}
               onMinionClick={handleMinionClick}
@@ -667,7 +682,10 @@ export default function GameBoard() {
           />
 
           {/* Player info bar: hero + minister */}
-          <div className="flex items-center justify-between px-4 h-[100px] shrink-0">
+          <div
+            className="flex items-center justify-between px-4 shrink-0"
+            style={{ height: 'var(--hero-row-height)' }}
+          >
             <HeroPanel
               heroName={myHeroName}
               health={myHero?.health ?? 30}
@@ -694,7 +712,7 @@ export default function GameBoard() {
           </div>
 
           {/* Player hand zone */}
-          <div className="h-[150px] shrink-0">
+          <div className="shrink-0" style={{ height: 'var(--hand-row-height)' }}>
             <HandZone
               cards={me.hand}
               onPlayCard={handlePlayCardFromHand}

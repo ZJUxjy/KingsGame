@@ -174,6 +174,21 @@ describe('BoardMidlineDivider', () => {
 });
 
 describe('GameBoard targeting interactions', () => {
+  it('uses responsive board shell sizing instead of fixed legacy shell classes', () => {
+    seedPlayableBoard();
+    const { getByTestId } = render(<GameBoard />);
+
+    const boardShell = getByTestId('game-board-shell');
+    const boardLayout = getByTestId('game-board-layout');
+
+    expect(boardShell.classList.contains('min-w-[1024px]')).toBe(false);
+    expect(boardShell.classList.contains('h-screen')).toBe(false);
+    expect(boardLayout.classList.contains('max-w-[1280px]')).toBe(false);
+    expect(boardShell.style.paddingInline).toBe('var(--board-shell-padding-x)');
+    expect(boardShell.style.paddingBlock).toBe('var(--board-shell-padding-y)');
+    expect(boardLayout.style.maxWidth).toBe('var(--board-shell-max-width)');
+  });
+
   it('clears selected attacker when clicking board background', () => {
     seedPlayableBoard();
     const { container } = render(<GameBoard />);

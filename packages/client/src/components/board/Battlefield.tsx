@@ -27,11 +27,14 @@ export function Battlefield({
 
   return (
     <div
-      className="h-[150px] flex items-end justify-center px-4 transition-all duration-300"
+      className="h-full min-h-0 flex items-end justify-center px-4 transition-all duration-300"
       style={{ gap: `${gap}px` }}
     >
       {minions.length === 0 ? (
-        <div className="h-[130px] w-full max-w-[340px] rounded-3xl border border-dashed border-gray-700/80 bg-gray-900/35" />
+        <div
+          className="w-full max-w-[340px] rounded-3xl border border-dashed border-gray-700/80 bg-gray-900/35"
+          style={{ height: 'var(--battlefield-card-height)' }}
+        />
       ) : (
         minions.map((minion: any) => {
           const isSelected = minion.instanceId === selectedAttackerId;
@@ -61,6 +64,7 @@ export function Battlefield({
                 card={minion.card}
                 instance={minion}
                 size="battlefield"
+                useResponsiveBattlefieldSize
                 selected={isSelected}
                 actionable={canAct}
                 validTarget={isHoveredTarget}

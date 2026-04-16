@@ -10,6 +10,15 @@
   --board-bg-mid: rgba(6, 13, 31, 1);
   --board-bg-edge: rgba(2, 8, 16, 1);
   --board-gradient: radial-gradient(ellipse at 50% 40%, var(--board-bg-center) 0%, var(--board-bg-mid) 55%, var(--board-bg-edge) 100%);
+  --board-shell-max-width: 1440px;
+  --board-shell-padding-x: clamp(12px, 2vw, 28px);
+  --board-shell-padding-y: clamp(12px, 2.2vh, 28px);
+  --board-row-gap: clamp(8px, 1.5vh, 18px);
+  --hero-row-height: clamp(76px, 11vh, 124px);
+  --battlefield-row-height: clamp(140px, 23vh, 240px);
+  --hand-row-height: clamp(148px, 24vh, 250px);
+  --battlefield-card-width: clamp(78px, 7vw, 108px);
+  --battlefield-card-height: clamp(112px, 10vw, 156px);
 
   /* Sidebar */
   --sidebar-width: 110px;

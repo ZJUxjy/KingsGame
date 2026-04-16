@@ -71,6 +71,7 @@ interface CardComponentProps {
   className?: string;
   isHidden?: boolean;
   size?: CardSize;
+  useResponsiveBattlefieldSize?: boolean;
 }
 
 export function CardComponent({
@@ -87,10 +88,17 @@ export function CardComponent({
   className,
   isHidden,
   size = 'battlefield',
+  useResponsiveBattlefieldSize = false,
 }: CardComponentProps) {
   const svgIdBase = useId().replace(/:/g, '_');
   const tooltipId = useId().replace(/:/g, '_');
   const { width, height } = SIZE_MAP[size];
+  const resolvedWidth = size === 'battlefield' && useResponsiveBattlefieldSize
+    ? 'var(--battlefield-card-width)'
+    : width;
+  const resolvedHeight = size === 'battlefield' && useResponsiveBattlefieldSize
+    ? 'var(--battlefield-card-height)'
+    : height;
   const [isHovered, setIsHovered] = useState(false);
   const [tooltipPlacement, setTooltipPlacement] = useState<TooltipPlacement>('above');
   const locale = useLocaleStore((state) => state.locale);
@@ -102,8 +110,8 @@ export function CardComponent({
         data-testid="card-back"
         className={`relative select-none flex items-center justify-center overflow-hidden ${className ?? ''}`}
         style={{
-          width,
-          height,
+          width: resolvedWidth,
+          height: resolvedHeight,
           borderRadius: 'var(--card-border-radius)',
           background: 'linear-gradient(135deg, var(--cardback-from) 0%, var(--cardback-to) 100%)',
           border: '2px solid var(--cardback-border)',
@@ -155,8 +163,8 @@ export function CardComponent({
           ${animationClass ?? ''}
           ${className ?? ''}`}
       style={{
-        width,
-        height,
+        width: resolvedWidth,
+        height: resolvedHeight,
         borderRadius: 'var(--card-border-radius)',
         background: 'linear-gradient(180deg, var(--card-body-from) 0%, var(--card-body-mid) 50%, var(--card-body-to) 100%)',
         border: `2px solid ${rarityBorder}`,

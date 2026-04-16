@@ -16,6 +16,7 @@ interface HeroPanelProps {
   onClick?: () => void;
   onPointerEnter?: () => void;
   onPointerLeave?: () => void;
+  panelTestId?: string;
 }
 
 export function HeroPanel({
@@ -36,6 +37,7 @@ export function HeroPanel({
   onClick,
   onPointerEnter,
   onPointerLeave,
+  panelTestId,
 }: HeroPanelProps) {
   const hpPercent = Math.max(0, (health / maxHealth) * 100);
   const hpState = hpPercent < 25 ? 'danger' : hpPercent < 50 ? 'warn' : 'normal';
@@ -60,12 +62,18 @@ export function HeroPanel({
 
   return (
     <div
+      data-testid={panelTestId ?? (isOpponent ? 'hero-panel-enemy' : 'hero-panel-player')}
+      data-hero-panel={isOpponent ? 'opponent' : 'player'}
+      data-targetable={targetable ? 'true' : 'false'}
       data-anchor-id={targetAnchorId}
       data-card-interactive="true"
-      className={`flex items-center gap-2 transition-all duration-150
+      className={`h-full flex items-center transition-all duration-150
         ${targetable ? 'cursor-pointer' : ''}
         ${highlightedTarget ? 'ring-2 ring-red-400 shadow-[0_0_24px_rgba(248,113,113,0.5)] rounded-xl' : ''}`}
-      style={{ padding: '6px 8px' }}
+      style={{
+        gap: 'clamp(8px, 1.2vw, 16px)',
+        padding: 'clamp(6px, 1.2vh, 14px) clamp(8px, 1.2vw, 16px)',
+      }}
       onClick={onClick}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
