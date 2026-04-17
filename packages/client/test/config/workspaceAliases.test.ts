@@ -104,7 +104,7 @@ describe('workspace alias configuration', () => {
     expect(allowedDirs).toEqual(expect.arrayContaining(expectedAllowedDirs));
   });
 
-  it('uses isolated package builds for fresh worktrees', () => {
+  it('keeps package build topology aligned with fresh-worktree-safe builds', () => {
     const clientTsconfig = readJson('../../tsconfig.json');
     const coreTsconfig = readJson('../../../core/tsconfig.json');
     const serverTsconfig = readJson('../../../server/tsconfig.json');
@@ -133,10 +133,36 @@ describe('workspace alias configuration', () => {
     expect(serverBuildTsconfig.compilerOptions?.paths).toEqual({});
     expect(sharedBuildTsconfig.compilerOptions?.paths).toEqual({});
 
-    expect(clientPackageJson.scripts?.build).toBe('tsc -p tsconfig.build.json && vite build');
-    expect(corePackageJson.scripts?.build).toBe('tsc -p tsconfig.build.json');
-    expect(serverPackageJson.scripts?.build).toBe('tsc -p tsconfig.build.json');
-    expect(sharedPackageJson.scripts?.build).toBe('tsc -p tsconfig.build.json');
+    expect(clientPackageJson.scripts?.['build:direct']).toBe(
+      'tsc -p tsconfig.build.json && vite build',
+    );
+    expect(corePackageJson.scripts?.['build:direct']).toBe(
+      'tsc -p tsconfig.build.json',
+    );
+    expect(serverPackageJson.scripts?.['build:direct']).toBe(
+      'tsc -p tsconfig.build.json',
+    );
+    expect(sharedPackageJson.scripts?.['build:direct']).toBe(
+      'tsc -p tsconfig.build.json',
+    );
+
+    expect(clientPackageJson.scripts?.build).toBe(
+      'pnpm --dir ../.. --filter @king-card/client... run build:direct',
+    );
+    expect(corePackageJson.scripts?.build).toBe('pnpm run build:direct');
+    expect(serverPackageJson.scripts?.build).toBe(
+      'pnpm --dir ../.. --filter @king-card/server... run build:direct',
+    );
+    expect(sharedPackageJson.scripts?.build).toBe('pnpm run build:direct');
+
+    const rootPackageJson = readJson('../../../../package.json');
+
+    expect(rootPackageJson.scripts?.build).toBe(
+      'pnpm --filter @king-card/shared run build:direct && pnpm --filter @king-card/core run build:direct && pnpm --filter @king-card/server run build:direct && pnpm --filter @king-card/client run build:direct',
+    );
+    expect(rootPackageJson.scripts?.['test:build-contract']).toBe(
+      'node ./scripts/build-contract-check.mjs',
+    );
   });
 
   it('keeps the shared workspace resolution helper aligned with repository paths', () => {
