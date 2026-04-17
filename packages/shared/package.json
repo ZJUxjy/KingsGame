@@ -8,7 +8,7 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b --force",
     "test": "vitest run"
   },
   "devDependencies": {

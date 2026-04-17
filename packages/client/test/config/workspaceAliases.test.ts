@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import viteConfig from '../../vite.config.ts';
@@ -30,7 +30,11 @@ function readJson(relativePath: string) {
   return JSON.parse(
     readFileSync(new URL(relativePath, import.meta.url), 'utf8'),
   ) as {
-    compilerOptions?: { references?: Array<{ path: string }> };
+    compilerOptions?: {
+      baseUrl?: string;
+      paths?: Record<string, string[]>;
+      references?: Array<{ path: string }>;
+    };
     references?: Array<{ path: string }>;
     scripts?: Record<string, string>;
   };
@@ -104,6 +108,7 @@ describe('workspace alias configuration', () => {
     const coreTsconfig = readJson('../../../core/tsconfig.json');
     const serverTsconfig = readJson('../../../server/tsconfig.json');
     const sharedTsconfig = readJson('../../../shared/tsconfig.json');
+    const clientPackageJson = readJson('../../package.json');
     const corePackageJson = readJson('../../../core/package.json');
     const serverPackageJson = readJson('../../../server/package.json');
     const sharedPackageJson = readJson('../../../shared/package.json');
@@ -119,9 +124,10 @@ describe('workspace alias configuration', () => {
     ]);
     expect(sharedTsconfig.references).toBeUndefined();
 
-    expect(corePackageJson.scripts?.build).toBe('tsc -b');
-    expect(serverPackageJson.scripts?.build).toBe('tsc -b');
-    expect(sharedPackageJson.scripts?.build).toBe('tsc -b');
+    expect(clientPackageJson.scripts?.build).toBe('tsc -b --force && vite build');
+    expect(corePackageJson.scripts?.build).toBe('tsc -b --force');
+    expect(serverPackageJson.scripts?.build).toBe('tsc -b --force');
+    expect(sharedPackageJson.scripts?.build).toBe('tsc -b --force');
   });
 
   it('keeps the shared workspace resolution helper aligned with repository paths', () => {
@@ -137,5 +143,24 @@ describe('workspace alias configuration', () => {
         new URL('../../../core/src/index.ts', import.meta.url),
       ),
     });
+  });
+
+  it('keeps tsconfig path aliases aligned with workspace package source entries', () => {
+    const baseTsconfig = readJson('../../../../tsconfig.base.json');
+
+    expect(baseTsconfig.compilerOptions?.baseUrl).toBe('.');
+    expect(baseTsconfig.compilerOptions?.paths).toEqual(
+      Object.fromEntries(
+        Object.entries(workspacePackageRelativeEntryPaths).map(
+          ([packageName, relativePath]) => [packageName, [relativePath]],
+        ),
+      ),
+    );
+  });
+
+  it('does not keep a duplicate client-only workspace alias helper', () => {
+    expect(existsSync(new URL('../../workspaceAliases.ts', import.meta.url))).toBe(
+      false,
+    );
   });
 });

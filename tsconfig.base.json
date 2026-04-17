@@ -3,6 +3,11 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@king-card/shared": ["packages/shared/src/index.ts"],
+      "@king-card/core": ["packages/core/src/index.ts"]
+    },
     "composite": true,
     "strict": true,
     "esModuleInterop": true,

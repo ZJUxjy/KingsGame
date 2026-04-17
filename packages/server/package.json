@@ -8,7 +8,7 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b --force",
     "dev": "tsx watch src/index.ts",
     "test": "vitest run"
   },
