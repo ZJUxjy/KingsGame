@@ -391,6 +391,17 @@ export function executeCardEffects(trigger: CardEffect['trigger'], ctx: EffectCo
       case 'CONDITIONAL_BUFF':
         applyConditionalBuffEffect(effect, ctx);
         break;
+      case 'FREEZE': {
+        const targets = resolveMinionEffectTargets(ctx, effect.params);
+        const turns = getNumericParam(effect.params, 'turns', 1);
+        for (const targetRef of targets) {
+          const minion = findMinionByInstanceId(ctx, targetRef.instanceId);
+          if (minion) {
+            minion.frozenTurns = turns;
+          }
+        }
+        break;
+      }
       default:
         break;
     }

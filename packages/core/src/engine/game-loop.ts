@@ -153,6 +153,13 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
     }
   }
 
+  // 3e. Freeze thaw: decrement frozenTurns each turn start
+  for (const minion of player.battlefield) {
+    if (minion.frozenTurns > 0) {
+      minion.frozenTurns -= 1;
+    }
+  }
+
   for (const minion of [...player.battlefield]) {
     const effectCtx: EffectContext = {
       state,

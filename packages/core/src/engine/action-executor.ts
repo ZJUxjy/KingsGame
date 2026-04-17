@@ -376,6 +376,10 @@ export function executeAttack(
     return error('INVALID_TARGET', `Attacker is not controlled by the current player`);
   }
 
+  if (attacker.frozenTurns > 0) {
+    return error('MINION_CANNOT_ATTACK', 'Attacker is frozen');
+  }
+
   if (attacker.remainingAttacks <= 0) {
     return error('MINION_CANNOT_ATTACK', `Attacker has no remaining attacks`);
   }
