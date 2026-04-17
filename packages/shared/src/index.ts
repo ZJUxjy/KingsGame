@@ -6,8 +6,9 @@ export { GAME_CONSTANTS } from './constants.js';
 export {
   CIVILIZATION_ORDER,
   CIVILIZATION_META,
+  getCivilizationMeta,
 } from './civilization-meta.js';
-export type { CivilizationMeta } from './civilization-meta.js';
+export type { CivilizationMeta, SupportedUiLocale } from './civilization-meta.js';
 export type {
   Card,
   CardEffect,
