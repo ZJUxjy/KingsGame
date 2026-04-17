@@ -19,34 +19,71 @@ interface DeckState {
   setEditingEmperorCardId: (emperorCardId: string | null) => void;
 }
 
-function readStoredDecks(): Record<string, DeckDefinition> {
+function getLocalStorageSafely(): Storage | null {
   if (typeof window === 'undefined') {
-    return {};
+    return null;
   }
 
-  const storedDecks = window.localStorage.getItem(DECK_STORAGE_KEY);
-  if (!storedDecks) {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function isStoredDeckDefinition(value: unknown): value is DeckDefinition {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Partial<DeckDefinition> & {
+    mainCardIds?: unknown;
+  };
+
+  return typeof candidate.id === 'string'
+    && typeof candidate.name === 'string'
+    && typeof candidate.civilization === 'string'
+    && typeof candidate.emperorCardId === 'string'
+    && Array.isArray(candidate.mainCardIds)
+    && candidate.mainCardIds.every((cardId) => typeof cardId === 'string');
+}
+
+function readStoredDecks(): Record<string, DeckDefinition> {
+  const localStorage = getLocalStorageSafely();
+  if (!localStorage) {
     return {};
   }
 
   try {
+    const storedDecks = localStorage.getItem(DECK_STORAGE_KEY);
+    if (!storedDecks) {
+      return {};
+    }
+
     const parsed = JSON.parse(storedDecks) as unknown;
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       return {};
     }
 
-    return parsed as Record<string, DeckDefinition>;
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, deck]) => isStoredDeckDefinition(deck)),
+    );
   } catch {
     return {};
   }
 }
 
 function persistDecks(decksByEmperorId: Record<string, DeckDefinition>) {
-  if (typeof window === 'undefined') {
+  const localStorage = getLocalStorageSafely();
+  if (!localStorage) {
     return;
   }
 
-  window.localStorage.setItem(DECK_STORAGE_KEY, JSON.stringify(decksByEmperorId));
+  try {
+    localStorage.setItem(DECK_STORAGE_KEY, JSON.stringify(decksByEmperorId));
+  } catch {
+    // Ignore storage failures and keep the in-memory deck state usable.
+  }
 }
 
 function createStarterDeck(emperorData: EmperorData): DeckDefinition {
@@ -65,11 +102,33 @@ function createStarterDeck(emperorData: EmperorData): DeckDefinition {
     throw new Error(`Unable to create starter deck for emperor ${emperorData.emperorCard.id}.`);
   }
 
-  const starterPool = pool.flatMap((card) => Array.from({ length: getDeckCopyLimit(card) }, () => card.id));
-  const mainCardIds = Array.from(
-    { length: editableDeckSize },
-    (_, index) => starterPool[index % starterPool.length],
+  const remainingCopiesByCardId = new Map(
+    pool.map((card) => [card.id, getDeckCopyLimit(card)]),
   );
+  const mainCardIds: string[] = [];
+
+  while (mainCardIds.length < editableDeckSize) {
+    let addedCardThisPass = false;
+
+    for (const card of pool) {
+      const remainingCopies = remainingCopiesByCardId.get(card.id) ?? 0;
+      if (remainingCopies <= 0) {
+        continue;
+      }
+
+      mainCardIds.push(card.id);
+      remainingCopiesByCardId.set(card.id, remainingCopies - 1);
+      addedCardThisPass = true;
+
+      if (mainCardIds.length === editableDeckSize) {
+        break;
+      }
+    }
+
+    if (!addedCardThisPass) {
+      throw new Error(`Unable to create starter deck for emperor ${emperorData.emperorCard.id}.`);
+    }
+  }
 
   return {
     id: emperorData.emperorCard.id,
