@@ -3,9 +3,12 @@ import {
   useEffect,
   useState,
   useCallback,
-  useRef,
 } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../stores/gameStore.js';
+import { useDerivedActions } from '../../hooks/useDerivedActions.js';
+import { useTargeting } from '../../hooks/useTargeting.js';
+import type { HoveredTarget } from '../../hooks/useTargeting.js';
 import { useAnimations } from '../../hooks/useAnimations.js';
 import { audioService } from '../../services/audioService.js';
 import { HeroPanel } from './HeroPanel.js';
@@ -17,7 +20,7 @@ import { HandZone } from './HandZone.js';
 import { TargetingArrow } from './TargetingArrow.js';
 import GameOverlay from './GameOverlay.js';
 import Toast from './Toast.js';
-import type { TargetRef, ValidAction } from '@king-card/shared';
+import type { ValidAction } from '@king-card/shared';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { getCardDisplayText, getGeneralSkillsDisplayText, getHeroSkillDisplayText } from '../../utils/cardText.js';
 
@@ -88,37 +91,32 @@ export function BoardMidlineDivider() {
   );
 }
 
-interface ScreenPoint {
-  x: number;
-  y: number;
-}
-
-type HoveredTarget =
-  | { type: 'MINION'; instanceId: string }
-  | { type: 'HERO'; playerIndex: number }
-  | null;
-
 export default function GameBoard() {
-  // Store state
-  const gameState = useGameStore((s) => s.gameState);
-  const validActions = useGameStore((s) => s.validActions);
-  const selectedAttacker = useGameStore((s) => s.selectedAttacker);
-  const pendingSkillAction = useGameStore((s) => s.pendingSkillAction);
-  const playerIndex = useGameStore((s) => s.playerIndex);
+  // Store state + actions via single shallow selector
+  const {
+    gameState, validActions, selectedAttacker, pendingSkillAction,
+    playerIndex, playCard, attack, endTurn, useHeroSkill,
+    useMinisterSkill, useGeneralSkill, switchMinister,
+    setSelectedAttacker, setPendingSkillAction, clearTargetingSelection,
+  } = useGameStore(useShallow((s) => ({
+    gameState: s.gameState,
+    validActions: s.validActions,
+    selectedAttacker: s.selectedAttacker,
+    pendingSkillAction: s.pendingSkillAction,
+    playerIndex: s.playerIndex,
+    playCard: s.playCard,
+    attack: s.attack,
+    endTurn: s.endTurn,
+    useHeroSkill: s.useHeroSkill,
+    useMinisterSkill: s.useMinisterSkill,
+    useGeneralSkill: s.useGeneralSkill,
+    switchMinister: s.switchMinister,
+    setSelectedAttacker: s.setSelectedAttacker,
+    setPendingSkillAction: s.setPendingSkillAction,
+    clearTargetingSelection: s.clearTargetingSelection,
+  })));
   const isMyTurn = useGameStore((s) => s.isMyTurn);
   const locale = useLocaleStore((state) => state.locale);
-
-  // Store actions
-  const playCard = useGameStore((s) => s.playCard);
-  const attack = useGameStore((s) => s.attack);
-  const endTurn = useGameStore((s) => s.endTurn);
-  const useHeroSkill = useGameStore((s) => s.useHeroSkill);
-  const useMinisterSkill = useGameStore((s) => s.useMinisterSkill);
-  const useGeneralSkill = useGameStore((s) => s.useGeneralSkill);
-  const switchMinister = useGameStore((s) => s.switchMinister);
-  const setSelectedAttacker = useGameStore((s) => s.setSelectedAttacker);
-  const setPendingSkillAction = useGameStore((s) => s.setPendingSkillAction);
-  const clearTargetingSelection = useGameStore((s) => s.clearTargetingSelection);
 
   const heroSkillActions = validActions.filter(
     (action): action is Extract<ValidAction, { type: 'USE_HERO_SKILL' }> => action.type === 'USE_HERO_SKILL',
@@ -132,111 +130,26 @@ export default function GameBoard() {
 
   // Derived values from valid actions
   const {
-    validPlayIndices,
-    validAttackerIds,
-    attackTargetIds,
-    canUseHeroSkill,
-    canUseMinisterSkill,
-    validSwitchMinisters,
-    canAttackHero,
-    availableGeneralSkillKeys,
-  } = useMemo(() => {
-    const playIndices = new Set<number>();
-    const attackerIds = new Set<string>();
-    const targetIds = new Set<string>();
-    let heroSkill = false;
-    let ministerSkill = false;
-    const switchIndices = new Set<number>();
-    let attackHero = false;
-    const generalSkillKeys = new Set<string>();
+    validPlayIndices, validAttackerIds, attackTargetIds,
+    canUseHeroSkill, canUseMinisterSkill, validSwitchMinisters,
+    canAttackHero, availableGeneralSkillKeys,
+  } = useDerivedActions(validActions, selectedAttacker);
 
-    for (const action of validActions) {
-      switch (action.type) {
-        case 'PLAY_CARD':
-          playIndices.add(action.handIndex as number);
-          break;
-        case 'ATTACK':
-          attackerIds.add(action.attackerInstanceId as string);
-          if (
-            selectedAttacker &&
-            (action.attackerInstanceId as string) === selectedAttacker
-          ) {
-            const tid = action.targetInstanceId as string;
-            if (tid === 'HERO') {
-              attackHero = true;
-            } else {
-              targetIds.add(tid);
-            }
-          }
-          break;
-        case 'USE_HERO_SKILL':
-          heroSkill = true;
-          break;
-        case 'USE_MINISTER_SKILL':
-          ministerSkill = true;
-          break;
-        case 'USE_GENERAL_SKILL':
-          generalSkillKeys.add(`${action.instanceId}:${action.skillIndex}`);
-          break;
-        case 'SWITCH_MINISTER':
-          switchIndices.add(action.ministerIndex as number);
-          break;
-      }
-    }
-
-    return {
-      validPlayIndices: playIndices,
-      validAttackerIds: attackerIds,
-      attackTargetIds: targetIds,
-      canUseHeroSkill: heroSkill,
-      canUseMinisterSkill: ministerSkill,
-      validSwitchMinisters: switchIndices,
-      canAttackHero: attackHero,
-      availableGeneralSkillKeys: generalSkillKeys,
-    };
-  }, [validActions, selectedAttacker]);
-
-  const pendingSkillTargets = useMemo(() => {
-    const targetIds = new Set<string>();
-
-    if (!pendingSkillAction) {
-      return {
-        targetIds,
-        canTargetEnemyHero: false,
-      };
-    }
-
-    const matchingActions = validActions.filter((action): action is Extract<ValidAction, { target?: TargetRef }> => {
-      if (pendingSkillAction.type === 'HERO') {
-        return action.type === 'USE_HERO_SKILL';
-      }
-
-      if (pendingSkillAction.type === 'MINISTER') {
-        return action.type === 'USE_MINISTER_SKILL';
-      }
-
-      return action.type === 'USE_GENERAL_SKILL'
-        && action.instanceId === pendingSkillAction.instanceId
-        && action.skillIndex === pendingSkillAction.skillIndex;
-    });
-
-    let canTargetEnemyHero = false;
-    for (const action of matchingActions) {
-      if (!action.target) {
-        continue;
-      }
-
-      if (action.target.type === 'MINION') {
-        targetIds.add(action.target.instanceId);
-      }
-
-      if (action.target.type === 'HERO' && playerIndex !== null && action.target.playerIndex === 1 - playerIndex) {
-        canTargetEnemyHero = true;
-      }
-    }
-
-    return { targetIds, canTargetEnemyHero };
-  }, [pendingSkillAction, playerIndex, validActions]);
+  // Targeting logic (arrows, pointer tracking, skill targets, escape key, pointerup)
+  const {
+    hoveredTarget, setHoveredTarget, arrowSourceAnchorId, arrowStart, arrowEnd,
+    pendingSkillTargets, clearTargetingUiState,
+  } = useTargeting({
+    selectedAttacker,
+    pendingSkillAction,
+    playerIndex,
+    validActions,
+    attack,
+    useHeroSkill,
+    useMinisterSkill,
+    useGeneralSkill,
+    clearTargetingSelection,
+  });
 
   const activeTargetIds = pendingSkillAction ? pendingSkillTargets.targetIds : attackTargetIds;
   const canTargetEnemyHero = pendingSkillAction ? pendingSkillTargets.canTargetEnemyHero : canAttackHero;
@@ -251,9 +164,6 @@ export default function GameBoard() {
 
   // Turn overlay state
   const [overlayText, setOverlayText] = useState<string | null>(null);
-  const [pointerPosition, setPointerPosition] = useState<ScreenPoint | null>(null);
-  const [hoveredTarget, setHoveredTarget] = useState<HoveredTarget>(null);
-  const [anchorCenters, setAnchorCenters] = useState<Record<string, ScreenPoint>>({});
 
   // Animation state derived from game state diffs
   const { animationMap, pendingRemovals } = useAnimations(gameState);
@@ -269,32 +179,12 @@ export default function GameBoard() {
     }
   }, [animationMap]);
 
-  const measureAnchors = useCallback(() => {
-    const nextCenters: Record<string, ScreenPoint> = {};
-    const elements = document.querySelectorAll<HTMLElement>('[data-anchor-id]');
-
-    for (const element of elements) {
-      const anchorId = element.dataset.anchorId;
-      if (!anchorId) {
-        continue;
-      }
-
-      const rect = element.getBoundingClientRect();
-      nextCenters[anchorId] = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      };
-    }
-
-    setAnchorCenters(nextCenters);
-  }, []);
-
+  // Turn overlay effect
   useEffect(() => {
     if (!gameState || playerIndex === null) return;
-    const localeNow = useLocaleStore.getState().locale;
     const myTurn = gameState.currentPlayerIndex === playerIndex;
     const text =
-      localeNow === 'en-US'
+      locale === 'en-US'
         ? myTurn
           ? 'Your Turn'
           : 'Opponent Turn'
@@ -305,108 +195,7 @@ export default function GameBoard() {
     audioService.play('turn-start');
     const timer = setTimeout(() => setOverlayText(null), 1500);
     return () => clearTimeout(timer);
-  }, [gameState?.turnNumber, playerIndex]);
-
-  useEffect(() => {
-    if (!selectedAttacker && !pendingSkillAction) {
-      setPointerPosition(null);
-      setHoveredTarget(null);
-      return;
-    }
-
-    const updatePointer = (event: PointerEvent) => {
-      setPointerPosition({ x: event.clientX, y: event.clientY });
-    };
-
-    window.addEventListener('pointermove', updatePointer);
-    return () => window.removeEventListener('pointermove', updatePointer);
-  }, [pendingSkillAction, selectedAttacker]);
-
-  useEffect(() => {
-    if (!gameState) {
-      return;
-    }
-
-    const rafId = requestAnimationFrame(measureAnchors);
-    const handleViewportChange = () => measureAnchors();
-
-    window.addEventListener('resize', handleViewportChange);
-    window.addEventListener('scroll', handleViewportChange, true);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', handleViewportChange);
-      window.removeEventListener('scroll', handleViewportChange, true);
-    };
-  }, [
-    gameState,
-    measureAnchors,
-    hoveredTarget,
-    pendingSkillAction,
-    selectedAttacker,
-    gameState?.me.battlefield.length,
-    gameState?.opponent.battlefield.length,
-  ]);
-
-  const arrowSourceAnchorId = pendingSkillAction
-    ? pendingSkillAction.type === 'HERO'
-      ? 'hero-skill:me'
-      : pendingSkillAction.type === 'MINISTER'
-        ? 'minister-skill:me'
-        : `general-skill:${pendingSkillAction.instanceId}:${pendingSkillAction.skillIndex}`
-    : selectedAttacker
-      ? `minion:${selectedAttacker}`
-      : null;
-
-  const arrowStart = arrowSourceAnchorId ? anchorCenters[arrowSourceAnchorId] ?? null : null;
-  const arrowEnd = hoveredTarget
-    ? hoveredTarget.type === 'MINION'
-      ? anchorCenters[`minion:${hoveredTarget.instanceId}`] ?? null
-      : anchorCenters[hoveredTarget.playerIndex === playerIndex ? 'hero:me' : 'hero:enemy'] ?? null
-    : pointerPosition;
-
-  const clearTargetingUiState = useCallback(() => {
-    clearTargetingSelection();
-    setHoveredTarget(null);
-    setPointerPosition(null);
-  }, [clearTargetingSelection]);
-
-  // Refs for latest values (used inside global pointerup handler to avoid stale closures)
-  const hoveredTargetRef = useRef<HoveredTarget>(null);
-  hoveredTargetRef.current = hoveredTarget;
-  const selectedAttackerRef = useRef(selectedAttacker);
-  selectedAttackerRef.current = selectedAttacker;
-  const pendingSkillActionRef = useRef(pendingSkillAction);
-  pendingSkillActionRef.current = pendingSkillAction;
-
-  // --- Global pointerup: execute action on valid target or cancel ---
-  useEffect(() => {
-    const handlePointerUp = () => {
-      const attacker = selectedAttackerRef.current;
-      const skill = pendingSkillActionRef.current;
-      if (!attacker && !skill) return;
-
-      const target = hoveredTargetRef.current;
-      if (target) {
-        const targetRef: TargetRef = target.type === 'MINION'
-          ? { type: 'MINION', instanceId: target.instanceId }
-          : { type: 'HERO', playerIndex: target.playerIndex };
-
-        if (skill) {
-          if (skill.type === 'HERO') useHeroSkill(targetRef);
-          else if (skill.type === 'MINISTER') useMinisterSkill(targetRef);
-          else useGeneralSkill(skill.instanceId, skill.skillIndex, targetRef);
-        } else {
-          attack(attacker!, targetRef);
-        }
-      }
-
-      clearTargetingUiState();
-    };
-
-    window.addEventListener('pointerup', handlePointerUp);
-    return () => window.removeEventListener('pointerup', handlePointerUp);
-  }, [attack, useHeroSkill, useMinisterSkill, useGeneralSkill, clearTargetingUiState]);
+  }, [gameState?.turnNumber, playerIndex, locale]);
 
   // --- Handlers ---
 
@@ -477,23 +266,6 @@ export default function GameBoard() {
       playCard(handIndex);
     }
   }, [playCard, validPlayIndices]);
-
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') {
-        return;
-      }
-
-      if (!selectedAttacker && !pendingSkillAction) {
-        return;
-      }
-
-      clearTargetingUiState();
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [clearTargetingUiState, pendingSkillAction, selectedAttacker]);
 
   // --- Early return ---
   if (!gameState) {
