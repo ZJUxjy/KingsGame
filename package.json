@@ -2,8 +2,9 @@
   "name": "king-card",
   "private": true,
   "scripts": {
-    "build": "pnpm -r run build",
+    "build": "pnpm --filter @king-card/shared run build:direct && pnpm --filter @king-card/core run build:direct && pnpm --filter @king-card/server run build:direct && pnpm --filter @king-card/client run build:direct",
     "test": "pnpm -r run test",
+    "test:build-contract": "node ./scripts/build-contract-check.mjs",
     "lint": "eslint packages/",
     "dev": "pnpm --filter @king-card/server dev",
     "dev:client": "pnpm --filter @king-card/client dev",

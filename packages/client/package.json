@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "pnpm --dir ../.. --filter @king-card/client... run build:direct",
+    "build:direct": "tsc -p tsconfig.build.json && vite build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests"
   },

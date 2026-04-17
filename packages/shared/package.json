@@ -8,7 +8,8 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm run build:direct",
+    "build:direct": "tsc -p tsconfig.build.json",
     "test": "vitest run"
   },
   "devDependencies": {

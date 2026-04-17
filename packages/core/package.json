@@ -8,7 +8,8 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm --dir ../.. --filter @king-card/core... run build:direct",
+    "build:direct": "tsc -p tsconfig.build.json",
     "test": "vitest run"
   },
   "dependencies": {
