@@ -660,6 +660,8 @@ export default function GameBoard() {
               targetAnchorId="hero:me"
               skillAnchorId="hero-skill:me"
               onSkillPointerDown={handleHeroSkillPointerDown}
+              skillDescription={myHeroSkill?.description}
+              skillCooldown={myHeroSkill?.cooldown}
             />
             <MinisterPanel
               ministers={ministers}
