@@ -19,6 +19,24 @@ export interface DeckBuilderStatus {
   issues: DeckValidationIssue[];
 }
 
+export function resolveDeckBuilderEmperorCardId(
+  editingEmperorCardId: string | null,
+  decksByEmperorId: Readonly<Record<string, DeckDefinition>>,
+): string | null {
+  if (
+    editingEmperorCardId
+    && ALL_EMPEROR_DATA_LIST.some((emperorData) => emperorData.emperorCard.id === editingEmperorCardId)
+  ) {
+    return editingEmperorCardId;
+  }
+
+  const deckBackedEmperor = ALL_EMPEROR_DATA_LIST.find(
+    (emperorData) => decksByEmperorId[emperorData.emperorCard.id],
+  );
+
+  return deckBackedEmperor?.emperorCard.id ?? ALL_EMPEROR_DATA_LIST[0]?.emperorCard.id ?? null;
+}
+
 function getBoundCardIds(emperorData: EmperorData): Set<string> {
   return new Set([
     ...emperorData.boundGenerals.map((card) => card.id),
@@ -29,6 +47,47 @@ function getBoundCardIds(emperorData: EmperorData): Set<string> {
 export function getSafeDeckBuilderEmperor(editingEmperorCardId: string | null): EmperorData {
   return ALL_EMPEROR_DATA_LIST.find((emperorData) => emperorData.emperorCard.id === editingEmperorCardId)
     ?? ALL_EMPEROR_DATA_LIST[0]!;
+}
+
+export function getDeckBuilderIssueText(
+  issue: DeckValidationIssue,
+  locale: string,
+  cardById: ReadonlyMap<string, Card>,
+): string {
+  const cardName = issue.cardId ? cardById.get(issue.cardId)?.name ?? issue.cardId : null;
+
+  switch (issue.code) {
+    case 'MAIN_DECK_SIZE':
+      return locale === 'en-US'
+        ? `Main deck needs ${issue.limit ?? 0} cards and currently has ${issue.actual ?? 0}.`
+        : `主套牌需要 ${issue.limit ?? 0} 张，当前为 ${issue.actual ?? 0} 张。`;
+    case 'UNKNOWN_CARD':
+      return locale === 'en-US'
+        ? `Card ${cardName ?? issue.cardId ?? 'unknown'} is stale or missing from the catalog.`
+        : `卡牌 ${cardName ?? issue.cardId ?? '未知卡牌'} 已失效或不在卡牌库中。`;
+    case 'CROSS_CIVILIZATION':
+      return locale === 'en-US'
+        ? `Card ${cardName ?? issue.cardId ?? 'unknown'} does not match this deck's civilization.`
+        : `卡牌 ${cardName ?? issue.cardId ?? '未知卡牌'} 不属于当前套牌文明。`;
+    case 'COPY_LIMIT':
+      return locale === 'en-US'
+        ? `Card ${cardName ?? issue.cardId ?? 'unknown'} exceeds its copy limit of ${issue.limit ?? 0}.`
+        : `卡牌 ${cardName ?? issue.cardId ?? '未知卡牌'} 超过数量上限 ${issue.limit ?? 0}。`;
+    case 'GENERAL_LIMIT':
+      return locale === 'en-US'
+        ? `The deck has ${issue.actual ?? 0} free generals, above the limit of ${issue.limit ?? 0}.`
+        : `自由武将数量为 ${issue.actual ?? 0}，超过上限 ${issue.limit ?? 0}。`;
+    case 'SORCERY_LIMIT':
+      return locale === 'en-US'
+        ? `The deck has ${issue.actual ?? 0} free sorceries, above the limit of ${issue.limit ?? 0}.`
+        : `自由法术数量为 ${issue.actual ?? 0}，超过上限 ${issue.limit ?? 0}。`;
+    case 'EMPEROR_LIMIT':
+      return locale === 'en-US'
+        ? `The deck has ${issue.actual ?? 0} emperors, above the limit of ${issue.limit ?? 0}.`
+        : `皇帝卡数量为 ${issue.actual ?? 0}，超过上限 ${issue.limit ?? 0}。`;
+    default:
+      return issue.message;
+  }
 }
 
 export function getDeckBuilderEligibleCards(emperorData: EmperorData): Card[] {

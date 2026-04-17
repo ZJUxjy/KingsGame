@@ -1,7 +1,9 @@
-import { ALL_CARDS, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
+import { ALL_CARDS, ALL_EMPEROR_DATA_LIST, EMPEROR_QIN } from '@king-card/core';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../../App.js';
+import DeckBuilderPage from './DeckBuilderPage.js';
 import { useDeckStore } from '../../stores/deckStore.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
@@ -66,6 +68,23 @@ describe('DeckBuilderPage', () => {
     expect(screen.getAllByText(fallbackEmperor.emperorCard.name).length).toBeGreaterThan(0);
     expect(screen.getByText(`绑定卡牌：${fallbackBoundCardCount}`)).toBeTruthy();
     expect(screen.getByText('可编辑槽位：26')).toBeTruthy();
+  });
+
+  it('does not create or persist a deck during render when the selected emperor deck is missing', () => {
+    const getOrCreateDeck = vi.fn(initialDeckState.getOrCreateDeck);
+
+    useDeckStore.setState({
+      ...initialDeckState,
+      decksByEmperorId: {},
+      editingEmperorCardId: EMPEROR_QIN.emperorCard.id,
+      getOrCreateDeck,
+    });
+
+    const html = renderToString(<DeckBuilderPage />);
+
+    expect(html).toContain('套牌构筑');
+    expect(getOrCreateDeck).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem('king-card-decks')).toBeNull();
   });
 
   it('supports add or remove within deck limits for the selected editing emperor', () => {
@@ -170,6 +189,35 @@ describe('DeckBuilderPage', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: `移除 ${addableCard!.name}` })[0]!);
 
+    expect(screen.getByText('主套牌：25 / 26')).toBeTruthy();
+    expect(screen.getByText('状态：未完成')).toBeTruthy();
+  });
+
+  it('surfaces stale persisted card ids as invalid entries that can be removed', () => {
+    const starterDeck = useDeckStore.getState().getOrCreateDeck(EMPEROR_QIN);
+
+    useDeckStore.setState({
+      decksByEmperorId: {
+        [EMPEROR_QIN.emperorCard.id]: {
+          ...starterDeck,
+          mainCardIds: [...starterDeck.mainCardIds.slice(0, 25), 'stale-card-id'],
+        },
+      },
+      editingEmperorCardId: EMPEROR_QIN.emperorCard.id,
+    });
+    useGameStore.setState({
+      ...initialGameState,
+      uiPhase: 'deck-builder',
+    });
+
+    render(<App />);
+
+    expect(screen.getByText('状态：不合法')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '移除 stale-card-id' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: '移除 stale-card-id' }));
+
+    expect(screen.queryByText(/stale-card-id/)).toBeNull();
     expect(screen.getByText('主套牌：25 / 26')).toBeTruthy();
     expect(screen.getByText('状态：未完成')).toBeTruthy();
   });

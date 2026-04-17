@@ -1,5 +1,7 @@
+import { useDeckStore } from '../../stores/deckStore.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
+import { resolveDeckBuilderEmperorCardId } from '../deck/deck-builder-utils.js';
 
 export default function Lobby() {
   const setUiPhase = useGameStore((s) => s.setUiPhase);
@@ -29,6 +31,16 @@ export default function Lobby() {
   };
 
   const handleDeckBuilder = () => {
+    const { decksByEmperorId, editingEmperorCardId, setEditingEmperorCardId } = useDeckStore.getState();
+    const nextEditingEmperorCardId = resolveDeckBuilderEmperorCardId(
+      editingEmperorCardId,
+      decksByEmperorId,
+    );
+
+    if (nextEditingEmperorCardId) {
+      setEditingEmperorCardId(nextEditingEmperorCardId);
+    }
+
     setUiPhase('deck-builder');
   };
 

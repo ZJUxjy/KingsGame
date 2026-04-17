@@ -1,3 +1,5 @@
+import { ALL_CARDS } from '@king-card/core';
+import { useEffect } from 'react';
 import { useDeckStore } from '../../stores/deckStore.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
@@ -5,23 +7,71 @@ import { getCardDisplayText } from '../../utils/cardText.js';
 import {
   addCardToMainDeck,
   getDeckBuilderEligibleCards,
+  getDeckBuilderIssueText,
   getDeckBuilderStatus,
   getDeckCardCount,
   getSafeDeckBuilderEmperor,
   removeCardFromMainDeck,
+  resolveDeckBuilderEmperorCardId,
 } from './deck-builder-utils.js';
 
 export default function DeckBuilderPage() {
   const setUiPhase = useGameStore((state) => state.setUiPhase);
+  const decksByEmperorId = useDeckStore((state) => state.decksByEmperorId);
   const editingEmperorCardId = useDeckStore((state) => state.editingEmperorCardId);
-  const deckStore = useDeckStore();
+  const getOrCreateDeck = useDeckStore((state) => state.getOrCreateDeck);
+  const replaceMainCardIds = useDeckStore((state) => state.replaceMainCardIds);
+  const setEditingEmperorCardId = useDeckStore((state) => state.setEditingEmperorCardId);
   const locale = useLocaleStore((state) => state.locale);
 
-  const emperorData = getSafeDeckBuilderEmperor(editingEmperorCardId);
-  const deck = deckStore.getDeck(emperorData.emperorCard.id) ?? deckStore.getOrCreateDeck(emperorData);
-  const status = getDeckBuilderStatus(deck, emperorData);
+  const resolvedEmperorCardId = resolveDeckBuilderEmperorCardId(editingEmperorCardId, decksByEmperorId);
+  const emperorData = getSafeDeckBuilderEmperor(resolvedEmperorCardId);
+  const deck = decksByEmperorId[emperorData.emperorCard.id];
   const eligibleCards = getDeckBuilderEligibleCards(emperorData);
   const displayEmperor = getCardDisplayText(emperorData.emperorCard, locale);
+  const cardById = new Map(ALL_CARDS.map((card) => [card.id, card]));
+
+  useEffect(() => {
+    if (resolvedEmperorCardId && editingEmperorCardId !== resolvedEmperorCardId) {
+      setEditingEmperorCardId(resolvedEmperorCardId);
+    }
+  }, [editingEmperorCardId, resolvedEmperorCardId, setEditingEmperorCardId]);
+
+  useEffect(() => {
+    if (!deck) {
+      getOrCreateDeck(emperorData);
+    }
+  }, [deck, emperorData, getOrCreateDeck]);
+
+  if (!deck) {
+    return (
+      <div className="min-h-screen bg-board-gradient px-6 py-10 text-stone-100">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="mb-3 text-sm uppercase tracking-[0.45em] text-emerald-200/70">Deck</p>
+              <h1 className="text-4xl font-bold text-emerald-300">{locale === 'en-US' ? 'Deck Builder' : '套牌构筑'}</h1>
+              <p className="mt-3 text-lg text-stone-200">{displayEmperor.name}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setUiPhase('lobby')}
+              className="rounded-xl border border-stone-500/80 bg-stone-950/60 px-5 py-3 text-sm font-bold text-stone-100 transition hover:border-emerald-400/70 hover:text-emerald-100"
+            >
+              {locale === 'en-US' ? 'Back To Lobby' : '返回大厅'}
+            </button>
+          </div>
+
+          <div className="rounded-[28px] border border-stone-700/80 bg-stone-950/70 p-6 text-sm text-stone-300">
+            {locale === 'en-US' ? 'Loading deck...' : '正在加载套牌...'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const status = getDeckBuilderStatus(deck, emperorData);
 
   const heading = locale === 'en-US' ? 'Deck Builder' : '套牌构筑';
   const backLabel = locale === 'en-US' ? 'Back To Lobby' : '返回大厅';
@@ -30,9 +80,21 @@ export default function DeckBuilderPage() {
   const invalidLabel = locale === 'en-US' ? 'Invalid' : '不合法';
   const addLabel = locale === 'en-US' ? 'Add' : '加入';
   const removeLabel = locale === 'en-US' ? 'Remove' : '移除';
+  const staleCardDescription = locale === 'en-US' ? 'Stale or unknown card entry.' : '失效或未知的卡牌条目。';
+  const staleCardMetaLabel = locale === 'en-US' ? 'Invalid entry' : '无效条目';
+  const primaryIssue = status.isLegal
+    ? null
+    : getDeckBuilderIssueText(
+      status.issues.find((issue) => issue.code !== 'MAIN_DECK_SIZE') ?? status.issues[0]!,
+      locale,
+      cardById,
+    );
+  const isIncompleteOnly = status.issues.length > 0
+    && status.selectedCount < status.editableSlotCount
+    && status.issues.every((issue) => issue.code === 'MAIN_DECK_SIZE');
   const currentStatusLabel = status.isLegal
     ? legalLabel
-    : status.selectedCount < status.editableSlotCount
+    : isIncompleteOnly
       ? incompleteLabel
       : invalidLabel;
 
@@ -79,6 +141,7 @@ export default function DeckBuilderPage() {
             <div className="text-xs uppercase tracking-[0.3em] text-stone-500">{locale === 'en-US' ? 'Status' : '状态'}</div>
             <div className="mt-3 text-2xl font-bold text-emerald-100">{currentStatusLabel}</div>
             <div className="mt-2 text-sm text-stone-400">{locale === 'en-US' ? `Status: ${currentStatusLabel}` : `状态：${currentStatusLabel}`}</div>
+            {primaryIssue ? <div className="mt-2 text-sm text-rose-200">{primaryIssue}</div> : null}
           </div>
         </div>
 
@@ -126,7 +189,7 @@ export default function DeckBuilderPage() {
                         type="button"
                         aria-label={`${addLabel} ${displayCard.name}`}
                         disabled={!canAddCard}
-                        onClick={() => deckStore.replaceMainCardIds(
+                        onClick={() => replaceMainCardIds(
                           emperorData.emperorCard.id,
                           addCardToMainDeck(deck.mainCardIds, card, emperorData),
                         )}
@@ -157,12 +220,10 @@ export default function DeckBuilderPage() {
 
             <div className="max-h-[40rem] space-y-3 overflow-y-auto pr-1">
               {deck.mainCardIds.map((cardId, index) => {
-                const card = eligibleCards.find((item) => item.id === cardId);
-                if (!card) {
-                  return null;
-                }
-
-                const displayCard = getCardDisplayText(card, locale);
+                const card = cardById.get(cardId);
+                const displayCard = card ? getCardDisplayText(card, locale) : { name: cardId, description: staleCardDescription };
+                const issue = status.issues.find((currentIssue) => currentIssue.cardId === cardId);
+                const issueText = issue ? getDeckBuilderIssueText(issue, locale, cardById) : null;
 
                 return (
                   <div
@@ -171,13 +232,20 @@ export default function DeckBuilderPage() {
                   >
                     <div>
                       <div className="font-semibold text-stone-100">{displayCard.name}</div>
-                      <div className="text-sm text-stone-400">{locale === 'en-US' ? `${card.type} · Cost ${card.cost}` : `${card.type} · 费用 ${card.cost}`}</div>
+                      <div className="text-sm text-stone-400">
+                        {card
+                          ? locale === 'en-US'
+                            ? `${card.type} · Cost ${card.cost}`
+                            : `${card.type} · 费用 ${card.cost}`
+                          : staleCardMetaLabel}
+                      </div>
+                      {issueText ? <div className="mt-1 text-sm text-rose-200">{issueText}</div> : null}
                     </div>
 
                     <button
                       type="button"
                       aria-label={`${removeLabel} ${displayCard.name}`}
-                      onClick={() => deckStore.replaceMainCardIds(
+                      onClick={() => replaceMainCardIds(
                         emperorData.emperorCard.id,
                         removeCardFromMainDeck(deck.mainCardIds, index),
                       )}
