@@ -16,7 +16,7 @@ Extract the tooltip rendering logic from CardComponent into a shared `SkillToolt
 
 File: `packages/client/src/components/board/SkillTooltip.tsx`
 
-A renderless wrapper that attaches hover listeners to its child and portals a tooltip popup when hovered.
+A wrapper component that manages hover state on a container `<div>` wrapping the child, and portals a tooltip popup when hovered.
 
 Props:
 
@@ -32,14 +32,18 @@ interface SkillTooltipProps {
   cooldown?: number;
   /** Uses per turn (general skills) */
   usesPerTurn?: number;
-  /** The trigger element — must accept ref + onPointerEnter/Leave */
-  children: React.ReactElement;
+  /** The trigger element (button, etc.) */
+  children: React.ReactNode;
 }
 ```
 
+Rendering pattern:
+- SkillTooltip renders a `<div>` wrapper around `children` that manages `onPointerEnter`/`onPointerLeave` and a `useRef` for measuring bounding rect.
+- This avoids `cloneElement` and the fragility of injecting refs/handlers into arbitrary children. The child elements keep their own event handlers (e.g., `onPointerDown`) intact.
+
 Behavior:
-- On pointer enter, measure the child element's bounding rect via a ref callback.
-- Render a portal (`createPortal(..., document.body)`) positioned above or below the child, depending on available viewport space. Same placement logic as CardComponent (lines 149-155 of CardComponent.tsx).
+- On pointer enter, measure the wrapper `<div>`'s bounding rect via `useRef`.
+- Render a portal (`createPortal(..., document.body)`) positioned above or below the wrapper, depending on available viewport space (flip below if too close to top edge).
 - On pointer leave, remove the portal.
 - The tooltip has `pointer-events: none` so it does not interfere with drag interactions.
 
@@ -47,7 +51,7 @@ Visual style — reuse the same design tokens as CardComponent's skill tooltip s
 - Dark semi-transparent background (`bg-black/70`) with backdrop blur.
 - Amber-tinted skill name.
 - Cost and cooldown/uses badges matching CardComponent's rounded-pill style.
-- Width: `w-[220px]`, matching the "regular" tooltip size in CardComponent.
+- Width: `w-[260px]` (slightly wider than CardComponent's "regular" 220px to accommodate longer skill descriptions).
 
 ### Changes to Existing Panels
 
@@ -55,40 +59,45 @@ Visual style — reuse the same design tokens as CardComponent's skill tooltip s
 
 New props: `skillDescription?: string`, `skillCooldown?: number`.
 
-Wrap the existing skill `<button>` with `<SkillTooltip>` when the button is rendered (player only, `skillName` present).
+Wrap the existing skill `<button>` with `<SkillTooltip>` when the button is rendered (player only, `skillName` present). The `<button>` sits inside the `<SkillTooltip>` wrapper `<div>`.
 
 GameBoard already has `myHeroSkill` (localized HeroSkill object). Pass `myHeroSkill.description` and `myHeroSkill.cooldown` as the new props.
 
 **MinisterPanel.tsx:**
 
-New prop: `skillDescription?: string`.
+No new props needed. MinisterPanel already calls `getMinistersDisplayText` internally and the active minister's localized `activeSkill.description` and `activeSkill.cost` are available as `active.activeSkill.description` and `active.activeSkill.cost`.
 
-MinisterPanel already receives `ministers` and `activeIndex`. The active minister's `activeSkill.description` is available after localization. Wrap the skill `<button>` with `<SkillTooltip>`.
+Minister cooldown: The `Minister` type has a top-level `cooldown: number` field (remaining cooldown turns). Minister skills do NOT have their own cooldown field — the cooldown belongs to the minister entity. Show the minister's `cooldown` in the tooltip. Read `ministers[activeIndex].cooldown` (from the raw, non-display-text ministers array). Note: `getMinistersDisplayText` preserves the `cooldown` field at the minister level.
 
-GameBoard needs to pass the description. The ministers are already localized via `getMinistersDisplayText`. The active minister's skill description is at `displayMinisters[activeIndex].activeSkill.description`. Since MinisterPanel already computes `active` internally, no new prop is needed — the component can read `active.activeSkill.description` directly.
-
-Wait — MinisterPanel already calls `getMinistersDisplayText` and stores the result in `displayMinisters`. The active minister's `activeSkill.description` is already localized. So the description is available inside the component. No new prop needed.
+Wrap the skill `<button>` with `<SkillTooltip>`, passing `active.activeSkill.description`, `active.activeSkill.cost`, and `cooldown={ministers[activeIndex].cooldown}`.
 
 **GeneralSkillsPanel.tsx:**
 
-New prop on each general's card type: `description` added to the generalSkills array items.
+Update the `generalSkills` type in the inline interface to include `description` and `usesPerTurn`:
 
-Currently the `generals` prop types `generalSkills` as `Array<{ name: string; cost: number }>`. This needs to be extended to `Array<{ name: string; description: string; cost: number }>`.
+```ts
+generalSkills?: Array<{
+  name: string;
+  description: string;
+  cost: number;
+  usesPerTurn: number;
+}>;
+```
 
-GameBoard already calls `getGeneralSkillsDisplayText` which includes `description` in each skill. The `generalsWithDisplayText` mapping needs to pass `description` through. Currently it maps `getGeneralSkillsDisplayText(minion.card.generalSkills, locale)` — this already includes description. The issue is the TypeScript interface in GeneralSkillsPanel strips it. Fix the interface to include `description`.
+GameBoard already calls `getGeneralSkillsDisplayText` which preserves all `GeneralSkill` fields including `description` and `usesPerTurn`. The current TypeScript interface in GeneralSkillsPanel strips them. Fix the interface to include both fields.
 
-Wrap each skill `<button>` with `<SkillTooltip>`.
+Wrap each skill `<button>` with `<SkillTooltip>`, passing the skill's `description` and `usesPerTurn`.
 
 ### GameBoard.tsx Data Flow
 
-No major changes needed. The localized data is already computed:
-- `myHeroSkill` — has `.description` and `.cooldown`
-- `displayMinisters` — `active.activeSkill.description` is available inside MinisterPanel
-- `generalsWithDisplayText` — each general's `card.generalSkills[i].description` is populated
+Minimal changes. The localized data is already computed:
+- `myHeroSkill` — has `.description` and `.cooldown`. Pass as `skillDescription` and `skillCooldown` to HeroPanel.
+- `displayMinisters` — available inside MinisterPanel, no change needed.
+- `generalsWithDisplayText` — each general's `card.generalSkills[i].description` and `.usesPerTurn` are already populated by `getGeneralSkillsDisplayText`.
 
-The only changes:
+Changes:
 - Pass `skillDescription` and `skillCooldown` to HeroPanel.
-- Ensure GeneralSkillsPanel's interface accepts `description` in skill items.
+- Ensure GeneralSkillsPanel's interface accepts `description` and `usesPerTurn` in skill items (no GameBoard change needed, just the panel's type).
 
 ## Scope
 
@@ -96,7 +105,7 @@ In scope:
 - Create `SkillTooltip.tsx`.
 - Update HeroPanel, MinisterPanel, GeneralSkillsPanel to use SkillTooltip.
 - Update GameBoard to pass new props to HeroPanel.
-- Update GeneralSkillsPanel's TypeScript interface.
+- Update GeneralSkillsPanel's TypeScript interface to include `description` and `usesPerTurn`.
 
 Out of scope:
 - CardComponent tooltip refactoring (leave as-is).
@@ -114,5 +123,5 @@ Out of scope:
 
 ## Risks
 
-- Tooltip portal stacking: if a card tooltip and a skill tooltip are visible simultaneously, they could overlap. Mitigate by only showing one tooltip at a time (skill tooltip disappears when the pointer leaves the skill button).
+- Tooltip overlap with card tooltips: two tooltips could be visible simultaneously if the user's pointer transitions directly from a skill button to a card. Both use `pointer-events: none` so they won't block interaction. Overlap is unlikely given the layout distance between skill buttons and cards.
 - Performance: each tooltip measures DOM rect on hover. This is the same pattern as CardComponent and has no known issues.
