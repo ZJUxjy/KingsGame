@@ -402,6 +402,11 @@ export function executeCardEffects(trigger: CardEffect['trigger'], ctx: EffectCo
         }
         break;
       }
+      case 'COST_REDUCTION': {
+        const amount = getNumericParam(effect.params, 'amount', 1);
+        (ctx.state.players[ctx.playerIndex] as any).costReduction += amount;
+        break;
+      }
       default:
         break;
     }

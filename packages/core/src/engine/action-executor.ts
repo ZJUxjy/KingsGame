@@ -102,10 +102,14 @@ function createEffectContext(
 }
 
 function getEffectiveCardCost(player: GameState['players'][number], card: Card): number {
-  return player.costModifiers.reduce(
-    (cost, modifier) => modifier.condition(card) ? modifier.modifier(cost) : cost,
+  let cost = player.costModifiers.reduce(
+    (c, modifier) => modifier.condition(card) ? modifier.modifier(c) : c,
     card.cost,
   );
+  if (player.costReduction > 0) {
+    cost = Math.max(0, cost - player.costReduction);
+  }
+  return cost;
 }
 
 function createSyntheticSource(
@@ -239,6 +243,9 @@ export function executePlayCard(
 
   // Spend energy
   player.energyCrystal -= effectiveCost;
+  if (player.costReduction > 0) {
+    player.costReduction = 0;
+  }
   collectingBus.emit({
     type: 'ENERGY_SPENT',
     playerIndex,
