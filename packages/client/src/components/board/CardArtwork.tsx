@@ -1,6 +1,39 @@
+import type React from 'react';
 import type { Card, CardInstance } from '@king-card/shared';
 import type { SupportedLocale } from '../../utils/locale.js';
 import { getKeywordText } from '../../utils/cardText.js';
+
+const CIV_COLORS: Record<string, { primary: string; secondary: string; accent: string; emblem: string }> = {
+  CHINA: { primary: '#8B0000', secondary: '#FFD700', accent: '#DC143C', emblem: '龙' },
+  JAPAN: { primary: '#1a1a2e', secondary: '#C41E3A', accent: '#E8000D', emblem: '桜' },
+  USA: { primary: '#002868', secondary: '#BF0A30', accent: '#FFFFFF', emblem: '★' },
+  UK: { primary: '#003478', secondary: '#C8A951', accent: '#012169', emblem: '♛' },
+  GERMANY: { primary: '#1a1a1a', secondary: '#DD0000', accent: '#FFCC00', emblem: '✠' },
+  NEUTRAL: { primary: '#374151', secondary: '#6B7280', accent: '#9CA3AF', emblem: '◆' },
+};
+
+const TYPE_STYLES: Record<string, { borderColor: string; glowColor: string }> = {
+  EMPEROR: { borderColor: '#FFD700', glowColor: 'rgba(255,215,0,0.3)' },
+  GENERAL: { borderColor: '#CD7F32', glowColor: 'rgba(205,127,50,0.3)' },
+  MINION: { borderColor: '#C0C0C0', glowColor: 'rgba(192,192,192,0.2)' },
+  SORCERY: { borderColor: '#9B59B6', glowColor: 'rgba(155,89,182,0.3)' },
+  STRATAGEM: { borderColor: '#2E8B57', glowColor: 'rgba(46,139,87,0.3)' },
+};
+
+function renderTexturePattern(cardType: string): React.ReactElement {
+  switch (cardType) {
+    case 'EMPEROR':
+      return <><circle cx="6" cy="6" r="2" fill="rgba(255,215,0,0.3)" /><line x1="0" y1="0" x2="12" y2="12" stroke="rgba(255,215,0,0.15)" strokeWidth="0.5" /></>;
+    case 'GENERAL':
+      return <><rect x="1" y="1" width="10" height="10" rx="1" fill="none" stroke="rgba(205,127,50,0.2)" strokeWidth="0.5" /></>;
+    case 'SORCERY':
+      return <><circle cx="6" cy="6" r="4" fill="none" stroke="rgba(155,89,182,0.2)" strokeWidth="0.5" /><line x1="2" y1="6" x2="10" y2="6" stroke="rgba(155,89,182,0.15)" strokeWidth="0.3" /></>;
+    case 'STRATAGEM':
+      return <><line x1="0" y1="3" x2="12" y2="3" stroke="rgba(46,139,87,0.2)" strokeWidth="0.5" /><line x1="0" y1="9" x2="12" y2="9" stroke="rgba(46,139,87,0.2)" strokeWidth="0.5" /></>;
+    default:
+      return <><circle cx="3" cy="3" r="1" fill="rgba(192,192,192,0.15)" /><circle cx="9" cy="9" r="1" fill="rgba(192,192,192,0.15)" /></>;
+  }
+}
 
 type TypeTokenKey = 'soldier' | 'spell' | 'general';
 
@@ -109,6 +142,8 @@ function splitDescription(description: string, maxCharsPerLine: number, maxLines
 export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArtworkProps) {
   const typeKey = typeTokenKey(card.type);
   const isMinion = card.type === 'MINION' || card.type === 'GENERAL';
+  const civColors = CIV_COLORS[card.civilization] ?? CIV_COLORS.NEUTRAL;
+  const typeStyle = TYPE_STYLES[card.type] ?? TYPE_STYLES.MINION;
   const attack = instance?.currentAttack ?? card.attack ?? 0;
   const health = instance?.currentHealth ?? card.health ?? 0;
   const maxHealth = instance?.currentMaxHealth ?? card.health ?? 0;
@@ -148,23 +183,41 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
           <stop offset="0%" stopColor="var(--hp-from)" />
           <stop offset="100%" stopColor="var(--hp-to)" />
         </linearGradient>
+        <linearGradient id={`${svgIdBase}-civ-bg`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={civColors.primary} />
+          <stop offset="100%" stopColor={`${civColors.primary}CC`} />
+        </linearGradient>
+        <pattern id={`${svgIdBase}-texture`} width="12" height="12" patternUnits="userSpaceOnUse">
+          {renderTexturePattern(card.type)}
+        </pattern>
       </defs>
 
-      {/* Art area with elliptical frame */}
+      {/* Outer card glow border */}
+      <rect x="1" y="1" width="118" height="170" rx="7" fill="none"
+        stroke={typeStyle.borderColor} strokeWidth="1" opacity="0.4"
+        style={{ filter: `drop-shadow(0 0 3px ${typeStyle.glowColor})` }} />
+
+      {/* Art area with textured background */}
       <g data-testid="card-art">
         <rect x="0" y="0" width="120" height="104" fill={`url(#${typeGradId})`} />
-        <ellipse
-          data-testid="card-art-frame"
-          cx="60"
-          cy="56"
-          rx="38"
-          ry="42"
-          fill="rgba(0,0,0,0.34)"
-          stroke="rgba(255,255,255,0.16)"
-          strokeWidth="1.5"
-        />
-        <text x="60" y="62" textAnchor="middle" fill="white" fontSize="26" opacity="0.58" fontWeight="700">
+        <rect x="8" y="24" width="104" height="72" rx="4" fill={`url(#${svgIdBase}-civ-bg)`} />
+        <rect x="8" y="24" width="104" height="72" rx="4" fill={`url(#${svgIdBase}-texture)`} opacity="0.15" />
+
+        {/* Central art frame — double border */}
+        <ellipse cx="60" cy="60" rx="30" ry="28"
+          fill="rgba(0,0,0,0.45)" stroke={typeStyle.borderColor} strokeWidth="2" />
+        <ellipse cx="60" cy="60" rx="27" ry="25"
+          fill="none" stroke={`${typeStyle.borderColor}66`} strokeWidth="0.5" />
+
+        {/* Type icon — larger, with glow */}
+        <text x="60" y="66" textAnchor="middle" fill="white" fontSize="20" opacity="0.8" fontWeight="700"
+          style={{ filter: `drop-shadow(0 0 4px ${typeStyle.glowColor})` }}>
           {typeBadgeLabel(card.type, locale)}
+        </text>
+
+        {/* Civilization emblem in corner */}
+        <text x="100" y="34" textAnchor="middle" fill={civColors.secondary} fontSize="12" opacity="0.5">
+          {civColors.emblem}
         </text>
       </g>
 
@@ -268,30 +321,22 @@ interface CardBackArtworkProps {
 }
 
 export function CardBackArtwork({ svgIdBase, locale }: CardBackArtworkProps) {
-  const backGradId = `${svgIdBase}-back-grad`;
-
   return (
-    <svg
-      viewBox="0 0 120 172"
-      width="100%"
-      height="100%"
-    >
+    <svg viewBox="0 0 120 172" width="100%" height="100%">
       <defs>
-        <radialGradient id={backGradId}>
-          <stop offset="0%" stopColor="rgba(148,163,184,0.15)" />
+        <radialGradient id={`${svgIdBase}-back`}>
+          <stop offset="0%" stopColor="rgba(99,102,241,0.2)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
+        <pattern id={`${svgIdBase}-back-tex`} width="16" height="16" patternUnits="userSpaceOnUse">
+          <rect x="0" y="0" width="16" height="16" fill="none" stroke="rgba(99,102,241,0.08)" strokeWidth="0.5" />
+        </pattern>
       </defs>
-      <circle
-        cx="60"
-        cy="85"
-        r="30"
-        fill={`url(#${backGradId})`}
-        stroke="rgba(148,163,184,0.25)"
-        strokeWidth="1.5"
-      />
-      <text x="60" y="94" textAnchor="middle" fill="rgba(148,163,184,0.4)" fontSize="24">
-        {locale === 'en-US' ? 'E' : '帝'}
+      <rect x="0" y="0" width="120" height="172" fill="#1e1b4b" rx="8" />
+      <rect x="0" y="0" width="120" height="172" fill={`url(#${svgIdBase}-back-tex)`} rx="8" />
+      <circle cx="60" cy="86" r="35" fill={`url(#${svgIdBase}-back)`} stroke="rgba(99,102,241,0.3)" strokeWidth="1.5" />
+      <text x="60" y="95" textAnchor="middle" fill="rgba(165,163,255,0.5)" fontSize="28" fontWeight="bold">
+        {locale === 'en-US' ? 'K' : '帝'}
       </text>
     </svg>
   );

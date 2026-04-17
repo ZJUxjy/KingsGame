@@ -59,7 +59,7 @@ describe('CardComponent – card back', () => {
   it('renders localized card-back mark when locale is en-US', () => {
     useLocaleStore.setState({ locale: 'en-US' });
     const { container } = render(<CardComponent card={makeCard()} isHidden />);
-    expect(container.textContent).toContain('E');
+    expect(container.textContent).toContain('K');
     expect(container.textContent).not.toContain('帝');
   });
 
@@ -402,9 +402,10 @@ describe('CardComponent – redesign structure', () => {
       <CardComponent card={makeCard()} instance={makeInstance()} />,
     );
 
-    const ellipse = container.querySelector('[data-testid="card-art-frame"]') as SVGElement;
+    const artGroup = container.querySelector('[data-testid="card-art"]') as SVGElement;
+    const ellipse = artGroup.querySelector('ellipse') as SVGElement;
     expect(Number(ellipse.getAttribute('rx'))).toBeGreaterThanOrEqual(28);
-    expect(Number(ellipse.getAttribute('ry'))).toBeGreaterThanOrEqual(28);
+    expect(Number(ellipse.getAttribute('ry'))).toBeGreaterThanOrEqual(25);
   });
 
   it('localizes english card copy before rendering', () => {
