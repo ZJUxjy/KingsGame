@@ -70,6 +70,28 @@ export const STORMTROOPER = germany.minion({
   effects: [onPlay.damage('ENEMY_MINION', 2)],
 });
 
+export const IRON_CHANCELLOR = germany.minion({
+  slug: 'iron_chancellor',
+  name: 'Iron Chancellor',
+  rarity: 'EPIC',
+  cost: 4,
+  attack: 3,
+  health: 5,
+  description: 'Iron Fist: Gets +2/+2 when your hero health is ≤15.',
+  keywords: ['IRON_FIST'],
+});
+
+export const BERSERKER_GUARD = germany.minion({
+  slug: 'berserker_guard',
+  name: 'Berserker Guard',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 2,
+  health: 4,
+  description: 'Iron Fist. Taunt.',
+  keywords: ['IRON_FIST', 'TAUNT'],
+});
+
 export const GERMANY_MINIONS: Card[] = [
   LANDSKNECHT,
   HUSSAR,
@@ -77,4 +99,6 @@ export const GERMANY_MINIONS: Card[] = [
   PANZER,
   TEUTONIC_KNIGHT,
   STORMTROOPER,
+  IRON_CHANCELLOR,
+  BERSERKER_GUARD,
 ];
