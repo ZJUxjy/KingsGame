@@ -1,7 +1,7 @@
 import type { Card } from '@king-card/shared';
 import { onPlay, usa } from '../builders/index.js';
 
-// ─── USA Minion Cards (8) ───────────────────────────────────────────
+// ─── USA Minion Cards (9) ───────────────────────────────────────────
 
 export const GI = usa.minion({
   slug: 'gi',
@@ -93,6 +93,16 @@ export const MANHATTAN_ENGINEER = usa.minion({
   effects: [onPlay.draw(1)],
 });
 
+export const DRILL_SERGEANT = usa.minion({
+  slug: 'drill_sergeant',
+  name: 'Drill Sergeant',
+  rarity: 'RARE',
+  cost: 4,
+  attack: 3,
+  health: 4,
+  description: 'Mobilization Order: When ≥3 friendly minions, all get +1 attack at turn start.',
+  keywords: ['MOBILIZATION_ORDER'],
+});
 
 export const USA_MINIONS: Card[] = [
   GI,
@@ -103,4 +113,5 @@ export const USA_MINIONS: Card[] = [
   SHERMAN_TANK,
   RESEARCH_SCIENTIST,
   MANHATTAN_ENGINEER,
+  DRILL_SERGEANT,
 ];

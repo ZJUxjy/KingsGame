@@ -152,6 +152,7 @@ export {
   SHERMAN_TANK,
   RESEARCH_SCIENTIST,
   MANHATTAN_ENGINEER,
+  DRILL_SERGEANT,
 } from './usa-minions.js';
 
 export {
