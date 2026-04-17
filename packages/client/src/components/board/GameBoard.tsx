@@ -291,9 +291,10 @@ export default function GameBoard() {
 
   useEffect(() => {
     if (!gameState || playerIndex === null) return;
+    const localeNow = useLocaleStore.getState().locale;
     const myTurn = gameState.currentPlayerIndex === playerIndex;
     const text =
-      locale === 'en-US'
+      localeNow === 'en-US'
         ? myTurn
           ? 'Your Turn'
           : 'Opponent Turn'
@@ -304,7 +305,7 @@ export default function GameBoard() {
     audioService.play('turn-start');
     const timer = setTimeout(() => setOverlayText(null), 1500);
     return () => clearTimeout(timer);
-  }, [gameState?.turnNumber, locale, playerIndex, gameState?.currentPlayerIndex]);
+  }, [gameState?.turnNumber, playerIndex]);
 
   useEffect(() => {
     if (!selectedAttacker && !pendingSkillAction) {

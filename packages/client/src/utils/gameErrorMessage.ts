@@ -87,5 +87,8 @@ export function formatGameError(
   if (row) {
     return row[locale];
   }
-  return locale === 'zh-CN' ? '发生错误' : fallbackMessage;
+  if (locale === 'zh-CN') {
+    return `发生错误（${code}）`;
+  }
+  return fallbackMessage;
 }

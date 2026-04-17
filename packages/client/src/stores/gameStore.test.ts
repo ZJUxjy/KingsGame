@@ -96,7 +96,6 @@ describe('gameStore', () => {
     useGameStore.getState()._reset();
     useLocaleStore.setState({ locale: 'zh-CN' });
     vi.clearAllMocks();
-    mockSocketService.connect.mockImplementation(() => ({ connected: true, once: vi.fn() }));
   });
 
   it('clears stale validActions and selectedAttacker when a new game state shows it is the opponent turn', () => {
@@ -188,7 +187,7 @@ describe('gameStore', () => {
         return mockSocket;
       }),
     };
-    mockSocketService.connect.mockReturnValue(mockSocket as { connected: boolean; once: typeof mockSocket.once });
+    mockSocketService.connect.mockImplementationOnce(() => mockSocket as { connected: boolean; once: typeof mockSocket.once });
 
     useLocaleStore.setState({ locale: 'en-US' });
     useGameStore.getState().connect('ws://localhost');

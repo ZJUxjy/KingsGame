@@ -212,7 +212,7 @@ describe('useGameSocket', () => {
       getListener('game:error')({ code: 'INVALID_ACTION', message: 'Bad move' });
     });
 
-    expect(useGameStore.getState().error).toBe('发生错误');
+    expect(useGameStore.getState().error).toBe('发生错误（INVALID_ACTION）');
 
     act(() => {
       useLocaleStore.setState({ locale: 'en-US' });

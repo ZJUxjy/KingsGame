@@ -25,7 +25,7 @@ const TYPE_BADGE_ICON: Record<SupportedLocale, Record<string, string>> = {
     GENERAL: 'G',
     STRATAGEM: 'St',
     SORCERY: 'So',
-    EMPEROR: 'H',
+    EMPEROR: 'E',
   },
 };
 
@@ -264,10 +264,10 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
 
 interface CardBackArtworkProps {
   svgIdBase: string;
-  locale?: SupportedLocale;
+  locale: SupportedLocale;
 }
 
-export function CardBackArtwork({ svgIdBase, locale = 'zh-CN' }: CardBackArtworkProps) {
+export function CardBackArtwork({ svgIdBase, locale }: CardBackArtworkProps) {
   const backGradId = `${svgIdBase}-back-grad`;
 
   return (
@@ -291,7 +291,7 @@ export function CardBackArtwork({ svgIdBase, locale = 'zh-CN' }: CardBackArtwork
         strokeWidth="1.5"
       />
       <text x="60" y="94" textAnchor="middle" fill="rgba(148,163,184,0.4)" fontSize="24">
-        {locale === 'en-US' ? 'K' : '帝'}
+        {locale === 'en-US' ? 'E' : '帝'}
       </text>
     </svg>
   );

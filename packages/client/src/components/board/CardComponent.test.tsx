@@ -59,7 +59,7 @@ describe('CardComponent – card back', () => {
   it('renders localized card-back mark when locale is en-US', () => {
     useLocaleStore.setState({ locale: 'en-US' });
     const { container } = render(<CardComponent card={makeCard()} isHidden />);
-    expect(container.textContent).toContain('K');
+    expect(container.textContent).toContain('E');
     expect(container.textContent).not.toContain('帝');
   });
 
