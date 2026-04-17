@@ -14,7 +14,22 @@ interface PlayerMapping {
 
 interface JoinPayload {
   emperorIndex: number;
-  deck?: DeckDefinition;
+  deck?: unknown;
+}
+
+function isDeckDefinition(value: unknown): value is DeckDefinition {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as Partial<DeckDefinition> & { mainCardIds?: unknown };
+
+  return typeof candidate.id === 'string'
+    && typeof candidate.name === 'string'
+    && typeof candidate.civilization === 'string'
+    && typeof candidate.emperorCardId === 'string'
+    && Array.isArray(candidate.mainCardIds)
+    && candidate.mainCardIds.every((cardId) => typeof cardId === 'string');
 }
 
 function toTargetRef(target: TargetRef | undefined): TargetRef | undefined {
@@ -39,9 +54,17 @@ export function registerSocketHandlers(
 ): void {
   const socketMapping = new Map<string, PlayerMapping>();
 
-  function validateJoinDeck(socket: Socket, emperorIndex: number, deck?: DeckDefinition): boolean {
+  function validateJoinDeck(socket: Socket, emperorIndex: number, deck?: unknown): deck is DeckDefinition | undefined {
     if (!deck) {
       return true;
+    }
+
+    if (!isDeckDefinition(deck)) {
+      socket.emit('game:error', {
+        code: 'INVALID_DECK',
+        message: 'Custom deck payload is malformed.',
+      });
+      return false;
     }
 
     const emperorData = ALL_EMPEROR_DATA_LIST[emperorIndex];

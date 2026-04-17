@@ -288,4 +288,45 @@ describe('PvP socket flow', () => {
     }));
     expect(gameManager.createPvpWaiting).not.toHaveBeenCalled();
   });
+
+  it('rejects a malformed PvE custom deck payload with INVALID_DECK', () => {
+    const socket = connectSocket('pve-bad-payload');
+
+    socket.trigger('game:join', {
+      emperorIndex: 0,
+      deck: {
+        id: 'bad-deck',
+        name: 'Malformed Deck',
+        emperorCardId: ALL_EMPEROR_DATA_LIST[0].emperorCard.id,
+        mainCardIds: null,
+      },
+    });
+
+    expect(socket.emit).toHaveBeenCalledWith('game:error', {
+      code: 'INVALID_DECK',
+      message: 'Custom deck payload is malformed.',
+    });
+    expect(gameManager.createGame).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed PvP custom deck payload with INVALID_DECK', () => {
+    const socket = connectSocket('pvp-bad-payload');
+
+    socket.trigger('game:pvpJoin', {
+      emperorIndex: 0,
+      deck: {
+        id: 'bad-deck',
+        name: 'Malformed Deck',
+        civilization: ALL_EMPEROR_DATA_LIST[0].emperorCard.civilization,
+        emperorCardId: ALL_EMPEROR_DATA_LIST[0].emperorCard.id,
+        mainCardIds: [42],
+      },
+    });
+
+    expect(socket.emit).toHaveBeenCalledWith('game:error', {
+      code: 'INVALID_DECK',
+      message: 'Custom deck payload is malformed.',
+    });
+    expect(gameManager.createPvpWaiting).not.toHaveBeenCalled();
+  });
 });
