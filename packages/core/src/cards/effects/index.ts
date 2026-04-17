@@ -19,3 +19,6 @@ import './mobilize.js';
 import './garrison.js';
 import './aura.js';
 import './blockade.js';
+import './colony.js';
+import './research.js';
+import './mobilization-order.js';

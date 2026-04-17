@@ -1,7 +1,7 @@
 import type { Card } from '@king-card/shared';
 import { onPlay, uk } from '../builders/index.js';
 
-// ─── UK Minion Cards (7) ────────────────────────────────────────────
+// ─── UK Minion Cards (8) ────────────────────────────────────────────
 
 export const REDCOAT = uk.minion({
   slug: 'redcoat',
@@ -81,6 +81,17 @@ export const NAVAL_BLOCKADER = uk.minion({
   keywords: ['BLOCKADE', 'TAUNT'],
 });
 
+export const COLONIAL_GOVERNOR = uk.minion({
+  slug: 'colonial_governor',
+  name: 'Colonial Governor',
+  rarity: 'EPIC',
+  cost: 3,
+  attack: 2,
+  health: 4,
+  description: 'Colony: At turn end, if you control ≥3 minions with different costs, draw a card.',
+  keywords: ['COLONY'],
+});
+
 export const UK_MINIONS: Card[] = [
   REDCOAT,
   LONGBOWMAN,
@@ -89,4 +100,5 @@ export const UK_MINIONS: Card[] = [
   PRIVATEER,
   MAN_OF_WAR,
   NAVAL_BLOCKADER,
+  COLONIAL_GOVERNOR,
 ];
