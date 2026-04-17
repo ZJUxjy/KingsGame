@@ -39,6 +39,13 @@ function assertArtifacts(expectedDirectories, unexpectedDirectories = []) {
 }
 
 cleanBuildArtifacts();
+run('corepack', ['pnpm', '--filter', '@king-card/core', 'build']);
+assertArtifacts(
+  ['packages/shared/dist/index.js', 'packages/core/dist/index.js'],
+  ['packages/server/dist/index.js', 'packages/client/dist/index.html'],
+);
+
+cleanBuildArtifacts();
 run('corepack', ['pnpm', '--filter', '@king-card/client', 'build']);
 assertArtifacts(
   [

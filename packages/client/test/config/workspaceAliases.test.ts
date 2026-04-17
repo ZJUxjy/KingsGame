@@ -149,7 +149,9 @@ describe('workspace alias configuration', () => {
     expect(clientPackageJson.scripts?.build).toBe(
       'pnpm --dir ../.. --filter @king-card/client... run build:direct',
     );
-    expect(corePackageJson.scripts?.build).toBe('pnpm run build:direct');
+    expect(corePackageJson.scripts?.build).toBe(
+      'pnpm --dir ../.. --filter @king-card/core... run build:direct',
+    );
     expect(serverPackageJson.scripts?.build).toBe(
       'pnpm --dir ../.. --filter @king-card/server... run build:direct',
     );
