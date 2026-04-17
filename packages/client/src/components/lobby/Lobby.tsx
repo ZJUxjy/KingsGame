@@ -10,6 +10,7 @@ export default function Lobby() {
   const pveLabel = locale === 'en-US' ? 'Solo Mode' : '单人模式';
   const pvpLabel = locale === 'en-US' ? 'Two-Player Mode' : '双人模式';
   const collectionLabel = locale === 'en-US' ? 'Card Collection' : '卡牌收藏';
+  const deckBuilderLabel = locale === 'en-US' ? 'Deck Builder' : '套牌构筑';
 
   const handlePvE = () => {
     connect('http://localhost:3001');
@@ -27,13 +28,17 @@ export default function Lobby() {
     setUiPhase('collection');
   };
 
+  const handleDeckBuilder = () => {
+    setUiPhase('deck-builder');
+  };
+
   return (
     <div
       className="h-screen flex flex-col items-center justify-center bg-board-gradient"
     >
       <h1 className="text-7xl font-bold text-yellow-400 mb-16">{title}</h1>
 
-      <div className="flex gap-8">
+      <div className="flex flex-wrap items-center justify-center gap-8">
         {/* PvE Mode Card */}
         <button
           onClick={handlePvE}
@@ -76,6 +81,20 @@ export default function Lobby() {
             {collectionLabel}
           </span>
           <span className="text-sm text-gray-400">Collection</span>
+        </button>
+
+        <button
+          onClick={handleDeckBuilder}
+          className="group w-72 h-48 rounded-2xl bg-gray-800 border-2 border-emerald-600
+                     flex flex-col items-center justify-center gap-4
+                     hover:bg-gray-700 hover:border-emerald-400 hover:scale-105
+                     transition-all duration-200 cursor-pointer"
+        >
+          <span className="text-3xl">🧩</span>
+          <span className="text-2xl font-bold text-emerald-300">
+            {deckBuilderLabel}
+          </span>
+          <span className="text-sm text-gray-400">Deck</span>
         </button>
       </div>
     </div>

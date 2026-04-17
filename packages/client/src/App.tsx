@@ -6,6 +6,7 @@ import HeroSelect from './components/lobby/HeroSelect.js';
 import PvpWaiting from './components/lobby/PvpWaiting.js';
 import GameBoard from './components/board/GameBoard.js';
 import CollectionPage from './components/collection/CollectionPage.js';
+import DeckBuilderPage from './components/deck/DeckBuilderPage.js';
 import { LocaleSwitcher } from './components/shared/LocaleSwitcher.js';
 import { useLocaleStore } from './stores/localeStore.js';
 
@@ -78,6 +79,8 @@ export default function App() {
         return <GameOverScreen />;
       case 'collection':
         return <CollectionPage />;
+      case 'deck-builder':
+        return <DeckBuilderPage />;
     }
   })();
 

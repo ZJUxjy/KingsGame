@@ -67,7 +67,7 @@ export interface SerializedGameState {
   };
 }
 
-export type UiPhase = 'lobby' | 'hero-select' | 'pvp-waiting' | 'playing' | 'game-over' | 'collection';
+export type UiPhase = 'lobby' | 'hero-select' | 'pvp-waiting' | 'playing' | 'game-over' | 'collection' | 'deck-builder';
 
 export type PendingSkillAction =
   | { type: 'HERO' }
