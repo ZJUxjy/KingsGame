@@ -1,5 +1,6 @@
 import { ALL_CARDS, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
 import {
+  GAME_CONSTANTS,
   getDeckCopyLimit,
   getEditableDeckSize,
   type DeckDefinition,
@@ -152,32 +153,45 @@ function createStarterDeck(emperorData: EmperorData): DeckDefinition {
     throw new Error(`Unable to create starter deck for emperor ${emperorData.emperorCard.id}.`);
   }
 
-  const remainingCopiesByCardId = new Map(
-    pool.map((card) => [card.id, getDeckCopyLimit(card)]),
-  );
+  const orderedPool = [
+    ...pool.filter((card) => card.type === 'MINION' || card.type === 'STRATAGEM'),
+    ...pool.filter((card) => card.type === 'GENERAL'),
+    ...pool.filter((card) => card.type === 'SORCERY'),
+    ...pool.filter((card) => card.type === 'EMPEROR'),
+  ];
   const mainCardIds: string[] = [];
+  const copyCounts = new Map<string, number>();
+  let generalCount = 0;
+  let sorceryCount = 0;
+  let emperorCount = 1;
 
-  while (mainCardIds.length < editableDeckSize) {
-    let addedCardThisPass = false;
+  for (const card of orderedPool) {
+    const remainingTypeLimit =
+      card.type === 'GENERAL'
+        ? GAME_CONSTANTS.GENERAL_DECK_LIMIT - generalCount
+        : card.type === 'SORCERY'
+          ? GAME_CONSTANTS.SORCERY_DECK_LIMIT - sorceryCount
+          : card.type === 'EMPEROR'
+            ? GAME_CONSTANTS.EMPEROR_SOFT_LIMIT - emperorCount
+            : getDeckCopyLimit(card);
+    const allowedCopies = Math.min(getDeckCopyLimit(card), Math.max(remainingTypeLimit, 0));
 
-    for (const card of pool) {
-      const remainingCopies = remainingCopiesByCardId.get(card.id) ?? 0;
-      if (remainingCopies <= 0) {
-        continue;
-      }
-
+    for (let count = copyCounts.get(card.id) ?? 0; count < allowedCopies && mainCardIds.length < editableDeckSize; count++) {
       mainCardIds.push(card.id);
-      remainingCopiesByCardId.set(card.id, remainingCopies - 1);
-      addedCardThisPass = true;
+      copyCounts.set(card.id, count + 1);
 
-      if (mainCardIds.length === editableDeckSize) {
-        break;
+      if (card.type === 'GENERAL') {
+        generalCount += 1;
+      } else if (card.type === 'SORCERY') {
+        sorceryCount += 1;
+      } else if (card.type === 'EMPEROR') {
+        emperorCount += 1;
       }
     }
+  }
 
-    if (!addedCardThisPass) {
-      throw new Error(`Unable to create starter deck for emperor ${emperorData.emperorCard.id}.`);
-    }
+  if (mainCardIds.length !== editableDeckSize) {
+    throw new Error(`Unable to create starter deck for emperor ${emperorData.emperorCard.id}.`);
   }
 
   return {
