@@ -1,4 +1,4 @@
-import { useId, useRef, useState, useEffect } from 'react';
+import { useId, useRef, useState, useEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import type { Card, CardInstance, Rarity } from '@king-card/shared';
 import { CardArtwork, CardBackArtwork } from './CardArtwork.js';
@@ -75,7 +75,7 @@ interface CardComponentProps {
   useResponsiveBattlefieldSize?: boolean;
 }
 
-export function CardComponent({
+const CardComponentInner = function CardComponent({
   card,
   instance,
   selected,
@@ -267,3 +267,5 @@ export function CardComponent({
     </div>
   );
 }
+
+export const CardComponent = memo(CardComponentInner);
