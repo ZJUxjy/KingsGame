@@ -1,14 +1,20 @@
 import type { Server, Socket } from 'socket.io';
-import type { TargetRef, WinReason, ValidAction } from '@king-card/shared';
-import type { GameEngine } from '@king-card/core';
+import type { DeckDefinition, TargetRef, WinReason, ValidAction } from '@king-card/shared';
+import { ALL_EMPEROR_DATA_LIST, type GameEngine } from '@king-card/core';
 import type { GameSession } from './gameManager.js';
 import { GameManager } from './gameManager.js';
+import { validateDeckForEmperor } from './deckBuilder.js';
 import { serializeForPlayer } from './serialization.js';
 import { runAiTurn, AI_PLAYER_INDEX } from './aiPlayer.js';
 
 interface PlayerMapping {
   gameId: string;
   playerIndex: 0 | 1;
+}
+
+interface JoinPayload {
+  emperorIndex: number;
+  deck?: DeckDefinition;
 }
 
 function toTargetRef(target: TargetRef | undefined): TargetRef | undefined {
@@ -32,6 +38,28 @@ export function registerSocketHandlers(
   gameManager: GameManager,
 ): void {
   const socketMapping = new Map<string, PlayerMapping>();
+
+  function validateJoinDeck(socket: Socket, emperorIndex: number, deck?: DeckDefinition): boolean {
+    if (!deck) {
+      return true;
+    }
+
+    const emperorData = ALL_EMPEROR_DATA_LIST[emperorIndex];
+    if (!emperorData) {
+      throw new Error(`Invalid emperor index: ${emperorIndex}`);
+    }
+
+    const validation = validateDeckForEmperor(deck, emperorData);
+    if (validation.ok) {
+      return true;
+    }
+
+    socket.emit('game:error', {
+      code: 'INVALID_DECK',
+      message: validation.issues.map((issue) => issue.message).join(' '),
+    });
+    return false;
+  }
 
   // ─── Helper: broadcast personalized game state + valid actions ──
 
@@ -154,10 +182,14 @@ export function registerSocketHandlers(
 
     // ── game:join ────────────────────────────────────────────────
 
-    socket.on('game:join', (payload: { emperorIndex: number }) => {
+    socket.on('game:join', (payload: JoinPayload) => {
       try {
-        const { emperorIndex } = payload;
-        const session = gameManager.createGame('pve', emperorIndex);
+        const { emperorIndex, deck } = payload;
+        if (!validateJoinDeck(socket, emperorIndex, deck)) {
+          return;
+        }
+
+        const session = gameManager.createGame('pve', emperorIndex, deck);
 
         session.state = 'playing';
         gameManager.setPlayerSocket(session.id, 0, socket.id);
@@ -184,9 +216,12 @@ export function registerSocketHandlers(
 
     // ── game:pvpJoin ──────────────────────────────────────────────
 
-    socket.on('game:pvpJoin', (payload: { emperorIndex: number }) => {
+    socket.on('game:pvpJoin', (payload: JoinPayload) => {
       try {
-        const { emperorIndex } = payload;
+        const { emperorIndex, deck } = payload;
+        if (!validateJoinDeck(socket, emperorIndex, deck)) {
+          return;
+        }
 
         // Try to find a waiting PvP game
         const waitingSession = gameManager.findWaitingPvpGame();
@@ -194,6 +229,10 @@ export function registerSocketHandlers(
         if (waitingSession) {
           // Join as player 1
           waitingSession.playerEmperorIndices[1] = emperorIndex;
+          waitingSession.playerDeckDefinitions = [
+            waitingSession.playerDeckDefinitions?.[0] ?? null,
+            deck ?? null,
+          ];
           gameManager.initializePvpEngine(waitingSession);
 
           waitingSession.state = 'playing';
@@ -220,7 +259,7 @@ export function registerSocketHandlers(
           broadcastGameState(waitingSession.id);
         } else {
           // Create a new PvP room and wait
-          const session = gameManager.createPvpWaiting(emperorIndex);
+          const session = gameManager.createPvpWaiting(emperorIndex, deck);
           gameManager.setPlayerSocket(session.id, 0, socket.id);
           socketMapping.set(socket.id, { gameId: session.id, playerIndex: 0 });
 

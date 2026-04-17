@@ -1,5 +1,6 @@
 import { GameEngine, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
-import { buildDeck, getRandomAiEmperorIndex } from './deckBuilder.js';
+import type { DeckDefinition } from '@king-card/shared';
+import { buildDeck, getRandomAiEmperorIndex, materializeDeckForEmperor } from './deckBuilder.js';
 
 export interface GameSession {
   id: string;
@@ -8,19 +9,26 @@ export interface GameSession {
   state: 'waiting' | 'playing' | 'finished';
   mode: 'pve' | 'pvp';
   playerEmperorIndices: [number, number];
+  playerDeckDefinitions?: [DeckDefinition | null, DeckDefinition | null];
 }
 
 export class GameManager {
   private games: Map<string, GameSession> = new Map();
 
-  createGame(mode: 'pve' | 'pvp', playerEmperorIndex: number): GameSession {
+  createGame(
+    mode: 'pve' | 'pvp',
+    playerEmperorIndex: number,
+    playerDeckDefinition?: DeckDefinition,
+  ): GameSession {
     const id = crypto.randomUUID();
 
     const emperor1 = ALL_EMPEROR_DATA_LIST[playerEmperorIndex];
     const emperor2Index = mode === 'pve' ? getRandomAiEmperorIndex() : 0;
     const emperor2 = ALL_EMPEROR_DATA_LIST[emperor2Index];
 
-    const deck1 = buildDeck(emperor1);
+    const deck1 = playerDeckDefinition
+      ? materializeDeckForEmperor(playerDeckDefinition, emperor1)
+      : buildDeck(emperor1);
     const deck2 = buildDeck(emperor2);
 
     const engine = GameEngine.create(deck1, deck2, emperor1, emperor2);
@@ -32,6 +40,7 @@ export class GameManager {
       state: 'waiting',
       mode,
       playerEmperorIndices: [playerEmperorIndex, emperor2Index],
+      playerDeckDefinitions: [playerDeckDefinition ?? null, null],
     };
 
     this.games.set(id, session);
@@ -42,7 +51,7 @@ export class GameManager {
    * Create a PvP game with only player 0's emperor chosen.
    * The engine is NOT created yet — it will be initialized when player 2 joins.
    */
-  createPvpWaiting(player0EmperorIndex: number): GameSession {
+  createPvpWaiting(player0EmperorIndex: number, player0DeckDefinition?: DeckDefinition): GameSession {
     const id = crypto.randomUUID();
 
     const session: GameSession = {
@@ -52,6 +61,7 @@ export class GameManager {
       state: 'waiting',
       mode: 'pvp',
       playerEmperorIndices: [player0EmperorIndex, -1],
+      playerDeckDefinitions: [player0DeckDefinition ?? null, null],
     };
 
     this.games.set(id, session);
@@ -82,8 +92,12 @@ export class GameManager {
     }
     const emperor1 = ALL_EMPEROR_DATA_LIST[idx0];
     const emperor2 = ALL_EMPEROR_DATA_LIST[idx1];
-    const deck1 = buildDeck(emperor1);
-    const deck2 = buildDeck(emperor2);
+    const deck1 = session.playerDeckDefinitions?.[0]
+      ? materializeDeckForEmperor(session.playerDeckDefinitions[0], emperor1)
+      : buildDeck(emperor1);
+    const deck2 = session.playerDeckDefinitions?.[1]
+      ? materializeDeckForEmperor(session.playerDeckDefinitions[1], emperor2)
+      : buildDeck(emperor2);
     session.engine = GameEngine.create(deck1, deck2, emperor1, emperor2);
   }
 

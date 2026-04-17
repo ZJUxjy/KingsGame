@@ -1,6 +1,75 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ALL_CARDS, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
+import {
+  GAME_CONSTANTS,
+  getDeckCopyLimit,
+  getEditableDeckSize,
+  type DeckDefinition,
+  type EmperorData,
+} from '@king-card/shared';
 import { registerSocketHandlers } from '../src/socketHandler.js';
 import type { GameSession } from '../src/gameManager.js';
+
+function makeCustomDeckDefinition(emperorData: EmperorData): DeckDefinition {
+  const excludedCardIds = new Set([
+    ...emperorData.boundGenerals.map((card) => card.id),
+    ...emperorData.boundSorceries.map((card) => card.id),
+  ]);
+  const editableDeckSize = getEditableDeckSize(emperorData);
+  const pool = ALL_CARDS.filter(
+    (card) =>
+      (card.civilization === emperorData.emperorCard.civilization || card.civilization === 'NEUTRAL')
+      && !excludedCardIds.has(card.id),
+  );
+  const orderedPool = [
+    ...pool.filter((card) => card.type === 'MINION' || card.type === 'STRATAGEM'),
+    ...pool.filter((card) => card.type === 'GENERAL'),
+    ...pool.filter((card) => card.type === 'SORCERY'),
+    ...pool.filter((card) => card.type === 'EMPEROR'),
+  ];
+  const mainCardIds: string[] = [];
+  const copyCounts = new Map<string, number>();
+  let generalCount = 0;
+  let sorceryCount = 0;
+  let emperorCount = 1;
+
+  for (const card of orderedPool) {
+    const remainingTypeLimit =
+      card.type === 'GENERAL'
+        ? GAME_CONSTANTS.GENERAL_DECK_LIMIT - generalCount
+        : card.type === 'SORCERY'
+          ? GAME_CONSTANTS.SORCERY_DECK_LIMIT - sorceryCount
+          : card.type === 'EMPEROR'
+            ? GAME_CONSTANTS.EMPEROR_SOFT_LIMIT - emperorCount
+            : getDeckCopyLimit(card);
+    const allowedCopies = Math.min(getDeckCopyLimit(card), Math.max(remainingTypeLimit, 0));
+
+    for (let count = copyCounts.get(card.id) ?? 0; count < allowedCopies && mainCardIds.length < editableDeckSize; count++) {
+      mainCardIds.push(card.id);
+      copyCounts.set(card.id, count + 1);
+
+      if (card.type === 'GENERAL') {
+        generalCount += 1;
+      } else if (card.type === 'SORCERY') {
+        sorceryCount += 1;
+      } else if (card.type === 'EMPEROR') {
+        emperorCount += 1;
+      }
+    }
+
+    if (mainCardIds.length === editableDeckSize) {
+      break;
+    }
+  }
+
+  return {
+    id: `${emperorData.emperorCard.id}-custom`,
+    name: `${emperorData.emperorCard.name} 自定义套牌`,
+    civilization: emperorData.emperorCard.civilization,
+    emperorCardId: emperorData.emperorCard.id,
+    mainCardIds: mainCardIds.reverse(),
+  };
+}
 
 function createSocket(id: string) {
   const handlers = new Map<string, (...args: any[]) => void>();
@@ -35,7 +104,7 @@ describe('PvP socket flow', () => {
 
     gameManager = {
       createGame: vi.fn(),
-      createPvpWaiting: vi.fn((emperorIndex: number) => {
+      createPvpWaiting: vi.fn((emperorIndex: number, deck?: DeckDefinition) => {
         const session: GameSession = {
           id: `pvp-${sessions.size}`,
           engine: null as any,
@@ -43,6 +112,7 @@ describe('PvP socket flow', () => {
           state: 'waiting',
           mode: 'pvp',
           playerEmperorIndices: [emperorIndex, -1],
+          playerDeckDefinitions: [deck ?? null, null],
         };
         sessions.set(session.id, session);
         return session;
@@ -104,23 +174,31 @@ describe('PvP socket flow', () => {
 
   it('first PvP player creates a waiting room and receives game:pvpWaiting', () => {
     const socket1 = connectSocket('s1');
-    socket1.trigger('game:pvpJoin', { emperorIndex: 0 });
+    const deck = makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[3]);
+    socket1.trigger('game:pvpJoin', { emperorIndex: 3, deck });
 
-    expect(gameManager.createPvpWaiting).toHaveBeenCalledWith(0);
+    expect(gameManager.createPvpWaiting).toHaveBeenCalledWith(3, deck);
     expect(socket1.emit).toHaveBeenCalledWith('game:pvpWaiting', expect.objectContaining({ gameId: expect.any(String) }));
   });
 
   it('second PvP player joins the waiting room and both receive game events', () => {
     const socket1 = connectSocket('s1');
-    socket1.trigger('game:pvpJoin', { emperorIndex: 0 });
+    const player0Deck = makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[3]);
+    socket1.trigger('game:pvpJoin', { emperorIndex: 3, deck: player0Deck });
 
     const socket2 = connectSocket('s2');
-    socket2.trigger('game:pvpJoin', { emperorIndex: 2 });
+    const player1Deck = makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[6]);
+    socket2.trigger('game:pvpJoin', { emperorIndex: 6, deck: player1Deck });
 
     // Player 2 receives game:joined
     expect(socket2.emit).toHaveBeenCalledWith('game:joined', expect.objectContaining({
       playerIndex: 1,
     }));
+
+    const session = Array.from(sessions.values())[0] as GameSession & {
+      playerDeckDefinitions?: [DeckDefinition | null, DeckDefinition | null];
+    };
+    expect(session.playerDeckDefinitions).toEqual([player0Deck, player1Deck]);
 
     // Player 1 receives game:joined via io.to
     const joinedEmit = ioEmits.find(e => e.event === 'game:joined');
@@ -133,10 +211,10 @@ describe('PvP socket flow', () => {
 
   it('PvP game state is broadcast to both players after match', () => {
     const socket1 = connectSocket('s1');
-    socket1.trigger('game:pvpJoin', { emperorIndex: 0 });
+    socket1.trigger('game:pvpJoin', { emperorIndex: 3, deck: makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[3]) });
 
     const socket2 = connectSocket('s2');
-    socket2.trigger('game:pvpJoin', { emperorIndex: 1 });
+    socket2.trigger('game:pvpJoin', { emperorIndex: 6, deck: makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[6]) });
 
     // game:state should be broadcast to the room
     const stateEmits = ioEmits.filter(e => e.event === 'game:state');
@@ -145,7 +223,7 @@ describe('PvP socket flow', () => {
 
   it('disconnect during PvP waiting cleans up and marks session finished', () => {
     const socket1 = connectSocket('s1');
-    socket1.trigger('game:pvpJoin', { emperorIndex: 0 });
+    socket1.trigger('game:pvpJoin', { emperorIndex: 3, deck: makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[3]) });
 
     // Simulate disconnect
     socket1.trigger('disconnect');
@@ -156,10 +234,10 @@ describe('PvP socket flow', () => {
 
   it('disconnect during active PvP game notifies opponent with game:over', () => {
     const socket1 = connectSocket('s1');
-    socket1.trigger('game:pvpJoin', { emperorIndex: 0 });
+    socket1.trigger('game:pvpJoin', { emperorIndex: 3, deck: makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[3]) });
 
     const socket2 = connectSocket('s2');
-    socket2.trigger('game:pvpJoin', { emperorIndex: 1 });
+    socket2.trigger('game:pvpJoin', { emperorIndex: 6, deck: makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[6]) });
 
     // Player 1 disconnects
     socket1.trigger('disconnect');
@@ -173,11 +251,41 @@ describe('PvP socket flow', () => {
 
   it('game:pvpCancel cleans up waiting room and destroys session', () => {
     const socket1 = connectSocket('s1');
-    socket1.trigger('game:pvpJoin', { emperorIndex: 0 });
+    socket1.trigger('game:pvpJoin', { emperorIndex: 3, deck: makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[3]) });
 
     // Player cancels while waiting
     socket1.trigger('game:pvpCancel');
 
     expect(gameManager.destroyGame).toHaveBeenCalled();
+  });
+
+  it('rejects an invalid PvE custom deck with game:error', () => {
+    const socket = connectSocket('pve-player');
+    const invalidDeck = {
+      ...makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[0]),
+      emperorCardId: ALL_EMPEROR_DATA_LIST[1].emperorCard.id,
+    };
+
+    socket.trigger('game:join', { emperorIndex: 0, deck: invalidDeck });
+
+    expect(socket.emit).toHaveBeenCalledWith('game:error', expect.objectContaining({
+      code: 'INVALID_DECK',
+    }));
+    expect(gameManager.createGame).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid PvP custom deck with game:error', () => {
+    const socket = connectSocket('pvp-player');
+    const invalidDeck = {
+      ...makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[0]),
+      emperorCardId: ALL_EMPEROR_DATA_LIST[1].emperorCard.id,
+    };
+
+    socket.trigger('game:pvpJoin', { emperorIndex: 0, deck: invalidDeck });
+
+    expect(socket.emit).toHaveBeenCalledWith('game:error', expect.objectContaining({
+      code: 'INVALID_DECK',
+    }));
+    expect(gameManager.createPvpWaiting).not.toHaveBeenCalled();
   });
 });

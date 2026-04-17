@@ -1,7 +1,76 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ALL_EMPEROR_DATA_LIST, CHINA_EMPEROR_DATA_LIST, USA_EMPEROR_DATA_LIST } from '@king-card/core';
+import { ALL_CARDS, ALL_EMPEROR_DATA_LIST, CHINA_EMPEROR_DATA_LIST, GameEngine, USA_EMPEROR_DATA_LIST } from '@king-card/core';
+import {
+  GAME_CONSTANTS,
+  getDeckCopyLimit,
+  getEditableDeckSize,
+  materializeDeckCards,
+  type DeckDefinition,
+  type EmperorData,
+} from '@king-card/shared';
 import { buildDeck, getRandomAiEmperorIndex } from '../src/deckBuilder.js';
 import { GameManager } from '../src/gameManager.js';
+
+function makeCustomDeckDefinition(emperorData: EmperorData): DeckDefinition {
+  const excludedCardIds = new Set([
+    ...emperorData.boundGenerals.map((card) => card.id),
+    ...emperorData.boundSorceries.map((card) => card.id),
+  ]);
+  const editableDeckSize = getEditableDeckSize(emperorData);
+  const pool = ALL_CARDS.filter(
+    (card) =>
+      (card.civilization === emperorData.emperorCard.civilization || card.civilization === 'NEUTRAL')
+      && !excludedCardIds.has(card.id),
+  );
+  const orderedPool = [
+    ...pool.filter((card) => card.type === 'MINION' || card.type === 'STRATAGEM'),
+    ...pool.filter((card) => card.type === 'GENERAL'),
+    ...pool.filter((card) => card.type === 'SORCERY'),
+    ...pool.filter((card) => card.type === 'EMPEROR'),
+  ];
+  const mainCardIds: string[] = [];
+  const copyCounts = new Map<string, number>();
+  let generalCount = 0;
+  let sorceryCount = 0;
+  let emperorCount = 1;
+
+  for (const card of orderedPool) {
+    const remainingTypeLimit =
+      card.type === 'GENERAL'
+        ? GAME_CONSTANTS.GENERAL_DECK_LIMIT - generalCount
+        : card.type === 'SORCERY'
+          ? GAME_CONSTANTS.SORCERY_DECK_LIMIT - sorceryCount
+          : card.type === 'EMPEROR'
+            ? GAME_CONSTANTS.EMPEROR_SOFT_LIMIT - emperorCount
+            : getDeckCopyLimit(card);
+    const allowedCopies = Math.min(getDeckCopyLimit(card), Math.max(remainingTypeLimit, 0));
+
+    for (let count = copyCounts.get(card.id) ?? 0; count < allowedCopies && mainCardIds.length < editableDeckSize; count++) {
+      mainCardIds.push(card.id);
+      copyCounts.set(card.id, count + 1);
+
+      if (card.type === 'GENERAL') {
+        generalCount += 1;
+      } else if (card.type === 'SORCERY') {
+        sorceryCount += 1;
+      } else if (card.type === 'EMPEROR') {
+        emperorCount += 1;
+      }
+    }
+
+    if (mainCardIds.length === editableDeckSize) {
+      break;
+    }
+  }
+
+  return {
+    id: `${emperorData.emperorCard.id}-custom`,
+    name: `${emperorData.emperorCard.name} 自定义套牌`,
+    civilization: emperorData.emperorCard.civilization,
+    emperorCardId: emperorData.emperorCard.id,
+    mainCardIds: mainCardIds.reverse(),
+  };
+}
 
 describe('buildDeck', () => {
   it('returns exactly 30 cards', () => {
@@ -182,5 +251,40 @@ describe('GameManager', () => {
     const state = session.engine.getGameState();
     expect(state.players[0].hand.length).toBeGreaterThan(0);
     expect(state.players[1].hand.length).toBeGreaterThan(0);
+  });
+
+  it('createGame stores a custom deck definition and materializes it for PvE', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const createSpy = vi.spyOn(GameEngine, 'create');
+    const emperorData = ALL_EMPEROR_DATA_LIST[3];
+    const customDeck = makeCustomDeckDefinition(emperorData);
+
+    const session = (manager as any).createGame('pve', 3, customDeck);
+
+    expect((session as any).playerDeckDefinitions).toEqual([customDeck, null]);
+    expect(createSpy).toHaveBeenCalledWith(
+      materializeDeckCards(customDeck, ALL_CARDS, emperorData),
+      expect.any(Array),
+      emperorData,
+      ALL_EMPEROR_DATA_LIST[0],
+    );
+  });
+
+  it('initializePvpEngine materializes stored custom decks for both PvP players', () => {
+    const createSpy = vi.spyOn(GameEngine, 'create');
+    const player0Deck = makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[3]);
+    const player1Deck = makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[6]);
+    const session = (manager as any).createPvpWaiting(3, player0Deck);
+    session.playerEmperorIndices[1] = 6;
+    (session as any).playerDeckDefinitions = [player0Deck, player1Deck];
+
+    manager.initializePvpEngine(session);
+
+    expect(createSpy).toHaveBeenCalledWith(
+      materializeDeckCards(player0Deck, ALL_CARDS, ALL_EMPEROR_DATA_LIST[3]),
+      materializeDeckCards(player1Deck, ALL_CARDS, ALL_EMPEROR_DATA_LIST[6]),
+      ALL_EMPEROR_DATA_LIST[3],
+      ALL_EMPEROR_DATA_LIST[6],
+    );
   });
 });
