@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLocaleStore } from './localeStore.js';
 import type { SerializedGameState, ValidAction } from './gameStore.js';
-import type { TargetRef, HeroSkill, HeroState } from '@king-card/shared';
+import type { DeckDefinition, TargetRef, HeroSkill, HeroState } from '@king-card/shared';
 
 const stubHeroSkill: HeroSkill = {
   name: '',
@@ -91,6 +91,17 @@ function createGameState(
   };
 }
 
+function createDeck(overrides: Partial<DeckDefinition> = {}): DeckDefinition {
+  return {
+    id: 'deck-1',
+    name: '测试套牌',
+    civilization: 'CHINA',
+    emperorCardId: 'china_qin_shihuang',
+    mainCardIds: Array.from({ length: 26 }, (_, index) => `card-${index}`),
+    ...overrides,
+  };
+}
+
 describe('gameStore', () => {
   beforeEach(() => {
     useGameStore.getState()._reset();
@@ -165,6 +176,28 @@ describe('gameStore', () => {
       instanceId: 'general-1',
       skillIndex: 2,
       target,
+    });
+  });
+
+  it('emits the selected deck when joining a pve game', () => {
+    const deck = createDeck();
+
+    useGameStore.getState().joinGame(2, deck);
+
+    expect(emit).toHaveBeenCalledWith('game:join', {
+      emperorIndex: 2,
+      deck,
+    });
+  });
+
+  it('emits the selected deck when joining pvp matchmaking', () => {
+    const deck = createDeck({ emperorCardId: 'germany_friedrich' });
+
+    useGameStore.getState().joinPvp(7, deck);
+
+    expect(emit).toHaveBeenCalledWith('game:pvpJoin', {
+      emperorIndex: 7,
+      deck,
     });
   });
 
