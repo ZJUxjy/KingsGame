@@ -30,6 +30,7 @@ function readJson(relativePath: string) {
   return JSON.parse(
     readFileSync(new URL(relativePath, import.meta.url), 'utf8'),
   ) as {
+    extends?: string;
     compilerOptions?: {
       baseUrl?: string;
       paths?: Record<string, string[]>;
@@ -103,31 +104,39 @@ describe('workspace alias configuration', () => {
     expect(allowedDirs).toEqual(expect.arrayContaining(expectedAllowedDirs));
   });
 
-  it('uses reference-aware package builds for fresh worktrees', () => {
+  it('uses isolated package builds for fresh worktrees', () => {
     const clientTsconfig = readJson('../../tsconfig.json');
     const coreTsconfig = readJson('../../../core/tsconfig.json');
     const serverTsconfig = readJson('../../../server/tsconfig.json');
     const sharedTsconfig = readJson('../../../shared/tsconfig.json');
+    const clientBuildTsconfig = readJson('../../tsconfig.build.json');
+    const coreBuildTsconfig = readJson('../../../core/tsconfig.build.json');
+    const serverBuildTsconfig = readJson('../../../server/tsconfig.build.json');
+    const sharedBuildTsconfig = readJson('../../../shared/tsconfig.build.json');
     const clientPackageJson = readJson('../../package.json');
     const corePackageJson = readJson('../../../core/package.json');
     const serverPackageJson = readJson('../../../server/package.json');
     const sharedPackageJson = readJson('../../../shared/package.json');
 
-    expect(clientTsconfig.references).toEqual([
-      { path: '../shared' },
-      { path: '../core' },
-    ]);
-    expect(coreTsconfig.references).toEqual([{ path: '../shared' }]);
-    expect(serverTsconfig.references).toEqual([
-      { path: '../shared' },
-      { path: '../core' },
-    ]);
+    expect(clientTsconfig.references).toBeUndefined();
+    expect(coreTsconfig.references).toBeUndefined();
+    expect(serverTsconfig.references).toBeUndefined();
     expect(sharedTsconfig.references).toBeUndefined();
 
-    expect(clientPackageJson.scripts?.build).toBe('tsc -b --force && vite build');
-    expect(corePackageJson.scripts?.build).toBe('tsc -b --force');
-    expect(serverPackageJson.scripts?.build).toBe('tsc -b --force');
-    expect(sharedPackageJson.scripts?.build).toBe('tsc -b --force');
+    expect(clientBuildTsconfig.extends).toBe('./tsconfig.json');
+    expect(coreBuildTsconfig.extends).toBe('./tsconfig.json');
+    expect(serverBuildTsconfig.extends).toBe('./tsconfig.json');
+    expect(sharedBuildTsconfig.extends).toBe('./tsconfig.json');
+
+    expect(clientBuildTsconfig.compilerOptions?.paths).toEqual({});
+    expect(coreBuildTsconfig.compilerOptions?.paths).toEqual({});
+    expect(serverBuildTsconfig.compilerOptions?.paths).toEqual({});
+    expect(sharedBuildTsconfig.compilerOptions?.paths).toEqual({});
+
+    expect(clientPackageJson.scripts?.build).toBe('tsc -p tsconfig.build.json && vite build');
+    expect(corePackageJson.scripts?.build).toBe('tsc -p tsconfig.build.json');
+    expect(serverPackageJson.scripts?.build).toBe('tsc -p tsconfig.build.json');
+    expect(sharedPackageJson.scripts?.build).toBe('tsc -p tsconfig.build.json');
   });
 
   it('keeps the shared workspace resolution helper aligned with repository paths', () => {
