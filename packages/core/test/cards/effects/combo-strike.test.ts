@@ -18,6 +18,7 @@ function makeCardInstance(overrides: Partial<CardInstance> & { card: CardInstanc
     remainingAttacks: 0,
     justPlayed: true,
     sleepTurns: 0,
+    frozenTurns: 0,
     garrisonTurns: 0,
     usedGeneralSkills: 0,
     buffs: [],

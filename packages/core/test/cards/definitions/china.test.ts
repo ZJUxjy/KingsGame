@@ -356,11 +356,10 @@ describe('China Card Definitions', () => {
     expect(card.keywords).toContain('BATTLECRY');
   });
 
-  it('Huoqubing should have RUSH, CHARGE, and COMBO_STRIKE', () => {
+  it('Huoqubing should have RUSH and CHARGE', () => {
     const card = CHINA_GENERALS.find((c) => c.id === 'china_huoqubing')!;
     expect(card.keywords).toContain('RUSH');
     expect(card.keywords).toContain('CHARGE');
-    expect(card.keywords).toContain('COMBO_STRIKE');
   });
 
   it('Weiqing should have TAUNT', () => {

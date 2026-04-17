@@ -13,20 +13,20 @@ import {
 } from '../../../src/cards/definitions/index.js';
 
 describe('Japan Card Definitions', () => {
-  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 8 minions + 4 stratagems + 6 sorceries = 36 ───
+  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 10 minions + 4 stratagems + 6 sorceries = 38 ───
 
-  it('should have exactly 36 entities (27 Card + 9 Minister)', () => {
+  it('should have exactly 38 entities (29 Card + 9 Minister)', () => {
     const count = JAPAN_MINIONS.length
       + JAPAN_STRATAGEMS.length
       + JAPAN_SORCERIES.length
       + JAPAN_EMPERORS.length
       + JAPAN_GENERALS.length
       + JAPAN_MINISTERS.length;
-    expect(count).toBe(36);
+    expect(count).toBe(38);
   });
 
-  it('JAPAN_ALL_CARDS should contain all 27 Card objects', () => {
-    expect(JAPAN_ALL_CARDS).toHaveLength(27);
+  it('JAPAN_ALL_CARDS should contain all 29 Card objects', () => {
+    expect(JAPAN_ALL_CARDS).toHaveLength(29);
   });
 
   // ─── Unique IDs ───────────────────────────────────────────────────
@@ -67,7 +67,7 @@ describe('Japan Card Definitions', () => {
   describe('Card type counts', () => {
     it('should have 3 emperors', () => { expect(JAPAN_EMPERORS).toHaveLength(3); });
     it('should have 6 generals', () => { expect(JAPAN_GENERALS).toHaveLength(6); });
-    it('should have 8 minions', () => { expect(JAPAN_MINIONS).toHaveLength(8); });
+    it('should have 10 minions', () => { expect(JAPAN_MINIONS).toHaveLength(10); });
     it('should have 4 stratagems', () => { expect(JAPAN_STRATAGEMS).toHaveLength(4); });
     it('should have 6 sorceries', () => { expect(JAPAN_SORCERIES).toHaveLength(6); });
   });

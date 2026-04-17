@@ -10,8 +10,8 @@ export const HUOQUBING = china.general({
   attack: 6,
   health: 6,
   description:
-    '突袭、冲锋、连击。技能①长驱直入：对一个敌方生物造成6点伤害。技能②封狼居胥：+3/+3并获得连击。技能③冠军侯：所有友方生物获得冲锋（本回合）。',
-  keywords: ['RUSH', 'CHARGE', 'COMBO_STRIKE'],
+    '突袭、冲锋。技能①长驱直入：对一个敌方生物造成6点伤害。技能②封狼居胥：+3/+3并获得连击。技能③冠军侯：所有友方生物获得冲锋（本回合）。',
+  keywords: ['RUSH', 'CHARGE'],
   generalSkills: [
     china.generalSkill({
       name: '长驱直入',

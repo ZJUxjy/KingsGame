@@ -525,6 +525,10 @@ const TEXT_RESOURCE_TABLE: Record<string, Partial<Record<SupportedLocale, string
   '忍杀：击杀随从后可额外攻击一次。': { 'en-US': 'Assassin: After killing a minion, may attack once more.' },
   '影の忍': { 'en-US': 'Shadow Shinobi' },
   '忍杀。突袭。': { 'en-US': 'Assassin. Rush.' },
+  '剣聖': { 'en-US': 'Kensei' },
+  '连斩：击杀后可继续攻击。': { 'en-US': 'Combo Strike: After a kill, may continue attacking.' },
+  '浪人剣客': { 'en-US': 'Ronin Blade' },
+  '连斩。': { 'en-US': 'Combo Strike.' },
 };
 
 function localizeText(text: string, locale: SupportedLocale = DEFAULT_LOCALE): string {

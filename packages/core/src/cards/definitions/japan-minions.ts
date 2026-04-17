@@ -98,6 +98,28 @@ export const KAGE_NO_SHINOBI = japan.minion({
   keywords: ['ASSASSIN', 'RUSH'],
 });
 
+export const KENSEI = japan.minion({
+  slug: 'kensei',
+  name: '剣聖',
+  rarity: 'EPIC',
+  cost: 6,
+  attack: 5,
+  health: 4,
+  description: '连斩：击杀后可继续攻击。',
+  keywords: ['COMBO_STRIKE'],
+});
+
+export const RONIN_BLADE = japan.minion({
+  slug: 'ronin_blade',
+  name: '浪人剣客',
+  rarity: 'RARE',
+  cost: 4,
+  attack: 4,
+  health: 3,
+  description: '连斩。',
+  keywords: ['COMBO_STRIKE'],
+});
+
 export const JAPAN_MINIONS: Card[] = [
   ASHIGARU,
   NINJA,
@@ -107,4 +129,6 @@ export const JAPAN_MINIONS: Card[] = [
   MUSHA,
   NINJA_ASSASSIN,
   KAGE_NO_SHINOBI,
+  KENSEI,
+  RONIN_BLADE,
 ];
