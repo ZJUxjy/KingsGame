@@ -5,6 +5,7 @@ import Lobby from './components/lobby/Lobby.js';
 import HeroSelect from './components/lobby/HeroSelect.js';
 import PvpWaiting from './components/lobby/PvpWaiting.js';
 import GameBoard from './components/board/GameBoard.js';
+import { ErrorBoundary } from './components/board/ErrorBoundary.js';
 import CollectionPage from './components/collection/CollectionPage.js';
 import DeckBuilderPage from './components/deck/DeckBuilderPage.js';
 import { LocaleSwitcher } from './components/shared/LocaleSwitcher.js';
@@ -74,7 +75,7 @@ export default function App() {
       case 'pvp-waiting':
         return <PvpWaiting />;
       case 'playing':
-        return <GameBoard />;
+        return <ErrorBoundary><GameBoard /></ErrorBoundary>;
       case 'game-over':
         return <GameOverScreen />;
       case 'collection':
