@@ -56,6 +56,8 @@ function HandZoneInner({
   const onPlayCardRef = useRef(onPlayCard);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [snapBackIndex, setSnapBackIndex] = useState<number | null>(null);
 
   useEffect(() => {
     onPlayCardRef.current = onPlayCard;
@@ -123,11 +125,18 @@ function HandZoneInner({
 
       if (current.dragging && releasedAboveHand) {
         onPlayCardRef.current?.(current.index);
+        dragStateRef.current = null;
+        setDraggingIndex(null);
+        setDragPosition(null);
+      } else {
+        // Snap-back animation
+        const cancelIndex = current.index;
+        dragStateRef.current = null;
+        setDraggingIndex(null);
+        setDragPosition(null);
+        setSnapBackIndex(cancelIndex);
+        setTimeout(() => setSnapBackIndex(null), 300);
       }
-
-      dragStateRef.current = null;
-      setDraggingIndex(null);
-      setDragPosition(null);
     };
 
     window.addEventListener('pointermove', handlePointerMove);
@@ -154,11 +163,16 @@ function HandZoneInner({
         const playable = isPlayable(i);
         const isDragging = draggingIndex === i && dragPosition !== null;
         const dragState = dragStateRef.current;
+        const isHovered = hoveredIndex === i && draggingIndex === null;
 
         return (
           <div
             key={i}
-            className={`absolute transition-all duration-200 ease-out ${isDragging ? 'pointer-events-none z-50 transition-none' : ''}`}
+            className={`absolute ${
+              isDragging ? 'pointer-events-none z-50 transition-none' :
+              snapBackIndex === i ? 'transition-all duration-300 ease-out opacity-60' :
+              'transition-all duration-200 ease-out'
+            }`}
             style={{
               position: isDragging ? 'fixed' : 'absolute',
               left: isDragging && dragState ? dragPosition.x - dragState.offsetX : '50%',
@@ -170,20 +184,16 @@ function HandZoneInner({
               marginTop: isDragging ? 0 : -86,
               transform: isDragging
                 ? `rotate(${Math.max(-10, Math.min(10, (dragPosition.x - width / 2) / 80))}deg) scale(1.08)`
-                : `translateX(${t.x}px) translateY(${t.y}px) rotate(${t.rotation}deg)`,
-              zIndex: isDragging ? cards.length + 20 : t.zIndex,
+                : isHovered
+                  ? `translateX(${t.x}px) translateY(${t.y - 15}px) rotate(${t.rotation}deg) scale(1.08)`
+                  : `translateX(${t.x}px) translateY(${t.y}px) rotate(${t.rotation}deg)`,
+              zIndex: isDragging ? cards.length + 20 : isHovered ? cards.length + 1 : t.zIndex,
             }}
-            onMouseEnter={(e) => {
-              if (isDragging) return;
-              const el = e.currentTarget;
-              el.style.transform = `translateX(${t.x}px) translateY(${t.y - 15}px) rotate(${t.rotation}deg) scale(1.08)`;
-              el.style.zIndex = String(cards.length + 1);
+            onMouseEnter={() => {
+              if (draggingIndex === null) setHoveredIndex(i);
             }}
-            onMouseLeave={(e) => {
-              if (isDragging) return;
-              const el = e.currentTarget;
-              el.style.transform = `translateX(${t.x}px) translateY(${t.y}px) rotate(${t.rotation}deg)`;
-              el.style.zIndex = String(t.zIndex);
+            onMouseLeave={() => {
+              if (hoveredIndex === i) setHoveredIndex(null);
             }}
           >
             {isOpponent ? (
