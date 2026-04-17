@@ -165,6 +165,10 @@ export default function GameBoard() {
   // Turn overlay state
   const [overlayText, setOverlayText] = useState<string | null>(null);
 
+  // Drag state for insertion slots
+  const [isDraggingCard, setIsDraggingCard] = useState(false);
+  const [hoveredSlotIndex, setHoveredSlotIndex] = useState<number | null>(null);
+
   // Animation state derived from game state diffs
   const { animationMap, pendingRemovals } = useAnimations(gameState);
 
@@ -263,9 +267,10 @@ export default function GameBoard() {
 
   const handlePlayCardFromHand = useCallback((handIndex: number) => {
     if (validPlayIndices.has(handIndex)) {
-      playCard(handIndex);
+      playCard(handIndex, hoveredSlotIndex ?? undefined);
+      setHoveredSlotIndex(null);
     }
-  }, [playCard, validPlayIndices]);
+  }, [playCard, validPlayIndices, hoveredSlotIndex]);
 
   // --- Early return ---
   if (!gameState) {
@@ -426,6 +431,9 @@ export default function GameBoard() {
               onTargetHover={(instanceId) => {
                 setHoveredTarget(instanceId ? { type: 'MINION', instanceId } : null);
               }}
+              showInsertionSlots={isDraggingCard}
+              hoveredSlotIndex={hoveredSlotIndex}
+              onSlotHover={setHoveredSlotIndex}
             />
           </div>
 
@@ -474,6 +482,8 @@ export default function GameBoard() {
               cards={me.hand}
               onPlayCard={handlePlayCardFromHand}
               validPlayIndices={validPlayIndices}
+              onDragStart={() => setIsDraggingCard(true)}
+              onDragEnd={() => { setIsDraggingCard(false); setHoveredSlotIndex(null); }}
             />
           </div>
         </div>

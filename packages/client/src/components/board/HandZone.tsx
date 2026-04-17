@@ -9,6 +9,8 @@ interface HandZoneProps {
   containerWidth?: number;
   onPlayCard?: (index: number) => void;
   validPlayIndices?: Set<number>;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 }
 
 const DEFAULT_CONTAINER_WIDTH = 800;
@@ -20,6 +22,8 @@ function HandZoneInner({
   containerWidth,
   onPlayCard,
   validPlayIndices,
+  onDragStart,
+  onDragEnd,
 }: HandZoneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [measuredWidth, setMeasuredWidth] = useState<number>(
@@ -54,6 +58,7 @@ function HandZoneInner({
     dragging: boolean;
   } | null>(null);
   const onPlayCardRef = useRef(onPlayCard);
+  const onDragEndRef = useRef(onDragEnd);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -62,6 +67,10 @@ function HandZoneInner({
   useEffect(() => {
     onPlayCardRef.current = onPlayCard;
   }, [onPlayCard]);
+
+  useEffect(() => {
+    onDragEndRef.current = onDragEnd;
+  }, [onDragEnd]);
 
   const isPlayable = useCallback(
     (index: number) => validPlayIndices?.has(index) ?? false,
@@ -91,8 +100,9 @@ function HandZoneInner({
       };
       setDraggingIndex(index);
       setDragPosition({ x: e.clientX, y: e.clientY });
+      onDragStart?.();
     },
-    [isOpponent, isPlayable],
+    [isOpponent, isPlayable, onDragStart],
   );
 
   useEffect(() => {
@@ -128,6 +138,7 @@ function HandZoneInner({
         dragStateRef.current = null;
         setDraggingIndex(null);
         setDragPosition(null);
+        onDragEndRef.current?.();
       } else {
         // Snap-back animation
         const cancelIndex = current.index;
@@ -136,6 +147,7 @@ function HandZoneInner({
         setDragPosition(null);
         setSnapBackIndex(cancelIndex);
         setTimeout(() => setSnapBackIndex(null), 300);
+        onDragEndRef.current?.();
       }
     };
 
