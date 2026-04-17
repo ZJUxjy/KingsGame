@@ -1,9 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import { HandZone } from './HandZone.js';
+import type { Card } from '@king-card/shared';
 
 // Minimal card fixture matching the props expected by HandZone / CardComponent
-function makeCard(overrides: Record<string, unknown> = {}) {
+function makeCard(overrides: Partial<Card> = {}): Card {
   return {
     id: 'card-1',
     name: '步兵',
@@ -13,10 +14,11 @@ function makeCard(overrides: Record<string, unknown> = {}) {
     health: 3,
     rarity: 'COMMON',
     keywords: [],
+    effects: [],
     description: '一个普通步兵',
     civilization: 'CHINA',
     ...overrides,
-  };
+  } as Card;
 }
 
 // Stub ResizeObserver (jsdom doesn't implement it)

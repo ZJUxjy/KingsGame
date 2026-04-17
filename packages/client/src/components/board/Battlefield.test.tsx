@@ -1,14 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { Battlefield } from './Battlefield.js';
+import type { CardInstance } from '@king-card/shared';
 
-function makeMinion(id: string, overrides: Record<string, unknown> = {}) {
+function makeMinion(id: string, overrides: Partial<CardInstance> = {}): CardInstance {
   return {
     instanceId: id,
+    ownerIndex: 0,
     currentAttack: 3,
     currentHealth: 4,
     currentMaxHealth: 4,
+    remainingAttacks: 1,
+    justPlayed: false,
+    sleepTurns: 0,
     garrisonTurns: 0,
+    usedGeneralSkills: 0,
+    buffs: [],
     card: {
       id: `card-${id}`,
       name: `随从${id}`,
@@ -18,11 +25,12 @@ function makeMinion(id: string, overrides: Record<string, unknown> = {}) {
       health: 4,
       rarity: 'COMMON',
       keywords: [],
+      effects: [],
       description: '',
       civilization: 'CHINA',
     },
     ...overrides,
-  };
+  } as CardInstance;
 }
 
 describe('Battlefield target highlighting', () => {
