@@ -1,7 +1,7 @@
 import type { Card } from '@king-card/shared';
 import { china, onDeath, onPlay } from '../builders/index.js';
 
-// ─── China Minion Cards (6) ─────────────────────────────────────────
+// ─── China Minion Cards (8) ─────────────────────────────────────────
 
 export const BINGMAYONG = china.minion({
   slug: 'bingmayong',
@@ -64,6 +64,26 @@ export const CHANGCHENG_SHOUWEI = china.minion({
   keywords: ['TAUNT'],
 });
 
+export const QINJUN_NUSHOU = china.minion({
+  slug: 'qinjun_nushou',
+  name: '秦军弩手',
+  rarity: 'COMMON',
+  cost: 2,
+  attack: 2,
+  health: 1,
+  description: '列阵齐射的秦军弩手。',
+});
+
+export const GUANZHONG_SHUBING = china.minion({
+  slug: 'guanzhong_shubing',
+  name: '关中戍兵',
+  rarity: 'COMMON',
+  cost: 4,
+  attack: 4,
+  health: 3,
+  description: '驻守边关的精锐士卒。',
+});
+
 export const JINJUN_TONGLING = china.minion({
   slug: 'jinjun_tongling',
   name: '禁军统领',
@@ -88,5 +108,7 @@ export const CHINA_MINIONS: Card[] = [
   HANCHAO_QIBING,
   DATANG_JINGRUI,
   CHANGCHENG_SHOUWEI,
+  QINJUN_NUSHOU,
+  GUANZHONG_SHUBING,
   JINJUN_TONGLING,
 ];

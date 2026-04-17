@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Card, Minister, EmperorData } from '@king-card/shared';
+import { getDeckCopyLimit, type Card, type Minister, type EmperorData } from '@king-card/shared';
 import {
   CHINA_MINIONS,
   CHINA_STRATAGEMS,
@@ -14,24 +14,39 @@ import {
   CHINA_EMPEROR_DATA_LIST,
 } from '../../../src/cards/definitions/index.js';
 
-describe('China Card Definitions', () => {
-  // ─── Total count: 3 emperors + 9 ministers + 2 generals + 6 minions + 4 stratagems + 2 sorceries = 26 ───
+function getQinLegalEditableCopyTotal(): number {
+  const excludedCardIds = new Set([
+    ...EMPEROR_QIN.boundGenerals.map((card) => card.id),
+    ...EMPEROR_QIN.boundSorceries.map((card) => card.id),
+  ]);
 
-  it('should have exactly 26 entities (17 Card + 9 Minister)', () => {
-    // Card objects: 6 minions + 4 stratagems + 2 sorceries + 3 emperors + 2 generals = 17
+  return CHINA_ALL_CARDS
+    .filter((card) => !excludedCardIds.has(card.id))
+    .reduce((total, card) => total + getDeckCopyLimit(card), 0);
+}
+
+describe('China Card Definitions', () => {
+  // ─── Total count: 3 emperors + 9 ministers + 2 generals + 8 minions + 4 stratagems + 2 sorceries = 28 ───
+
+  it('should have exactly 28 entities (19 Card + 9 Minister)', () => {
+    // Card objects: 8 minions + 4 stratagems + 2 sorceries + 3 emperors + 2 generals = 19
     // Minister objects: 9 (3 per emperor, separate from Card)
-    // Total "cards" in the card sense: 17 Card instances + 9 Minister = 26 game entities
+    // Total "cards" in the card sense: 19 Card instances + 9 Minister = 28 game entities
     const cardCount = CHINA_MINIONS.length
       + CHINA_STRATAGEMS.length
       + CHINA_SORCERIES.length
       + CHINA_EMPERORS.length
       + CHINA_GENERALS.length
       + CHINA_MINISTERS.length;
-    expect(cardCount).toBe(26);
+    expect(cardCount).toBe(28);
   });
 
-  it('CHINA_ALL_CARDS should contain all 17 Card objects', () => {
-    expect(CHINA_ALL_CARDS).toHaveLength(17);
+  it('CHINA_ALL_CARDS should contain all 19 Card objects', () => {
+    expect(CHINA_ALL_CARDS).toHaveLength(19);
+  });
+
+  it('Qin should have at least 27 legal editable copies after excluding bound cards', () => {
+    expect(getQinLegalEditableCopyTotal()).toBeGreaterThanOrEqual(27);
   });
 
   // ─── Unique IDs ───────────────────────────────────────────────────
@@ -67,11 +82,11 @@ describe('China Card Definitions', () => {
     }
   });
 
-  // ─── Minion Cards (6) ─────────────────────────────────────────────
+  // ─── Minion Cards (8) ─────────────────────────────────────────────
 
   describe('Minions', () => {
-    it('should have exactly 6 minion cards', () => {
-      expect(CHINA_MINIONS).toHaveLength(6);
+    it('should have exactly 8 minion cards', () => {
+      expect(CHINA_MINIONS).toHaveLength(8);
     });
 
     it('all minions should be type MINION', () => {
