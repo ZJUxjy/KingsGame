@@ -407,6 +407,25 @@ export function executeCardEffects(trigger: CardEffect['trigger'], ctx: EffectCo
         (ctx.state.players[ctx.playerIndex] as any).costReduction += amount;
         break;
       }
+      case 'SACRIFICE': {
+        const battlefield = ctx.state.players[ctx.playerIndex].battlefield;
+        if (battlefield.length === 0) break;
+        // Find weakest (lowest attack), excluding the source itself
+        const candidates = battlefield.filter(m => m.instanceId !== ctx.source.instanceId);
+        if (candidates.length === 0) break;
+        const weakest = candidates.reduce((min, m) =>
+          m.currentAttack < min.currentAttack ? m : min, candidates[0]);
+        ctx.mutator.destroyMinion(weakest.instanceId);
+        // Apply bonuses from params to source
+        const attackBonus = getNumericParam(effect.params, 'attackBonus', 0);
+        const healthBonus = getNumericParam(effect.params, 'healthBonus', 0);
+        const source = findSourceOnBattlefield(ctx);
+        if (source) {
+          if (attackBonus) ctx.mutator.modifyStat({ type: 'MINION', instanceId: source.instanceId }, 'attack', attackBonus);
+          if (healthBonus) ctx.mutator.modifyStat({ type: 'MINION', instanceId: source.instanceId }, 'health', healthBonus);
+        }
+        break;
+      }
       default:
         break;
     }
