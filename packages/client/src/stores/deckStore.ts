@@ -1,5 +1,6 @@
 import { ALL_CARDS, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
 import {
+  GAME_CONSTANTS,
   getDeckCopyLimit,
   getEditableDeckSize,
   type DeckDefinition,
@@ -156,6 +157,9 @@ function createStarterDeck(emperorData: EmperorData): DeckDefinition {
     pool.map((card) => [card.id, getDeckCopyLimit(card)]),
   );
   const mainCardIds: string[] = [];
+  let remainingGeneralSlots = GAME_CONSTANTS.GENERAL_DECK_LIMIT;
+  let remainingSorcerySlots = GAME_CONSTANTS.SORCERY_DECK_LIMIT;
+  let remainingEmperorSlots = GAME_CONSTANTS.EMPEROR_SOFT_LIMIT - 1;
 
   while (mainCardIds.length < editableDeckSize) {
     let addedCardThisPass = false;
@@ -166,8 +170,33 @@ function createStarterDeck(emperorData: EmperorData): DeckDefinition {
         continue;
       }
 
+      if (card.type === 'GENERAL' && remainingGeneralSlots <= 0) {
+        continue;
+      }
+
+      if (card.type === 'SORCERY' && remainingSorcerySlots <= 0) {
+        continue;
+      }
+
+      if (card.type === 'EMPEROR' && remainingEmperorSlots <= 0) {
+        continue;
+      }
+
       mainCardIds.push(card.id);
       remainingCopiesByCardId.set(card.id, remainingCopies - 1);
+
+      if (card.type === 'GENERAL') {
+        remainingGeneralSlots -= 1;
+      }
+
+      if (card.type === 'SORCERY') {
+        remainingSorcerySlots -= 1;
+      }
+
+      if (card.type === 'EMPEROR') {
+        remainingEmperorSlots -= 1;
+      }
+
       addedCardThisPass = true;
 
       if (mainCardIds.length === editableDeckSize) {

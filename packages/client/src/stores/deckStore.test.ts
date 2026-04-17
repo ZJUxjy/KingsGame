@@ -1,4 +1,4 @@
-import { ALL_CARDS, EMPEROR_QIN } from '@king-card/core';
+import { ALL_CARDS, ALL_EMPEROR_DATA_LIST, EMPEROR_QIN } from '@king-card/core';
 import { getDeckCopyLimit, validateDeckDefinition, type EmperorData } from '@king-card/shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DECK_STORAGE_KEY, useDeckStore } from './deckStore.js';
@@ -58,6 +58,18 @@ describe('deckStore', () => {
 
     const storedDecks = JSON.parse(window.localStorage.getItem(DECK_STORAGE_KEY) ?? '{}') as Record<string, typeof deck>;
     expect(storedDecks[EMPEROR_QIN.emperorCard.id]).toEqual(deck);
+  });
+
+  it('creates validator-legal starter decks for every supported emperor', () => {
+    for (const emperorData of ALL_EMPEROR_DATA_LIST) {
+      const deck = useDeckStore.getState().getOrCreateDeck(emperorData);
+      const validation = validateDeckDefinition(deck, ALL_CARDS, emperorData);
+
+      expect(validation, emperorData.emperorCard.id).toEqual({
+        ok: true,
+        issues: [],
+      });
+    }
   });
 
   it('throws instead of padding beyond copy limits when the legal starter pool is too small', async () => {
