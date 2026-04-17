@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SerializedGameState, ValidAction } from '../stores/gameStore.js';
 import type { HeroSkill, HeroState } from '@king-card/shared';
 import { useGameStore } from '../stores/gameStore.js';
+import { useLocaleStore } from '../stores/localeStore.js';
 
 type SocketListener = (...args: unknown[]) => void;
 
@@ -146,6 +147,7 @@ describe('useGameSocket', () => {
   beforeEach(() => {
     listeners.clear();
     useGameStore.getState()._reset();
+    useLocaleStore.setState({ locale: 'zh-CN' });
     vi.clearAllMocks();
     setSocketAvailable(false);
     mockSocketService.isConnected.mockReturnValue(false);
@@ -210,6 +212,16 @@ describe('useGameSocket', () => {
       getListener('game:error')({ code: 'INVALID_ACTION', message: 'Bad move' });
     });
 
+    expect(useGameStore.getState().error).toBe('发生错误');
+
+    act(() => {
+      useLocaleStore.setState({ locale: 'en-US' });
+    });
+
+    act(() => {
+      getListener('game:error')({ code: 'INVALID_ACTION', message: 'Bad move' });
+    });
+
     expect(useGameStore.getState().error).toBe('Bad move');
 
     act(() => {
@@ -240,6 +252,22 @@ describe('useGameSocket', () => {
     });
 
     expect(useGameStore.getState().uiPhase).toBe('pvp-waiting');
+  });
+
+  it('maps NOT_YOUR_TURN to zh-CN copy from error code, not raw English', () => {
+    renderHook(() => useGameSocket());
+
+    act(() => {
+      useGameStore.getState().connect('ws://test.example');
+    });
+
+    useLocaleStore.setState({ locale: 'zh-CN' });
+
+    act(() => {
+      getListener('game:error')({ code: 'NOT_YOUR_TURN', message: 'It is not your turn' });
+    });
+
+    expect(useGameStore.getState().error).toBe('当前不是你的回合');
   });
 
   it('transitions from pvp-waiting to playing when game:joined is received', () => {

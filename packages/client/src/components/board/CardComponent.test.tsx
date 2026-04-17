@@ -1,8 +1,12 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { fireEvent, render, screen, within, cleanup } from '@testing-library/react';
 import { CardComponent } from './CardComponent.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
 
-afterEach(() => { cleanup(); });
+afterEach(() => {
+  cleanup();
+  useLocaleStore.setState({ locale: 'zh-CN' });
+});
 
 function collectIds(root: Element): string[] {
   return Array.from(root.querySelectorAll('[id]'))
@@ -52,6 +56,13 @@ describe('CardComponent – card back', () => {
     expect(container.textContent).toContain('帝');
   });
 
+  it('renders localized card-back mark when locale is en-US', () => {
+    useLocaleStore.setState({ locale: 'en-US' });
+    const { container } = render(<CardComponent card={makeCard()} isHidden />);
+    expect(container.textContent).toContain('K');
+    expect(container.textContent).not.toContain('帝');
+  });
+
   it('creates unique SVG ids for duplicate hidden cards', () => {
     const { container } = render(
       <>
@@ -69,6 +80,18 @@ describe('CardComponent – card back', () => {
     expect(firstIds.length).toBeGreaterThan(0);
     expect(secondIds.length).toBeGreaterThan(0);
     expect(firstIds.filter((id) => secondIds.includes(id))).toHaveLength(0);
+  });
+});
+
+describe('CardComponent – locale', () => {
+  it('uses English type badge abbreviations when locale is en-US', () => {
+    useLocaleStore.setState({ locale: 'en-US' });
+    const { container } = render(
+      <CardComponent card={makeCard()} instance={makeInstance()} />,
+    );
+    const badge = within(container).getByTestId('card-type-badge');
+    expect(badge.textContent).not.toContain('兵');
+    expect(badge.textContent).toContain('M');
   });
 });
 

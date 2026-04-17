@@ -126,7 +126,7 @@ export function CardComponent({
           border: '2px solid var(--cardback-border)',
         }}
       >
-        <CardBackArtwork svgIdBase={svgIdBase} />
+        <CardBackArtwork svgIdBase={svgIdBase} locale={locale} />
       </div>
     );
   }

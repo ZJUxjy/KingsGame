@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useGameStore } from './stores/gameStore.js';
 import { useGameSocket } from './hooks/useGameSocket.js';
 import Lobby from './components/lobby/Lobby.js';
@@ -54,6 +55,12 @@ function GameOverScreen() {
 
 export default function App() {
   const uiPhase = useGameStore((s) => s.uiPhase);
+  const locale = useLocaleStore((s) => s.locale);
+
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.title = locale === 'en-US' ? 'King Card' : '帝王牌 - King Card';
+  }, [locale]);
 
   useGameSocket();
 

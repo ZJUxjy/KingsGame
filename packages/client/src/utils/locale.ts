@@ -1,6 +1,9 @@
-export const SUPPORTED_LOCALES = ['zh-CN', 'en-US'] as const;
+import type { SupportedUiLocale } from '@king-card/shared';
 
-export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+/** Client UI locale — aligned with `SupportedUiLocale` in `@king-card/shared`. */
+export type SupportedLocale = SupportedUiLocale;
+
+export const SUPPORTED_LOCALES = ['zh-CN', 'en-US'] as const satisfies readonly SupportedLocale[];
 
 export const DEFAULT_LOCALE: SupportedLocale = 'zh-CN';
 

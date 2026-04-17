@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HeroSelect from './HeroSelect.js';
 import { useGameStore } from '../../stores/gameStore.js';
+import { useLocaleStore } from '../../stores/localeStore.js';
+import { getCivilizationMeta } from '@king-card/shared';
 
 const initialState = useGameStore.getState();
 const lincolnIndex = ALL_EMPEROR_DATA_LIST.findIndex(
@@ -19,6 +21,7 @@ describe('HeroSelect', () => {
   beforeEach(() => {
     joinGame.mockReset();
     joinPvp.mockReset();
+    useLocaleStore.setState({ locale: 'zh-CN' });
     useGameStore.setState({
       ...initialState,
       connected: true,
@@ -32,6 +35,16 @@ describe('HeroSelect', () => {
   afterEach(() => {
     cleanup();
     useGameStore.setState(initialState, true);
+    useLocaleStore.setState({ locale: 'zh-CN' });
+  });
+
+  it('shows localized civilization names when locale is en-US', () => {
+    useLocaleStore.setState({ locale: 'en-US' });
+    render(<HeroSelect />);
+
+    const chinaName = getCivilizationMeta('CHINA', 'en-US').name;
+    expect(screen.getByRole('button', { name: new RegExp(chinaName) })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /华夏/ })).toBeNull();
   });
 
   it('shows all civilizations and reveals emperors only for the selected civilization', () => {

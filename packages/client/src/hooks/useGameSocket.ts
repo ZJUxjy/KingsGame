@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { socketService } from '../services/socketService.js';
 import { useGameStore } from '../stores/gameStore.js';
+import { useLocaleStore } from '../stores/localeStore.js';
+import { formatGameError } from '../utils/gameErrorMessage.js';
 import type { SerializedGameState, ValidAction } from '../stores/gameStore.js';
 import type { WinReason } from '@king-card/shared';
 
@@ -53,7 +55,9 @@ export function useGameSocket(): void {
     };
 
     const onGameError = (payload: { code: string; message: string }) => {
-      useGameStore.getState()._setError(payload.code, payload.message);
+      const locale = useLocaleStore.getState().locale;
+      const message = formatGameError(payload.code, payload.message, locale);
+      useGameStore.getState()._setError(payload.code, message);
     };
 
     const onPvpWaiting = (_payload: { gameId: string }) => {

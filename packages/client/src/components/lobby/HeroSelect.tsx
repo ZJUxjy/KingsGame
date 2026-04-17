@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ALL_EMPEROR_DATA_LIST } from '@king-card/core';
-import { CIVILIZATION_META, CIVILIZATION_ORDER, type Civilization } from '@king-card/shared';
+import { getCivilizationMeta, CIVILIZATION_ORDER, type Civilization } from '@king-card/shared';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { getCardDisplayText } from '../../utils/cardText.js';
@@ -37,8 +37,8 @@ export default function HeroSelect() {
   const emperorSectionTitle = selectedCivilization === null
     ? locale === 'en-US' ? 'Choose An Emperor' : '选择帝王'
     : locale === 'en-US'
-      ? `${CIVILIZATION_META[selectedCivilization].name} Emperors`
-      : `${CIVILIZATION_META[selectedCivilization].name} 帝王`;
+      ? `${getCivilizationMeta(selectedCivilization, locale).name} Emperors`
+      : `${getCivilizationMeta(selectedCivilization, locale).name} 帝王`;
   const emperorSectionIntro = selectedCivilization === null
     ? locale === 'en-US'
       ? 'Select a civilization above before locking in your emperor.'
@@ -96,7 +96,7 @@ export default function HeroSelect() {
 
         <div className="mb-10 grid w-full gap-5 md:grid-cols-2 xl:grid-cols-5">
           {CIVILIZATION_ORDER.map((civilization) => {
-            const meta = CIVILIZATION_META[civilization];
+            const meta = getCivilizationMeta(civilization, locale);
             const emperorCount = EMPEROR_OPTIONS.filter(
               ({ data }: EmperorOption) => data.emperorCard.civilization === civilization,
             ).length;
@@ -139,7 +139,7 @@ export default function HeroSelect() {
 
             {selectedCivilization !== null && (
               <div className="rounded-full border border-stone-600 px-4 py-2 text-sm text-stone-300">
-                {currentCivilizationLabel}: {CIVILIZATION_META[selectedCivilization].name}
+                {currentCivilizationLabel}: {getCivilizationMeta(selectedCivilization, locale).name}
               </div>
             )}
           </div>

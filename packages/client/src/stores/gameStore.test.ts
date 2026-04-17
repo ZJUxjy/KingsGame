@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useLocaleStore } from './localeStore.js';
 import type { SerializedGameState, ValidAction } from './gameStore.js';
 import type { TargetRef, HeroSkill, HeroState } from '@king-card/shared';
 
@@ -93,7 +94,9 @@ function createGameState(
 describe('gameStore', () => {
   beforeEach(() => {
     useGameStore.getState()._reset();
+    useLocaleStore.setState({ locale: 'zh-CN' });
     vi.clearAllMocks();
+    mockSocketService.connect.mockImplementation(() => ({ connected: true, once: vi.fn() }));
   });
 
   it('clears stale validActions and selectedAttacker when a new game state shows it is the opponent turn', () => {
@@ -174,5 +177,30 @@ describe('gameStore', () => {
 
     expect(useGameStore.getState().selectedAttacker).toBeNull();
     expect(useGameStore.getState().pendingSkillAction).toBeNull();
+  });
+
+  it('sets a localized connection error when connect_error fires before connect', async () => {
+    const handlers = new Map<string, (err?: Error) => void>();
+    const mockSocket = {
+      connected: false,
+      once: vi.fn((event: string, cb: (err?: Error) => void) => {
+        handlers.set(event, cb);
+        return mockSocket;
+      }),
+    };
+    mockSocketService.connect.mockReturnValue(mockSocket as { connected: boolean; once: typeof mockSocket.once });
+
+    useLocaleStore.setState({ locale: 'en-US' });
+    useGameStore.getState().connect('ws://localhost');
+
+    const onErr = handlers.get('connect_error');
+    expect(onErr).toBeTypeOf('function');
+    onErr!(new Error('econnrefused'));
+
+    await vi.waitFor(() => {
+      expect(useGameStore.getState().connected).toBe(false);
+      expect(useGameStore.getState().error).toContain('Failed to connect to server');
+      expect(useGameStore.getState().error).toContain('econnrefused');
+    });
   });
 });

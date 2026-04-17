@@ -1,4 +1,4 @@
-import { CIVILIZATION_META, CIVILIZATION_ORDER, type Civilization } from '@king-card/shared';
+import { getCivilizationMeta, CIVILIZATION_ORDER, type Civilization } from '@king-card/shared';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import type { CollectionCardTypeFilter } from './collection-utils.js';
 
@@ -50,7 +50,7 @@ export function CollectionToolbar(props: CollectionToolbarProps) {
                 onClick={() => props.onCivilizationChange(civilization)}
                 className={`rounded-full px-4 py-2 text-sm transition ${props.civilization === civilization ? 'bg-amber-200 text-stone-900' : 'bg-stone-800/70 text-stone-100 hover:bg-stone-700/70'}`}
               >
-                {CIVILIZATION_META[civilization].name}
+                {getCivilizationMeta(civilization, locale).name}
               </button>
             ))}
           </div>

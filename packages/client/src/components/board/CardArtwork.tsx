@@ -10,14 +10,28 @@ function typeTokenKey(type: string): TypeTokenKey {
   return 'soldier';
 }
 
-const TYPE_BADGE_ICON: Record<string, string> = {
-  MINION: '兵',
-  SPELL: '法',
-  GENERAL: '将',
-  STRATAGEM: '计',
-  SORCERY: '术',
-  EMPEROR: '帝',
+const TYPE_BADGE_ICON: Record<SupportedLocale, Record<string, string>> = {
+  'zh-CN': {
+    MINION: '兵',
+    SPELL: '法',
+    GENERAL: '将',
+    STRATAGEM: '计',
+    SORCERY: '术',
+    EMPEROR: '帝',
+  },
+  'en-US': {
+    MINION: 'M',
+    SPELL: 'Sp',
+    GENERAL: 'G',
+    STRATAGEM: 'St',
+    SORCERY: 'So',
+    EMPEROR: 'H',
+  },
 };
+
+function typeBadgeLabel(type: string, locale: SupportedLocale): string {
+  return TYPE_BADGE_ICON[locale][type] ?? TYPE_BADGE_ICON['zh-CN'][type] ?? type;
+}
 
 type CardSize = 'hand' | 'battlefield' | 'detail' | 'collection';
 
@@ -150,7 +164,7 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
           strokeWidth="1.5"
         />
         <text x="60" y="62" textAnchor="middle" fill="white" fontSize="26" opacity="0.58" fontWeight="700">
-          {TYPE_BADGE_ICON[card.type] ?? '?'}
+          {typeBadgeLabel(card.type, locale)}
         </text>
       </g>
 
@@ -172,7 +186,7 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
       <g data-testid="card-type-badge">
         <rect x="88" y="84" width="26" height="16" rx="7" fill={`var(--badge-${typeKey})`} />
         <text x="101" y="95" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">
-          {TYPE_BADGE_ICON[card.type] ?? card.type}
+          {typeBadgeLabel(card.type, locale)}
         </text>
       </g>
 
@@ -250,9 +264,10 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
 
 interface CardBackArtworkProps {
   svgIdBase: string;
+  locale?: SupportedLocale;
 }
 
-export function CardBackArtwork({ svgIdBase }: CardBackArtworkProps) {
+export function CardBackArtwork({ svgIdBase, locale = 'zh-CN' }: CardBackArtworkProps) {
   const backGradId = `${svgIdBase}-back-grad`;
 
   return (
@@ -276,7 +291,7 @@ export function CardBackArtwork({ svgIdBase }: CardBackArtworkProps) {
         strokeWidth="1.5"
       />
       <text x="60" y="94" textAnchor="middle" fill="rgba(148,163,184,0.4)" fontSize="24">
-        帝
+        {locale === 'en-US' ? 'K' : '帝'}
       </text>
     </svg>
   );

@@ -12,6 +12,11 @@ import type {
   Civilization,
 } from '@king-card/shared';
 import { socketService } from '../services/socketService.js';
+import { useLocaleStore } from './localeStore.js';
+import {
+  CLIENT_ERROR_CODE,
+  getClientErrorMessage,
+} from '../utils/clientErrors.js';
 
 export type { ValidAction } from '@king-card/shared';
 
@@ -155,7 +160,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         set({ connected: true });
       });
       socket.once('connect_error', (err: Error) => {
-        set({ connected: false, error: `连接服务器失败: ${err.message}` });
+        set({
+          connected: false,
+          error: getClientErrorMessage(
+            CLIENT_ERROR_CODE.CONNECT_FAILED,
+            useLocaleStore.getState().locale,
+            err.message,
+          ),
+        });
       });
     }
   },
@@ -164,12 +176,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     try {
       const socket = socketService.getSocket();
       if (!socket.connected) {
-        set({ error: '未连接到服务器，请稍候重试' });
+        set({
+          error: getClientErrorMessage(
+            CLIENT_ERROR_CODE.NOT_CONNECTED_RETRY,
+            useLocaleStore.getState().locale,
+          ),
+        });
         return;
       }
       socket.emit('game:join', { emperorIndex });
     } catch {
-      set({ error: '未连接到服务器，请返回大厅重试' });
+      set({
+        error: getClientErrorMessage(
+          CLIENT_ERROR_CODE.NOT_CONNECTED_LOBBY,
+          useLocaleStore.getState().locale,
+        ),
+      });
     }
   },
 
@@ -177,12 +199,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     try {
       const socket = socketService.getSocket();
       if (!socket.connected) {
-        set({ error: '未连接到服务器，请稍候重试' });
+        set({
+          error: getClientErrorMessage(
+            CLIENT_ERROR_CODE.NOT_CONNECTED_RETRY,
+            useLocaleStore.getState().locale,
+          ),
+        });
         return;
       }
       socket.emit('game:pvpJoin', { emperorIndex });
     } catch {
-      set({ error: '未连接到服务器，请返回大厅重试' });
+      set({
+        error: getClientErrorMessage(
+          CLIENT_ERROR_CODE.NOT_CONNECTED_LOBBY,
+          useLocaleStore.getState().locale,
+        ),
+      });
     }
   },
 

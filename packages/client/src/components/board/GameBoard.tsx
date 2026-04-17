@@ -290,13 +290,21 @@ export default function GameBoard() {
   }, []);
 
   useEffect(() => {
-    if (!gameState) return;
-    const text = isMyTurn() ? '你的回合' : '对方回合';
+    if (!gameState || playerIndex === null) return;
+    const myTurn = gameState.currentPlayerIndex === playerIndex;
+    const text =
+      locale === 'en-US'
+        ? myTurn
+          ? 'Your Turn'
+          : 'Opponent Turn'
+        : myTurn
+          ? '你的回合'
+          : '对方回合';
     setOverlayText(text);
     audioService.play('turn-start');
     const timer = setTimeout(() => setOverlayText(null), 1500);
     return () => clearTimeout(timer);
-  }, [gameState?.turnNumber]); // trigger on turn change
+  }, [gameState?.turnNumber, locale, playerIndex, gameState?.currentPlayerIndex]);
 
   useEffect(() => {
     if (!selectedAttacker && !pendingSkillAction) {
@@ -510,14 +518,15 @@ export default function GameBoard() {
   const myHeroSkill = getHeroSkillDisplayText(myHero?.heroSkill, locale);
   const oppHeroSkill = getHeroSkillDisplayText(oppHero?.heroSkill, locale);
 
+  const fallbackHero = locale === 'en-US' ? 'Hero' : '帝王';
   const myHeroName =
-    myHeroSkill?.name ?? '帝王';
+    myHeroSkill?.name ?? fallbackHero;
   const myHeroSkillName =
     myHeroSkill?.name ?? '';
   const myHeroSkillCost = myHero?.heroSkill?.cost;
 
   const oppHeroName =
-    oppHeroSkill?.name ?? '帝王';
+    oppHeroSkill?.name ?? fallbackHero;
 
   // Minister data
   const ministers = me.ministerPool ?? [];
