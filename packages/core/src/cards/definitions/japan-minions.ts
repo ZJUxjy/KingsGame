@@ -76,6 +76,28 @@ export const MUSHA = japan.minion({
   ],
 });
 
+export const NINJA_ASSASSIN = japan.minion({
+  slug: 'ninja_assassin',
+  name: '忍者暗杀者',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 3,
+  health: 2,
+  description: '忍杀：击杀随从后可额外攻击一次。',
+  keywords: ['ASSASSIN'],
+});
+
+export const KAGE_NO_SHINOBI = japan.minion({
+  slug: 'kage_no_shinobi',
+  name: '影の忍',
+  rarity: 'EPIC',
+  cost: 5,
+  attack: 4,
+  health: 3,
+  description: '忍杀。突袭。',
+  keywords: ['ASSASSIN', 'RUSH'],
+});
+
 export const JAPAN_MINIONS: Card[] = [
   ASHIGARU,
   NINJA,
@@ -83,4 +105,6 @@ export const JAPAN_MINIONS: Card[] = [
   SOUHEI,
   TEPPO,
   MUSHA,
+  NINJA_ASSASSIN,
+  KAGE_NO_SHINOBI,
 ];

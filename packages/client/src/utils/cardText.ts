@@ -483,6 +483,7 @@ const TEXT_RESOURCE_TABLE: Record<string, Partial<Record<SupportedLocale, string
   '天可汗': { 'en-US': 'Heavenly Khagan' },
   '天威浩荡': { 'en-US': 'Heaven\'s Majesty' },
   '天下布武': { 'en-US': 'Tenka Fubu' },
+  '突袭、冲锋。技能①长驱直入：对一个敌方生物造成6点伤害。技能②封狼居胥：+3/+3并获得连击。技能③冠军侯：所有友方生物获得冲锋（本回合）。': { 'en-US': 'Rush, Charge. Skill 1: Drive Deep — deal 6 damage to an enemy minion. Skill 2: Fenglang Sacrifice — gain +3/+3 and Combo Strike. Skill 3: Champion Marquis — all friendly minions gain Charge this turn.' },
   '突袭、冲锋、连击。技能①长驱直入：对一个敌方生物造成6点伤害。技能②封狼居胥：+3/+3并获得连击。技能③冠军侯：所有友方生物获得冲锋（本回合）。': { 'en-US': 'Rush, Charge, Combo Strike. Skill 1: Drive Deep — deal 6 damage to an enemy minion. Skill 2: Fenglang Sacrifice — gain +3/+3 and Combo Strike. Skill 3: Champion Marquis — all friendly minions gain Charge this turn.' },
   '突袭、冲锋。技能①赤备突击：对一个敌方生物造成3点伤害。技能②德川先锋：所有友方生物获得+1攻击。技能③赤甲军：召唤一个1/1足轻。': { 'en-US': 'Rush, Charge. Skill 1: Red Raid — deal 3 damage to an enemy minion. Skill 2: Tokugawa Vanguard — all friendly minions gain +1 Attack. Skill 3: Red Armor Corps — summon a 1/1 Ashigaru.' },
   '突袭、冲锋。技能①十文字槍：对一个敌方生物造成4点伤害。技能②赤備え：获得+2/+2。技能③六文銭：所有友方生物获得突袭（本回合）。': { 'en-US': 'Rush, Charge. Skill 1: Cross Spear — deal 4 damage to an enemy minion. Skill 2: Red Arms — gain +2/+2. Skill 3: Six Coins — all friendly minions gain Rush this turn.' },
@@ -520,6 +521,10 @@ const TEXT_RESOURCE_TABLE: Record<string, Partial<Record<SupportedLocale, string
   '驻守：入场时获得驻守标记，持续2回合。': { 'en-US': 'Garrison: On play, gain a Garrison marker for 2 turns.' },
   '筑城令': { 'en-US': 'Castle-Building Edict' },
   '足軽': { 'en-US': 'Ashigaru' },
+  '忍者暗杀者': { 'en-US': 'Ninja Assassin' },
+  '忍杀：击杀随从后可额外攻击一次。': { 'en-US': 'Assassin: After killing a minion, may attack once more.' },
+  '影の忍': { 'en-US': 'Shadow Shinobi' },
+  '忍杀。突袭。': { 'en-US': 'Assassin. Rush.' },
 };
 
 function localizeText(text: string, locale: SupportedLocale = DEFAULT_LOCALE): string {

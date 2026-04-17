@@ -4,11 +4,24 @@ import { registerEffectHandler } from './registry.js';
 /**
  * ASSASSIN keyword handler.
  *
- * ASSASSIN is already handled in createCardInstance (remainingAttacks = 1)
- * and attack validation (allows attacking hero directly, bypasses taunt).
+ * After killing a minion, the ASSASSIN can make one extra attack
+ * targeting the hero.
  */
 const assassinHandler: EffectHandler = {
   keyword: 'ASSASSIN',
+
+  onKill(ctx) {
+    const { source } = ctx;
+    if (!source.card.keywords.includes('ASSASSIN')) return [];
+    // Grant one extra attack after killing a minion
+    ctx.mutator.grantExtraAttack(source.instanceId);
+    return [];
+  },
 };
 
-registerEffectHandler(assassinHandler);
+export function registerAssassin(): void {
+  registerEffectHandler(assassinHandler);
+}
+
+// Auto-register on module import
+registerAssassin();
