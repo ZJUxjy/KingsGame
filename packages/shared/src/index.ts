@@ -4,6 +4,18 @@
 export * from './types.js';
 export { GAME_CONSTANTS } from './constants.js';
 export {
+  getDeckCopyLimit,
+  getEditableDeckSize,
+  materializeDeckCards,
+  validateDeckDefinition,
+} from './deck.js';
+export type {
+  DeckDefinition,
+  DeckValidationCode,
+  DeckValidationIssue,
+  DeckValidationResult,
+} from './deck.js';
+export {
   CIVILIZATION_ORDER,
   CIVILIZATION_META,
   getCivilizationMeta,
