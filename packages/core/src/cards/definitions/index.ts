@@ -150,6 +150,8 @@ export {
   MEDIC,
   AIRBORNE,
   SHERMAN_TANK,
+  RESEARCH_SCIENTIST,
+  MANHATTAN_ENGINEER,
 } from './usa-minions.js';
 
 export {

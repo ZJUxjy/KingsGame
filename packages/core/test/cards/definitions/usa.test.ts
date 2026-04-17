@@ -13,20 +13,20 @@ import {
 } from '../../../src/cards/definitions/index.js';
 
 describe('USA Card Definitions', () => {
-  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 6 minions + 4 stratagems + 6 sorceries = 34 ───
+  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 8 minions + 4 stratagems + 6 sorceries = 36 ───
 
-  it('should have exactly 34 entities (25 Card + 9 Minister)', () => {
+  it('should have exactly 36 entities (27 Card + 9 Minister)', () => {
     const count = USA_MINIONS.length
       + USA_STRATAGEMS.length
       + USA_SORCERIES.length
       + USA_EMPERORS.length
       + USA_GENERALS.length
       + USA_MINISTERS.length;
-    expect(count).toBe(34);
+    expect(count).toBe(36);
   });
 
-  it('USA_ALL_CARDS should contain all 25 Card objects', () => {
-    expect(USA_ALL_CARDS).toHaveLength(25);
+  it('USA_ALL_CARDS should contain all 27 Card objects', () => {
+    expect(USA_ALL_CARDS).toHaveLength(27);
   });
 
   // ─── Unique IDs ───────────────────────────────────────────────────
@@ -67,7 +67,7 @@ describe('USA Card Definitions', () => {
   describe('Card type counts', () => {
     it('should have 3 emperors', () => { expect(USA_EMPERORS).toHaveLength(3); });
     it('should have 6 generals', () => { expect(USA_GENERALS).toHaveLength(6); });
-    it('should have 6 minions', () => { expect(USA_MINIONS).toHaveLength(6); });
+    it('should have 8 minions', () => { expect(USA_MINIONS).toHaveLength(8); });
     it('should have 4 stratagems', () => { expect(USA_STRATAGEMS).toHaveLength(4); });
     it('should have 6 sorceries', () => { expect(USA_SORCERIES).toHaveLength(6); });
   });

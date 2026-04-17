@@ -92,6 +92,17 @@ export const BERSERKER_GUARD = germany.minion({
   keywords: ['IRON_FIST', 'TAUNT'],
 });
 
+export const BLITZ_PANZER = germany.minion({
+  slug: 'blitz_panzer',
+  name: 'Blitz Panzer',
+  rarity: 'RARE',
+  cost: 5,
+  attack: 4,
+  health: 4,
+  description: 'Blitzkrieg: Deals 2 damage to a random enemy minion when played.',
+  keywords: ['BLITZ'],
+});
+
 export const GERMANY_MINIONS: Card[] = [
   LANDSKNECHT,
   HUSSAR,
@@ -101,4 +112,5 @@ export const GERMANY_MINIONS: Card[] = [
   STORMTROOPER,
   IRON_CHANCELLOR,
   BERSERKER_GUARD,
+  BLITZ_PANZER,
 ];

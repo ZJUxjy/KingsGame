@@ -23,3 +23,4 @@ import './colony.js';
 import './research.js';
 import './mobilization-order.js';
 import './iron-fist.js';
+import './blitz.js';

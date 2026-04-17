@@ -1,7 +1,7 @@
 import type { Card } from '@king-card/shared';
 import { onPlay, usa } from '../builders/index.js';
 
-// ─── USA Minion Cards (6) ───────────────────────────────────────────
+// ─── USA Minion Cards (8) ───────────────────────────────────────────
 
 export const GI = usa.minion({
   slug: 'gi',
@@ -70,6 +70,30 @@ export const SHERMAN_TANK = usa.minion({
   keywords: ['TAUNT'],
 });
 
+export const RESEARCH_SCIENTIST = usa.minion({
+  slug: 'research_scientist',
+  name: 'Research Scientist',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 2,
+  health: 3,
+  description: 'R&D: When played, add a random spell from your deck to hand.',
+  keywords: ['RESEARCH'],
+});
+
+export const MANHATTAN_ENGINEER = usa.minion({
+  slug: 'manhattan_engineer',
+  name: 'Manhattan Engineer',
+  rarity: 'EPIC',
+  cost: 5,
+  attack: 3,
+  health: 4,
+  description: 'R&D. Battlecry: Draw a card.',
+  keywords: ['RESEARCH', 'BATTLECRY'],
+  effects: [onPlay.draw(1)],
+});
+
+
 export const USA_MINIONS: Card[] = [
   GI,
   MARINE,
@@ -77,4 +101,6 @@ export const USA_MINIONS: Card[] = [
   MEDIC,
   AIRBORNE,
   SHERMAN_TANK,
+  RESEARCH_SCIENTIST,
+  MANHATTAN_ENGINEER,
 ];
