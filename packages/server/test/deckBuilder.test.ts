@@ -109,4 +109,43 @@ describe('server deck helpers', () => {
       expect.objectContaining({ code: 'EMPEROR_MISMATCH' }),
     );
   });
+
+  it('rejects a custom deck whose civilization does not match the selected emperor', () => {
+    const emperorData = CHINA_EMPEROR_DATA_LIST[0];
+    const mismatchedDeck = makeCustomDeckDefinition(JAPAN_EMPEROR_DATA_LIST[0]);
+    const deck = {
+      ...mismatchedDeck,
+      emperorCardId: emperorData.emperorCard.id,
+    };
+    const validateDeckForEmperor = (deckBuilder as any).validateDeckForEmperor;
+
+    expect(validateDeckForEmperor).toBeTypeOf('function');
+
+    const validation = validateDeckForEmperor(deck, emperorData);
+    expect(validation.ok).toBe(false);
+    expect(validation.issues).toContainEqual(
+      expect.objectContaining({ code: 'CIVILIZATION_MISMATCH' }),
+    );
+  });
+
+  it('rejects a custom deck that repeats a bound card in mainCardIds', () => {
+    const emperorData = JAPAN_EMPEROR_DATA_LIST[0];
+    const legalDeck = makeCustomDeckDefinition(emperorData);
+    const deck = {
+      ...legalDeck,
+      mainCardIds: [emperorData.boundGenerals[0].id, ...legalDeck.mainCardIds.slice(1)],
+    };
+    const validateDeckForEmperor = (deckBuilder as any).validateDeckForEmperor;
+
+    expect(validateDeckForEmperor).toBeTypeOf('function');
+
+    const validation = validateDeckForEmperor(deck, emperorData);
+    expect(validation.ok).toBe(false);
+    expect(validation.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'BOUND_CARD_IN_MAIN_DECK',
+        cardId: emperorData.boundGenerals[0].id,
+      }),
+    );
+  });
 });
