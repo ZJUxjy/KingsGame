@@ -1,4 +1,4 @@
-import { useId, useRef, useState, useLayoutEffect } from 'react';
+import { useId, useRef, useState, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocaleStore } from '../../stores/localeStore.js';
 
@@ -37,27 +37,26 @@ export function SkillTooltip({
   const locale = useLocaleStore((s) => s.locale);
   const tooltipId = useId().replace(/:/g, '_');
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const measuredRef = useRef<number | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [placement, setPlacement] = useState<'above' | 'below'>('above');
   const [positionLeft, setPositionLeft] = useState(0);
   const [positionTop, setPositionTop] = useState<number | undefined>(undefined);
   const [positionBottom, setPositionBottom] = useState<number | undefined>(undefined);
-  const [estimatedHeight, setEstimatedHeight] = useState(120);
+  const [tooltipHeight, setTooltipHeight] = useState(120);
 
-  useLayoutEffect(() => {
-    if (!isHovered) return;
+  const measure = useCallback(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
 
     const wrapperRect = wrapper.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
-
-    const tooltipHeight = estimatedHeight;
+    const estimatedHeight = measuredRef.current ?? tooltipHeight;
 
     // Vertical placement
     const spaceAbove = wrapperRect.top;
     const spaceBelow = viewportHeight - wrapperRect.bottom;
-    const nextPlacement = spaceAbove >= tooltipHeight + VIEWPORT_MARGIN ? 'above' : 'below';
+    const nextPlacement = spaceAbove >= estimatedHeight + VIEWPORT_MARGIN ? 'above' : 'below';
     setPlacement(nextPlacement);
 
     // Compute vertical position (stored in state, not read during render)
@@ -77,7 +76,27 @@ export function SkillTooltip({
       Math.min(centerX - halfWidth, window.innerWidth - TOOLTIP_WIDTH - VIEWPORT_MARGIN),
     );
     setPositionLeft(clampedLeft);
-  }, [isHovered, estimatedHeight]);
+  }, [tooltipHeight]);
+
+  // Measure on hover and when tooltipHeight converges
+  useLayoutEffect(() => {
+    if (!isHovered) return;
+    measure();
+  }, [isHovered, measure]);
+
+  // Re-measure on resize/scroll while hovered
+  useLayoutEffect(() => {
+    if (!isHovered) return;
+
+    const handleViewportChange = () => measure();
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [isHovered, measure]);
 
   const showPortal = isHovered && name && description;
 
@@ -97,8 +116,11 @@ export function SkillTooltip({
           id={tooltipId}
           role="tooltip"
           ref={(el) => {
-            if (el && el.offsetHeight !== estimatedHeight) {
-              setEstimatedHeight(el.offsetHeight);
+            if (!el) return;
+            const h = el.offsetHeight;
+            if (measuredRef.current !== h) {
+              measuredRef.current = h;
+              setTooltipHeight(h);
             }
           }}
           className={`pointer-events-none fixed rounded-xl border border-white/15 bg-black/70 px-3 py-2 text-xs leading-5 text-stone-100 shadow-[0_18px_36px_rgba(0,0,0,0.45)] backdrop-blur-sm`}

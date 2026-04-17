@@ -85,7 +85,7 @@ export function MinisterPanel({
           name={active.activeSkill.name}
           description={active.activeSkill.description}
           cost={active.activeSkill.cost}
-          cooldown={ministers[activeIndex].cooldown}
+          cooldown={active.cooldown}
         >
           <button
             type="button"

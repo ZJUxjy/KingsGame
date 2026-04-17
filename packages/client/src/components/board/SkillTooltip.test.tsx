@@ -50,7 +50,7 @@ describe('SkillTooltip', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  it('shows cooldown badge with localized text', () => {
+  it('shows cooldown badge with localized zh-CN text', () => {
     renderTooltip({ cooldown: 2 });
     const wrapper = screen.getByText('Skill Button').parentElement!;
     fireEvent.pointerEnter(wrapper);
@@ -58,7 +58,7 @@ describe('SkillTooltip', () => {
     expect(tooltip).toHaveTextContent('冷却 2 回合');
   });
 
-  it('shows uses-per-turn badge with localized text', () => {
+  it('shows uses-per-turn badge with localized zh-CN text', () => {
     renderTooltip({ usesPerTurn: 1 });
     const wrapper = screen.getByText('Skill Button').parentElement!;
     fireEvent.pointerEnter(wrapper);
@@ -79,5 +79,75 @@ describe('SkillTooltip', () => {
     const wrapper = screen.getByText('Skill Button').parentElement!;
     fireEvent.pointerEnter(wrapper);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('re-measures position on resize while hovered', () => {
+    const { container } = renderTooltip();
+    const wrapper = container.querySelector('div')!;
+    fireEvent.pointerEnter(wrapper);
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+    // Simulate resize event — should not throw or cause errors
+    fireEvent(window, new Event('resize'));
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+  });
+
+  it('re-measures position on scroll while hovered', () => {
+    const { container } = renderTooltip();
+    const wrapper = container.querySelector('div')!;
+    fireEvent.pointerEnter(wrapper);
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+    // Simulate scroll event (capturing phase) — should not throw or cause errors
+    fireEvent(window, new Event('scroll', { bubbles: true }));
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+  });
+});
+
+describe('SkillTooltip en-US', () => {
+  beforeEach(() => {
+    useLocaleStore.setState({ locale: 'en-US' });
+  });
+
+  afterEach(cleanup);
+
+  it('shows cost label in English', () => {
+    renderTooltip();
+    const wrapper = screen.getByText('Skill Button').parentElement!;
+    fireEvent.pointerEnter(wrapper);
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Cost 1');
+  });
+
+  it('shows cooldown badge in English', () => {
+    renderTooltip({ cooldown: 1 });
+    const wrapper = screen.getByText('Skill Button').parentElement!;
+    fireEvent.pointerEnter(wrapper);
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toHaveTextContent('CD 1 turn');
+  });
+
+  it('shows cooldown badge in English (plural)', () => {
+    renderTooltip({ cooldown: 2 });
+    const wrapper = screen.getByText('Skill Button').parentElement!;
+    fireEvent.pointerEnter(wrapper);
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toHaveTextContent('CD 2 turns');
+  });
+
+  it('shows uses-per-turn badge in English (singular)', () => {
+    renderTooltip({ usesPerTurn: 1 });
+    const wrapper = screen.getByText('Skill Button').parentElement!;
+    fireEvent.pointerEnter(wrapper);
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toHaveTextContent('1 use/turn');
+  });
+
+  it('shows uses-per-turn badge in English (plural)', () => {
+    renderTooltip({ usesPerTurn: 2 });
+    const wrapper = screen.getByText('Skill Button').parentElement!;
+    fireEvent.pointerEnter(wrapper);
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toHaveTextContent('2 uses/turn');
   });
 });
