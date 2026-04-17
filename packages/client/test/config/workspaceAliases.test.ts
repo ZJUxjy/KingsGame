@@ -1,25 +1,54 @@
 // @vitest-environment node
 
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import viteConfig from '../../vite.config.ts';
 import vitestConfig from '../../vitest.config.ts';
+import coreVitestConfig from '../../../core/vitest.config.ts';
+import serverVitestConfig from '../../../server/vitest.config.ts';
+import {
+  createWorkspaceAliasEntries,
+  getWorkspaceSourceDirectories,
+  workspacePackageRelativeEntryPaths,
+} from '../../../../workspacePackageResolution.ts';
 
-const expectedAliasTargets = {
-  '@king-card/shared': fileURLToPath(
-    new URL('../../../shared/src/index.ts', import.meta.url),
-  ),
-  '@king-card/core': fileURLToPath(
-    new URL('../../../core/src/index.ts', import.meta.url),
-  ),
-};
+const clientWorkspacePackages = ['@king-card/shared', '@king-card/core'] as const;
+const coreWorkspacePackages = ['@king-card/shared'] as const;
+const serverWorkspacePackages = ['@king-card/shared', '@king-card/core'] as const;
 
-const expectedAllowedDirs = [
-  fileURLToPath(new URL('../../../shared/src', import.meta.url)),
-  fileURLToPath(new URL('../../../core/src', import.meta.url)),
-];
+const expectedAliasTargets = Object.fromEntries(
+  createWorkspaceAliasEntries(clientWorkspacePackages).map(({ find, replacement }) => [
+    find,
+    replacement,
+  ]),
+);
+
+const expectedAllowedDirs = getWorkspaceSourceDirectories(clientWorkspacePackages);
+
+function readJson(relativePath: string) {
+  return JSON.parse(
+    readFileSync(new URL(relativePath, import.meta.url), 'utf8'),
+  ) as {
+    compilerOptions?: { references?: Array<{ path: string }> };
+    references?: Array<{ path: string }>;
+    scripts?: Record<string, string>;
+  };
+}
 
 function getAliasMap(aliasConfig: unknown): Map<string, string> {
+  if (
+    typeof aliasConfig === 'object' &&
+    aliasConfig !== null &&
+    !Array.isArray(aliasConfig)
+  ) {
+    return new Map(
+      Object.entries(aliasConfig).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
+  }
+
   if (!Array.isArray(aliasConfig)) {
     return new Map();
   }
@@ -43,14 +72,70 @@ describe('workspace alias configuration', () => {
   it('resolves shared workspace packages to source entries in vite and vitest', () => {
     const viteAliases = getAliasMap(viteConfig.resolve?.alias);
     const vitestAliases = getAliasMap(vitestConfig.resolve?.alias);
+    const coreAliases = getAliasMap(coreVitestConfig.resolve?.alias);
+    const serverAliases = getAliasMap(serverVitestConfig.resolve?.alias);
 
     expect(Object.fromEntries(viteAliases)).toMatchObject(expectedAliasTargets);
     expect(Object.fromEntries(vitestAliases)).toMatchObject(expectedAliasTargets);
+    expect(Object.fromEntries(coreAliases)).toMatchObject(
+      Object.fromEntries(
+        createWorkspaceAliasEntries(coreWorkspacePackages).map(
+          ({ find, replacement }) => [find, replacement],
+        ),
+      ),
+    );
+    expect(Object.fromEntries(serverAliases)).toMatchObject(
+      Object.fromEntries(
+        createWorkspaceAliasEntries(serverWorkspacePackages).map(
+          ({ find, replacement }) => [find, replacement],
+        ),
+      ),
+    );
   });
 
   it('allows vite dev server access to aliased workspace source directories', () => {
     const allowedDirs = viteConfig.server?.fs?.allow ?? [];
 
     expect(allowedDirs).toEqual(expect.arrayContaining(expectedAllowedDirs));
+  });
+
+  it('uses reference-aware package builds for fresh worktrees', () => {
+    const clientTsconfig = readJson('../../tsconfig.json');
+    const coreTsconfig = readJson('../../../core/tsconfig.json');
+    const serverTsconfig = readJson('../../../server/tsconfig.json');
+    const sharedTsconfig = readJson('../../../shared/tsconfig.json');
+    const corePackageJson = readJson('../../../core/package.json');
+    const serverPackageJson = readJson('../../../server/package.json');
+    const sharedPackageJson = readJson('../../../shared/package.json');
+
+    expect(clientTsconfig.references).toEqual([
+      { path: '../shared' },
+      { path: '../core' },
+    ]);
+    expect(coreTsconfig.references).toEqual([{ path: '../shared' }]);
+    expect(serverTsconfig.references).toEqual([
+      { path: '../shared' },
+      { path: '../core' },
+    ]);
+    expect(sharedTsconfig.references).toBeUndefined();
+
+    expect(corePackageJson.scripts?.build).toBe('tsc -b');
+    expect(serverPackageJson.scripts?.build).toBe('tsc -b');
+    expect(sharedPackageJson.scripts?.build).toBe('tsc -b');
+  });
+
+  it('keeps the shared workspace resolution helper aligned with repository paths', () => {
+    expect(workspacePackageRelativeEntryPaths).toEqual({
+      '@king-card/shared': 'packages/shared/src/index.ts',
+      '@king-card/core': 'packages/core/src/index.ts',
+    });
+    expect(expectedAliasTargets).toEqual({
+      '@king-card/shared': fileURLToPath(
+        new URL('../../../shared/src/index.ts', import.meta.url),
+      ),
+      '@king-card/core': fileURLToPath(
+        new URL('../../../core/src/index.ts', import.meta.url),
+      ),
+    });
   });
 });

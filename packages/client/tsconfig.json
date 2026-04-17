@@ -8,5 +8,9 @@
     "module": "ESNext",
     "moduleResolution": "bundler"
   },
+  "references": [
+    { "path": "../shared" },
+    { "path": "../core" }
+  ],
   "include": ["src"]
 }

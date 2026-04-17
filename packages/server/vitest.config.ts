@@ -1,14 +1,11 @@
 import { defineConfig } from 'vitest/config';
-import { fileURLToPath } from 'node:url';
+import { createWorkspaceAliasEntries } from '../../workspacePackageResolution';
+
+const serverWorkspacePackages = ['@king-card/shared', '@king-card/core'] as const;
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@king-card/shared': fileURLToPath(
-        new URL('../shared/src/index.ts', import.meta.url),
-      ),
-      '@king-card/core': fileURLToPath(new URL('../core/src/index.ts', import.meta.url)),
-    },
+    alias: createWorkspaceAliasEntries(serverWorkspacePackages),
   },
   test: {
     environment: 'node',

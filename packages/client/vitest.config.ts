@@ -1,9 +1,11 @@
 import { defineConfig } from 'vitest/config';
-import { workspaceAliasEntries } from './workspaceAliases';
+import { createWorkspaceAliasEntries } from '../../workspacePackageResolution';
+
+const clientWorkspacePackages = ['@king-card/shared', '@king-card/core'] as const;
 
 export default defineConfig({
   resolve: {
-    alias: workspaceAliasEntries,
+    alias: createWorkspaceAliasEntries(clientWorkspacePackages),
   },
   test: {
     environment: 'jsdom',

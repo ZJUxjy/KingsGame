@@ -2,19 +2,24 @@ import { defineConfig, searchForWorkspaceRoot } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import {
-  workspaceAliasEntries,
-  workspaceSourceDirectories,
-} from './workspaceAliases';
+  createWorkspaceAliasEntries,
+  getWorkspaceSourceDirectories,
+} from '../../workspacePackageResolution';
+
+const clientWorkspacePackages = ['@king-card/shared', '@king-card/core'] as const;
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   root: '.',
   resolve: {
-    alias: workspaceAliasEntries,
+    alias: createWorkspaceAliasEntries(clientWorkspacePackages),
   },
   server: {
     fs: {
-      allow: [searchForWorkspaceRoot(process.cwd()), ...workspaceSourceDirectories],
+      allow: [
+        searchForWorkspaceRoot(process.cwd()),
+        ...getWorkspaceSourceDirectories(clientWorkspacePackages),
+      ],
     },
     port: 3000,
     proxy: {

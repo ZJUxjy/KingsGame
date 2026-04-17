@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import type { Minister } from '@king-card/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { MinisterPanel } from './MinisterPanel.js';
@@ -67,12 +68,12 @@ describe('MinisterPanel', () => {
   });
 
   it('shows tooltip on minister skill button hover', () => {
-    const ministers = [
+    const ministers: Minister[] = [
       {
         id: 'china_lisi',
         emperorId: 'china_qin_shihuang',
         name: '李斯',
-        type: 'STRATEGIST' as const,
+        type: 'STRATEGIST',
         activeSkill: {
           name: '上书',
           description: '抽一张牌',
