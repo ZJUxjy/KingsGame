@@ -3,6 +3,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../stores/gameStore.js';
@@ -265,12 +266,15 @@ export default function GameBoard() {
     setPendingSkillAction({ type: 'GENERAL', instanceId, skillIndex });
   };
 
+  const hoveredSlotRef = useRef(hoveredSlotIndex);
+  hoveredSlotRef.current = hoveredSlotIndex;
+
   const handlePlayCardFromHand = useCallback((handIndex: number) => {
     if (validPlayIndices.has(handIndex)) {
-      playCard(handIndex, hoveredSlotIndex ?? undefined);
+      playCard(handIndex, hoveredSlotRef.current ?? undefined);
       setHoveredSlotIndex(null);
     }
-  }, [playCard, validPlayIndices, hoveredSlotIndex]);
+  }, [playCard, validPlayIndices]);
 
   // --- Early return ---
   if (!gameState) {

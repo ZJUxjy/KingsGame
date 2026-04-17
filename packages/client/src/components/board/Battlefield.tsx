@@ -3,6 +3,8 @@ import type { CardInstance } from '@king-card/shared';
 import { CardComponent } from './CardComponent.js';
 import { InsertionSlot } from './InsertionSlot.js';
 
+const NOOP = () => {};
+
 interface BattlefieldProps {
   minions: CardInstance[];
   isOpponent?: boolean;
@@ -44,7 +46,7 @@ function BattlefieldInner({
           <InsertionSlot
             index={0}
             highlighted={hoveredSlotIndex === 0}
-            onHover={onSlotHover ?? (() => {})}
+            onHover={onSlotHover ?? NOOP}
           />
         ) : (
           <div
@@ -64,7 +66,7 @@ function BattlefieldInner({
                 <InsertionSlot
                   index={i}
                   highlighted={hoveredSlotIndex === i}
-                  onHover={onSlotHover ?? (() => {})}
+                  onHover={onSlotHover ?? NOOP}
                 />
               )}
               <div
@@ -101,7 +103,7 @@ function BattlefieldInner({
                 <InsertionSlot
                   index={i + 1}
                   highlighted={hoveredSlotIndex === i + 1}
-                  onHover={onSlotHover ?? (() => {})}
+                  onHover={onSlotHover ?? NOOP}
                 />
               )}
             </Fragment>
