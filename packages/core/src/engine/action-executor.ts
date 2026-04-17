@@ -124,6 +124,7 @@ function createSyntheticSource(
     justPlayed: false,
     sleepTurns: 0,
     garrisonTurns: 0,
+    frozenTurns: 0,
     usedGeneralSkills: 0,
     buffs: [],
     position: undefined,

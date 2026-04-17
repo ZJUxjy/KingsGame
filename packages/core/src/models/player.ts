@@ -53,6 +53,7 @@ export function createPlayer(
     maxEnergy: 0,
     cardsPlayedThisTurn: 0,
     cannotDrawNextTurn: false,
+    costReduction: 0,
     ministerPool: startingEmperor.ministers.map((m) => ({
       ...m,
       skillUsedThisTurn: false,

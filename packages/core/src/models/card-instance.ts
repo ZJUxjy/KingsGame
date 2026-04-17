@@ -53,6 +53,7 @@ export function createCardInstance(card: Card, ownerIndex: 0 | 1): CardInstance 
     justPlayed: true,
     sleepTurns: instanceCard.keywords.includes('RESEARCH') ? 1 : 0,
     garrisonTurns: 0,
+    frozenTurns: 0,
     usedGeneralSkills: 0,
     buffs: [],
     position: undefined,

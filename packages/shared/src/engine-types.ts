@@ -156,6 +156,7 @@ export interface CardInstance {
    * re-applied every subsequent turn while garrisonTurns remains at 0.
    */
   garrisonActivated?: boolean;
+  frozenTurns: number;
   usedGeneralSkills: number;
   buffs: Buff[];
   position?: number;
@@ -184,6 +185,7 @@ export interface Player {
   maxEnergy: number;
   cardsPlayedThisTurn?: number;
   cannotDrawNextTurn: boolean;
+  costReduction: number;
   ministerPool: Minister[];
   activeMinisterIndex: number;
   boundCards: Card[];
