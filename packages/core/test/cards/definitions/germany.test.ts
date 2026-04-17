@@ -13,20 +13,20 @@ import {
 } from '../../../src/cards/definitions/index.js';
 
 describe('Germany Card Definitions', () => {
-  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 9 minions + 4 stratagems + 6 sorceries = 37 ───
+  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 10 minions + 4 stratagems + 6 sorceries = 38 ───
 
-  it('should have exactly 37 entities (28 Card + 9 Minister)', () => {
+  it('should have exactly 38 entities (29 Card + 9 Minister)', () => {
     const count = GERMANY_MINIONS.length
       + GERMANY_STRATAGEMS.length
       + GERMANY_SORCERIES.length
       + GERMANY_EMPERORS.length
       + GERMANY_GENERALS.length
       + GERMANY_MINISTERS.length;
-    expect(count).toBe(37);
+    expect(count).toBe(38);
   });
 
-  it('GERMANY_ALL_CARDS should contain all 28 Card objects', () => {
-    expect(GERMANY_ALL_CARDS).toHaveLength(28);
+  it('GERMANY_ALL_CARDS should contain all 29 Card objects', () => {
+    expect(GERMANY_ALL_CARDS).toHaveLength(29);
   });
 
   // ─── Unique IDs ───────────────────────────────────────────────────
@@ -67,7 +67,7 @@ describe('Germany Card Definitions', () => {
   describe('Card type counts', () => {
     it('should have 3 emperors', () => { expect(GERMANY_EMPERORS).toHaveLength(3); });
     it('should have 6 generals', () => { expect(GERMANY_GENERALS).toHaveLength(6); });
-    it('should have 9 minions', () => { expect(GERMANY_MINIONS).toHaveLength(9); });
+    it('should have 10 minions', () => { expect(GERMANY_MINIONS).toHaveLength(10); });
     it('should have 4 stratagems', () => { expect(GERMANY_STRATAGEMS).toHaveLength(4); });
     it('should have 6 sorceries', () => { expect(GERMANY_SORCERIES).toHaveLength(6); });
   });

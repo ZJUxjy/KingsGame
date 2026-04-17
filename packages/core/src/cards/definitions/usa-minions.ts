@@ -1,5 +1,5 @@
 import type { Card } from '@king-card/shared';
-import { onPlay, usa } from '../builders/index.js';
+import { onDeath, onPlay, usa } from '../builders/index.js';
 
 // ─── USA Minion Cards (9) ───────────────────────────────────────────
 
@@ -104,6 +104,18 @@ export const DRILL_SERGEANT = usa.minion({
   keywords: ['MOBILIZATION_ORDER'],
 });
 
+export const SUPPLY_TRUCK = usa.minion({
+  slug: 'supply_truck',
+  name: 'Supply Truck',
+  rarity: 'COMMON',
+  cost: 2,
+  attack: 1,
+  health: 3,
+  description: 'Deathrattle: Draw a card.',
+  keywords: ['DEATHRATTLE'],
+  effects: [onDeath.draw(1)],
+});
+
 export const USA_MINIONS: Card[] = [
   GI,
   MARINE,
@@ -114,4 +126,5 @@ export const USA_MINIONS: Card[] = [
   RESEARCH_SCIENTIST,
   MANHATTAN_ENGINEER,
   DRILL_SERGEANT,
+  SUPPLY_TRUCK,
 ];

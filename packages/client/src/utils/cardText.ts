@@ -529,6 +529,14 @@ const TEXT_RESOURCE_TABLE: Record<string, Partial<Record<SupportedLocale, string
   '连斩：击杀后可继续攻击。': { 'en-US': 'Combo Strike: After a kill, may continue attacking.' },
   '浪人剣客': { 'en-US': 'Ronin Blade' },
   '连斩。': { 'en-US': 'Combo Strike.' },
+  '神風の魂': { 'en-US': 'Kamikaze Spirit' },
+  '亡语：对随机一个敌方随从造成3点伤害。': { 'en-US': 'Deathrattle: Deal 3 damage to a random enemy minion.' },
+  'Supply Truck': { 'zh-CN': '补给卡车' },
+  'Deathrattle: Draw a card.': { 'zh-CN': '亡语：抽一张牌。' },
+  'Royal Martyr': { 'zh-CN': '皇家殉道者' },
+  'Deathrattle: Restore 3 health to your hero.': { 'zh-CN': '亡语：为你的英雄恢复3点生命。' },
+  Volkssturm: { 'zh-CN': '国民突击队' },
+  'Deathrattle: Give all friendly minions +1 attack.': { 'zh-CN': '亡语：所有友方随从获得+1攻击力。' },
 };
 
 function localizeText(text: string, locale: SupportedLocale = DEFAULT_LOCALE): string {

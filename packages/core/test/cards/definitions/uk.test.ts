@@ -13,20 +13,20 @@ import {
 } from '../../../src/cards/definitions/index.js';
 
 describe('UK Card Definitions', () => {
-  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 8 minions + 4 stratagems + 6 sorceries = 36 ───
+  // ─── Total count: 3 emperors + 9 ministers + 6 generals + 9 minions + 4 stratagems + 6 sorceries = 37 ───
 
-  it('should have exactly 36 entities (27 Card + 9 Minister)', () => {
+  it('should have exactly 37 entities (28 Card + 9 Minister)', () => {
     const count = UK_MINIONS.length
       + UK_STRATAGEMS.length
       + UK_SORCERIES.length
       + UK_EMPERORS.length
       + UK_GENERALS.length
       + UK_MINISTERS.length;
-    expect(count).toBe(36);
+    expect(count).toBe(37);
   });
 
-  it('UK_ALL_CARDS should contain all 27 Card objects', () => {
-    expect(UK_ALL_CARDS).toHaveLength(27);
+  it('UK_ALL_CARDS should contain all 28 Card objects', () => {
+    expect(UK_ALL_CARDS).toHaveLength(28);
   });
 
   // ─── Unique IDs ───────────────────────────────────────────────────
@@ -67,7 +67,7 @@ describe('UK Card Definitions', () => {
   describe('Card type counts', () => {
     it('should have 3 emperors', () => { expect(UK_EMPERORS).toHaveLength(3); });
     it('should have 6 generals', () => { expect(UK_GENERALS).toHaveLength(6); });
-    it('should have 8 minions', () => { expect(UK_MINIONS).toHaveLength(8); });
+    it('should have 9 minions', () => { expect(UK_MINIONS).toHaveLength(9); });
     it('should have 4 stratagems', () => { expect(UK_STRATAGEMS).toHaveLength(4); });
     it('should have 6 sorceries', () => { expect(UK_SORCERIES).toHaveLength(6); });
   });

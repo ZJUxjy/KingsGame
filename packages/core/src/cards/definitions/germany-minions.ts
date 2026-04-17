@@ -1,5 +1,5 @@
 import type { Card } from '@king-card/shared';
-import { germany, onPlay } from '../builders/index.js';
+import { germany, onDeath, onPlay } from '../builders/index.js';
 
 // ─── Germany Minion Cards (6) ───────────────────────────────────────
 
@@ -103,6 +103,18 @@ export const BLITZ_PANZER = germany.minion({
   keywords: ['BLITZ'],
 });
 
+export const VOLKSSTURM = germany.minion({
+  slug: 'volkssturm',
+  name: 'Volkssturm',
+  rarity: 'COMMON',
+  cost: 2,
+  attack: 2,
+  health: 1,
+  description: 'Deathrattle: Give all friendly minions +1 attack.',
+  keywords: ['DEATHRATTLE'],
+  effects: [onDeath.modifyStat({ targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1 })],
+});
+
 export const GERMANY_MINIONS: Card[] = [
   LANDSKNECHT,
   HUSSAR,
@@ -113,4 +125,5 @@ export const GERMANY_MINIONS: Card[] = [
   IRON_CHANCELLOR,
   BERSERKER_GUARD,
   BLITZ_PANZER,
+  VOLKSSTURM,
 ];

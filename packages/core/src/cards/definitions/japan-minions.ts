@@ -1,5 +1,5 @@
 import type { Card } from '@king-card/shared';
-import { japan, onPlay } from '../builders/index.js';
+import { japan, onDeath, onPlay } from '../builders/index.js';
 
 // ─── Japan Minion Cards (6) ─────────────────────────────────────────
 
@@ -120,6 +120,18 @@ export const RONIN_BLADE = japan.minion({
   keywords: ['COMBO_STRIKE'],
 });
 
+export const KAMIKAZE_SPIRIT = japan.minion({
+  slug: 'kamikaze_spirit',
+  name: '神風の魂',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 4,
+  health: 1,
+  description: '亡语：对随机一个敌方随从造成3点伤害。',
+  keywords: ['DEATHRATTLE'],
+  effects: [onDeath.damage('RANDOM_ENEMY_MINION', 3)],
+});
+
 export const JAPAN_MINIONS: Card[] = [
   ASHIGARU,
   NINJA,
@@ -131,4 +143,5 @@ export const JAPAN_MINIONS: Card[] = [
   KAGE_NO_SHINOBI,
   KENSEI,
   RONIN_BLADE,
+  KAMIKAZE_SPIRIT,
 ];

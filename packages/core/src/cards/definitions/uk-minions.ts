@@ -1,5 +1,5 @@
 import type { Card } from '@king-card/shared';
-import { onPlay, uk } from '../builders/index.js';
+import { onDeath, onPlay, uk } from '../builders/index.js';
 
 // ─── UK Minion Cards (8) ────────────────────────────────────────────
 
@@ -92,6 +92,18 @@ export const COLONIAL_GOVERNOR = uk.minion({
   keywords: ['COLONY'],
 });
 
+export const ROYAL_MARTYR = uk.minion({
+  slug: 'royal_martyr',
+  name: 'Royal Martyr',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 2,
+  health: 4,
+  description: 'Deathrattle: Restore 3 health to your hero.',
+  keywords: ['DEATHRATTLE'],
+  effects: [onDeath.heal('HERO', 3)],
+});
+
 export const UK_MINIONS: Card[] = [
   REDCOAT,
   LONGBOWMAN,
@@ -101,4 +113,5 @@ export const UK_MINIONS: Card[] = [
   MAN_OF_WAR,
   NAVAL_BLOCKADER,
   COLONIAL_GOVERNOR,
+  ROYAL_MARTYR,
 ];
