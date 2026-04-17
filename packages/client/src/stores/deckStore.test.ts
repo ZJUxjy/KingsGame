@@ -330,6 +330,7 @@ describe('deckStore', () => {
 
     vi.resetModules();
     vi.doMock('@king-card/core', () => ({
+      ALL_EMPEROR_DATA_LIST: [],
       ALL_CARDS: [
         {
           id: 'tiny-minion',
@@ -386,6 +387,65 @@ describe('deckStore', () => {
 
     expect(deck).toEqual(persistedDeck);
     expect(useDeckStore.getState().getDeck(EMPEROR_QIN.emperorCard.id)).toEqual(persistedDeck);
+  });
+
+  it('normalizes persisted deck metadata to the emperor slot during hydration', () => {
+    const starterDeck = useDeckStore.getState().getOrCreateDeck(EMPEROR_QIN);
+
+    resetDeckStore();
+    window.localStorage.setItem(
+      DECK_STORAGE_KEY,
+      JSON.stringify({
+        [EMPEROR_QIN.emperorCard.id]: {
+          ...starterDeck,
+          civilization: 'JAPAN',
+          emperorCardId: 'japan_oda_nobunaga',
+        },
+      }),
+    );
+
+    const deck = useDeckStore.getState().getOrCreateDeck(EMPEROR_QIN);
+
+    expect(deck).toEqual({
+      ...starterDeck,
+      civilization: EMPEROR_QIN.emperorCard.civilization,
+      emperorCardId: EMPEROR_QIN.emperorCard.id,
+    });
+
+    const storedDecks = JSON.parse(window.localStorage.getItem(DECK_STORAGE_KEY) ?? '{}') as Record<string, typeof deck>;
+    expect(storedDecks[EMPEROR_QIN.emperorCard.id]).toEqual(deck);
+  });
+
+  it('normalizes reused in-memory deck metadata before saving main-card edits', () => {
+    const starterDeck = useDeckStore.getState().getOrCreateDeck(EMPEROR_QIN);
+    const staleDeck = {
+      ...starterDeck,
+      civilization: 'JAPAN' as const,
+      emperorCardId: 'japan_oda_nobunaga',
+    };
+    const replacementMainCardIds = [...starterDeck.mainCardIds].reverse();
+
+    useDeckStore.setState({
+      decksByEmperorId: {
+        [EMPEROR_QIN.emperorCard.id]: staleDeck,
+      },
+      editingEmperorCardId: null,
+    });
+
+    const normalizedDeck = useDeckStore.getState().getOrCreateDeck(EMPEROR_QIN);
+    useDeckStore.getState().replaceMainCardIds(EMPEROR_QIN.emperorCard.id, replacementMainCardIds);
+
+    expect(normalizedDeck).toEqual({
+      ...starterDeck,
+      civilization: EMPEROR_QIN.emperorCard.civilization,
+      emperorCardId: EMPEROR_QIN.emperorCard.id,
+    });
+    expect(useDeckStore.getState().getDeck(EMPEROR_QIN.emperorCard.id)).toEqual({
+      ...starterDeck,
+      mainCardIds: replacementMainCardIds,
+      civilization: EMPEROR_QIN.emperorCard.civilization,
+      emperorCardId: EMPEROR_QIN.emperorCard.id,
+    });
   });
 
   it('ignores malformed stored decks and falls back to a starter deck', () => {

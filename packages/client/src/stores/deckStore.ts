@@ -1,4 +1,4 @@
-import { ALL_CARDS } from '@king-card/core';
+import { ALL_CARDS, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
 import {
   getDeckCopyLimit,
   getEditableDeckSize,
@@ -8,6 +8,10 @@ import {
 import { create } from 'zustand';
 
 export const DECK_STORAGE_KEY = 'king-card-decks';
+
+const emperorDataById = new Map(
+  ALL_EMPEROR_DATA_LIST.map((emperorData) => [emperorData.emperorCard.id, emperorData]),
+);
 
 interface DeckState {
   decksByEmperorId: Record<string, DeckDefinition>;
@@ -48,6 +52,45 @@ function isStoredDeckDefinition(value: unknown): value is DeckDefinition {
     && candidate.mainCardIds.every((cardId) => typeof cardId === 'string');
 }
 
+function normalizeDeckMetadata(deck: DeckDefinition, emperorCardId: string): DeckDefinition {
+  const emperorData = emperorDataById.get(emperorCardId);
+  if (!emperorData) {
+    return deck;
+  }
+
+  const normalizedCivilization = emperorData.emperorCard.civilization;
+  if (deck.emperorCardId === emperorCardId && deck.civilization === normalizedCivilization) {
+    return deck;
+  }
+
+  return {
+    ...deck,
+    emperorCardId,
+    civilization: normalizedCivilization,
+  };
+}
+
+function normalizeDecksBySlot(
+  decksByEmperorId: Record<string, DeckDefinition>,
+): { decksByEmperorId: Record<string, DeckDefinition>; changed: boolean } {
+  let changed = false;
+  const normalizedDecks = Object.fromEntries(
+    Object.entries(decksByEmperorId).map(([emperorCardId, deck]) => {
+      const normalizedDeck = normalizeDeckMetadata(deck, emperorCardId);
+      if (normalizedDeck !== deck) {
+        changed = true;
+      }
+
+      return [emperorCardId, normalizedDeck];
+    }),
+  );
+
+  return {
+    decksByEmperorId: normalizedDecks,
+    changed,
+  };
+}
+
 function readStoredDecks(): Record<string, DeckDefinition> {
   const localStorage = getLocalStorageSafely();
   if (!localStorage) {
@@ -65,9 +108,16 @@ function readStoredDecks(): Record<string, DeckDefinition> {
       return {};
     }
 
-    return Object.fromEntries(
+    const filteredDecks = Object.fromEntries(
       Object.entries(parsed).filter(([, deck]) => isStoredDeckDefinition(deck)),
     );
+    const normalizedDecks = normalizeDecksBySlot(filteredDecks);
+
+    if (normalizedDecks.changed) {
+      persistDecks(normalizedDecks.decksByEmperorId);
+    }
+
+    return normalizedDecks.decksByEmperorId;
   } catch {
     return {};
   }
@@ -146,7 +196,18 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   getOrCreateDeck: (emperorData) => {
     const existingDeck = get().decksByEmperorId[emperorData.emperorCard.id];
     if (existingDeck) {
-      return existingDeck;
+      const normalizedDeck = normalizeDeckMetadata(existingDeck, emperorData.emperorCard.id);
+      if (normalizedDeck !== existingDeck) {
+        const nextDecks = {
+          ...get().decksByEmperorId,
+          [emperorData.emperorCard.id]: normalizedDeck,
+        };
+
+        persistDecks(nextDecks);
+        set({ decksByEmperorId: nextDecks });
+      }
+
+      return normalizedDeck;
     }
 
     const storedDecks = readStoredDecks();
@@ -173,10 +234,12 @@ export const useDeckStore = create<DeckState>((set, get) => ({
         return state;
       }
 
+      const normalizedDeck = normalizeDeckMetadata(deck, emperorCardId);
+
       const nextDecks = {
         ...state.decksByEmperorId,
         [emperorCardId]: {
-          ...deck,
+          ...normalizedDeck,
           mainCardIds,
         },
       };

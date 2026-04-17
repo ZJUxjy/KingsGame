@@ -251,6 +251,62 @@ describe('deck validation', () => {
     expect(result.issues.some((issue) => issue.code === 'CROSS_CIVILIZATION')).toBe(true);
   });
 
+  it('rejects decks whose emperor card does not match the selected emperor', () => {
+    const deck = {
+      id: 'wrong-emperor',
+      name: '错位帝王',
+      civilization: 'CHINA' as const,
+      emperorCardId: chinaEmperor.id,
+      mainCardIds: makeLegalMainDeck(),
+    };
+
+    const result = validateDeckDefinition(deck, cardCatalog, emperorData);
+    expect(result.ok).toBe(false);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'EMPEROR_MISMATCH',
+        cardId: chinaEmperor.id,
+      }),
+    );
+  });
+
+  it('rejects decks whose civilization does not match the selected emperor', () => {
+    const deck = {
+      id: 'wrong-civilization',
+      name: '错位文明',
+      civilization: 'JAPAN' as const,
+      emperorCardId: starterEmperor.id,
+      mainCardIds: makeLegalMainDeck(),
+    };
+
+    const result = validateDeckDefinition(deck, cardCatalog, emperorData);
+    expect(result.ok).toBe(false);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'CIVILIZATION_MISMATCH',
+      }),
+    );
+  });
+
+  it('rejects bound cards that are repeated inside mainCardIds', () => {
+    const deck = {
+      id: 'bound-repeat',
+      name: '重复绑定卡',
+      civilization: 'CHINA' as const,
+      emperorCardId: starterEmperor.id,
+      mainCardIds: [boundGeneral.id, ...makeLegalMainDeck().slice(1)],
+    };
+
+    const result = validateDeckDefinition(deck, cardCatalog, emperorData);
+    expect(result.ok).toBe(false);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'BOUND_CARD_IN_MAIN_DECK',
+        cardId: boundGeneral.id,
+      }),
+    );
+  });
+
   it('rejects too many free generals, sorceries, or emperors', () => {
     const deck = {
       id: 'bad-limits',

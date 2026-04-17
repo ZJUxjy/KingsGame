@@ -5,7 +5,10 @@ import type { Civilization } from './types.js';
 export type DeckValidationCode =
   | 'MAIN_DECK_SIZE'
   | 'UNKNOWN_CARD'
+  | 'EMPEROR_MISMATCH'
+  | 'CIVILIZATION_MISMATCH'
   | 'CROSS_CIVILIZATION'
+  | 'BOUND_CARD_IN_MAIN_DECK'
   | 'COPY_LIMIT'
   | 'GENERAL_LIMIT'
   | 'SORCERY_LIMIT'
@@ -70,6 +73,26 @@ export function validateDeckDefinition(
   const issues: DeckValidationIssue[] = [];
   const cardById = new Map(cardCatalog.map((card) => [card.id, card]));
   const editableDeckSize = getEditableDeckSize(emperorData);
+  const selectedCivilization = emperorData.emperorCard.civilization;
+  const boundCardIds = new Set([
+    ...emperorData.boundGenerals.map((card) => card.id),
+    ...emperorData.boundSorceries.map((card) => card.id),
+  ]);
+
+  if (deck.emperorCardId !== emperorData.emperorCard.id) {
+    issues.push({
+      code: 'EMPEROR_MISMATCH',
+      message: `Deck emperor ${deck.emperorCardId} does not match selected emperor ${emperorData.emperorCard.id}.`,
+      cardId: deck.emperorCardId,
+    });
+  }
+
+  if (deck.civilization !== selectedCivilization) {
+    issues.push({
+      code: 'CIVILIZATION_MISMATCH',
+      message: `Deck civilization ${deck.civilization} does not match selected emperor civilization ${selectedCivilization}.`,
+    });
+  }
 
   if (deck.mainCardIds.length !== editableDeckSize) {
     issues.push({
@@ -89,6 +112,14 @@ export function validateDeckDefinition(
     const nextCount = (copyCounts.get(cardId) ?? 0) + 1;
     copyCounts.set(cardId, nextCount);
 
+    if (boundCardIds.has(cardId)) {
+      issues.push({
+        code: 'BOUND_CARD_IN_MAIN_DECK',
+        message: `Card ${cardId} is already granted by the selected emperor and cannot appear in the main deck.`,
+        cardId,
+      });
+    }
+
     const card = cardById.get(cardId);
     if (!card) {
       issues.push({
@@ -99,10 +130,10 @@ export function validateDeckDefinition(
       continue;
     }
 
-    if (card.civilization !== deck.civilization && card.civilization !== 'NEUTRAL') {
+    if (card.civilization !== selectedCivilization && card.civilization !== 'NEUTRAL') {
       issues.push({
         code: 'CROSS_CIVILIZATION',
-        message: `Card ${cardId} does not belong to civilization ${deck.civilization}.`,
+        message: `Card ${cardId} does not belong to civilization ${selectedCivilization}.`,
         cardId,
       });
     }

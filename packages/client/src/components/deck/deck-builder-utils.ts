@@ -65,10 +65,22 @@ export function getDeckBuilderIssueText(
       return locale === 'en-US'
         ? `Card ${cardName ?? issue.cardId ?? 'unknown'} is stale or missing from the catalog.`
         : `卡牌 ${cardName ?? issue.cardId ?? '未知卡牌'} 已失效或不在卡牌库中。`;
+    case 'EMPEROR_MISMATCH':
+      return locale === 'en-US'
+        ? 'This saved deck belongs to a different emperor than the current slot.'
+        : '该已保存套牌所属帝王与当前槽位不一致。';
+    case 'CIVILIZATION_MISMATCH':
+      return locale === 'en-US'
+        ? 'This saved deck belongs to a different civilization than the selected emperor.'
+        : '该已保存套牌所属文明与当前帝王不一致。';
     case 'CROSS_CIVILIZATION':
       return locale === 'en-US'
         ? `Card ${cardName ?? issue.cardId ?? 'unknown'} does not match this deck's civilization.`
         : `卡牌 ${cardName ?? issue.cardId ?? '未知卡牌'} 不属于当前套牌文明。`;
+    case 'BOUND_CARD_IN_MAIN_DECK':
+      return locale === 'en-US'
+        ? `Card ${cardName ?? issue.cardId ?? 'unknown'} is already bound to this emperor and cannot be added again.`
+        : `卡牌 ${cardName ?? issue.cardId ?? '未知卡牌'} 已由该帝王绑定，不能重复加入主套牌。`;
     case 'COPY_LIMIT':
       return locale === 'en-US'
         ? `Card ${cardName ?? issue.cardId ?? 'unknown'} exceeds its copy limit of ${issue.limit ?? 0}.`
