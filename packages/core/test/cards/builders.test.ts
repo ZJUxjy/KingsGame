@@ -94,12 +94,14 @@ describe('Typed Effect DSL', () => {
   });
 
   it('custom escape hatch preserves arbitrary params', () => {
-    const effect = onPlay.custom('DAMAGE', {
-      target: 'RANDOM_ENEMY_MINION',
-      amount: 3,
-    });
+    const effect = onPlay.custom('DRAW', { count: 2, legacyMeta: 'x' });
     expect(effect.trigger).toBe('ON_PLAY');
-    expect(effect.params).toEqual({ target: 'RANDOM_ENEMY_MINION', amount: 3 });
+    expect(effect.params).toEqual({ count: 2, legacyMeta: 'x' });
+  });
+
+  it('damage with RANDOM_ENEMY_MINION uses targetFilter in params', () => {
+    const effect = onPlay.damage('RANDOM_ENEMY_MINION', 3);
+    expect(effect.params).toEqual({ targetFilter: 'RANDOM_ENEMY_MINION', amount: 3 });
   });
 });
 

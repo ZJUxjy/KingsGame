@@ -54,15 +54,7 @@ export const RADAR_NETWORK = uk.sorcery({
   name: '雷达网络',
   cost: 4,
   description: '抽一张牌，并对一个随机敌方生物造成3点伤害。',
-  effects: [
-    onPlay.draw(1),
-    // 原定义使用 `target: 'RANDOM_ENEMY_MINION'`（非标准 SingleTarget），
-    // 走 custom 逃生舱原样保留既有引擎行为。
-    onPlay.custom('DAMAGE', {
-      target: 'RANDOM_ENEMY_MINION',
-      amount: 3,
-    }),
-  ],
+  effects: [onPlay.draw(1), onPlay.damage('RANDOM_ENEMY_MINION', 3)],
 });
 
 export const UK_SORCERIES: Card[] = [

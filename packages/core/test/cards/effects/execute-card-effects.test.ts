@@ -354,4 +354,172 @@ describe('executeCardEffects', () => {
     expect(state.players[0].hand).toHaveLength(1);
     expect(state.players[0].hand[0].id).toBe('draw_target');
   });
+
+  it('should DAMAGE only one random enemy minion when using RANDOM_ENEMY_MINION', () => {
+    const { state, bus, mutator } = setup();
+
+    const source = createCardInstance(
+      makeMinionCard({
+        id: 'random_damage_source',
+        effects: [
+          {
+            trigger: 'ON_PLAY',
+            type: 'DAMAGE',
+            params: { targetFilter: 'RANDOM_ENEMY_MINION', amount: 3 },
+          },
+        ],
+      }),
+      0,
+    );
+    state.players[0].battlefield.push(source);
+
+    const enemyA = createCardInstance(makeMinionCard({ id: 'enemy_a', health: 8 }), 1);
+    const enemyB = createCardInstance(makeMinionCard({ id: 'enemy_b', health: 8 }), 1);
+    state.players[1].battlefield.push(enemyA, enemyB);
+
+    const damageEvents: number[] = [];
+    bus.on('DAMAGE_DEALT', (event) => {
+      if (event.type === 'DAMAGE_DEALT') {
+        damageEvents.push(event.amount);
+      }
+    });
+
+    const ctx: EffectContext = {
+      state,
+      mutator,
+      source,
+      playerIndex: 0,
+      eventBus: bus,
+      rng: {
+        nextInt: (min) => min,
+        next: () => 0,
+        pick: (arr) => arr[0]!,
+        shuffle: (arr) => [...arr],
+      },
+    };
+
+    executeCardEffects('ON_PLAY', ctx);
+
+    expect(damageEvents).toEqual([3]);
+    expect(enemyA.currentHealth).toBe(5);
+    expect(enemyB.currentHealth).toBe(8);
+  });
+
+  it('should respect legacy DAMAGE params.target RANDOM_ENEMY_MINION as random pick', () => {
+    const { state, bus, mutator } = setup();
+
+    const source = createCardInstance(
+      makeMinionCard({
+        id: 'legacy_random_source',
+        effects: [
+          {
+            trigger: 'ON_PLAY',
+            type: 'DAMAGE',
+            params: { target: 'RANDOM_ENEMY_MINION', amount: 2 },
+          },
+        ],
+      }),
+      0,
+    );
+    state.players[0].battlefield.push(source);
+
+    const enemyA = createCardInstance(makeMinionCard({ id: 'e1', health: 5 }), 1);
+    const enemyB = createCardInstance(makeMinionCard({ id: 'e2', health: 5 }), 1);
+    state.players[1].battlefield.push(enemyA, enemyB);
+
+    const ctx: EffectContext = {
+      state,
+      mutator,
+      source,
+      playerIndex: 0,
+      eventBus: bus,
+      rng: {
+        nextInt: (min) => min,
+        next: () => 0,
+        pick: (arr) => arr[0]!,
+        shuffle: (arr) => [...arr],
+      },
+    };
+
+    executeCardEffects('ON_PLAY', ctx);
+
+    expect(enemyA.currentHealth).toBe(3);
+    expect(enemyB.currentHealth).toBe(5);
+  });
+
+  it('should HEAL all friendly minions when targetFilter is ALL_FRIENDLY_MINIONS', () => {
+    const { state, bus, mutator } = setup();
+
+    const source = createCardInstance(
+      makeMinionCard({
+        id: 'medic_like',
+        effects: [
+          {
+            trigger: 'ON_PLAY',
+            type: 'HEAL',
+            params: { targetFilter: 'ALL_FRIENDLY_MINIONS', amount: 1 },
+          },
+        ],
+      }),
+      0,
+    );
+    const allyA = createCardInstance(makeMinionCard({ id: 'ally_a', health: 5 }), 0);
+    const allyB = createCardInstance(makeMinionCard({ id: 'ally_b', health: 5 }), 0);
+    source.currentHealth = 1;
+    allyA.currentHealth = 2;
+    allyB.currentHealth = 3;
+    state.players[0].battlefield.push(source, allyA, allyB);
+
+    const ctx: EffectContext = {
+      state,
+      mutator,
+      source,
+      playerIndex: 0,
+      eventBus: bus,
+      rng: {
+        nextInt: (min) => min,
+        next: () => 0,
+        pick: (arr) => arr[0]!,
+        shuffle: (arr) => [...arr],
+      },
+    };
+
+    executeCardEffects('ON_PLAY', ctx);
+
+    expect(source.currentHealth).toBe(2);
+    expect(allyA.currentHealth).toBe(3);
+    expect(allyB.currentHealth).toBe(4);
+  });
+
+  it('should HEAL friendly hero when HEAL params omit target and targetFilter', () => {
+    const { state, bus, mutator } = setup();
+
+    const source = createCardInstance(
+      makeMinionCard({
+        id: 'heal_hero_source',
+        effects: [{ trigger: 'ON_PLAY', type: 'HEAL', params: { amount: 5 } }],
+      }),
+      0,
+    );
+    state.players[0].battlefield.push(source);
+    state.players[0].hero.health = 10;
+
+    const ctx: EffectContext = {
+      state,
+      mutator,
+      source,
+      playerIndex: 0,
+      eventBus: bus,
+      rng: {
+        nextInt: (min) => min,
+        next: () => 0,
+        pick: (arr) => arr[0]!,
+        shuffle: (arr) => [...arr],
+      },
+    };
+
+    executeCardEffects('ON_PLAY', ctx);
+
+    expect(state.players[0].hero.health).toBe(15);
+  });
 });

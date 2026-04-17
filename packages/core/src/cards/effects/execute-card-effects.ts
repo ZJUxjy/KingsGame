@@ -28,6 +28,28 @@ function getNumericParam(params: Record<string, unknown>, key: string, fallback 
   return typeof value === 'number' ? value : fallback;
 }
 
+function isRandomMinionKind(
+  v: unknown,
+): v is 'RANDOM_ENEMY_MINION' | 'RANDOM_FRIENDLY_MINION' {
+  return v === 'RANDOM_ENEMY_MINION' || v === 'RANDOM_FRIENDLY_MINION';
+}
+
+/** 随机选一个战场随从；池为空则返回 []（与 RANDOM_DESTROY 一致：只作用于一个单位）。 */
+function pickRandomMinionTargets(
+  ctx: EffectContext,
+  kind: 'RANDOM_ENEMY_MINION' | 'RANDOM_FRIENDLY_MINION',
+): TargetRef[] {
+  const player = ctx.state.players[ctx.playerIndex];
+  const opponent = ctx.state.players[getOpponentIndex(ctx.playerIndex)];
+  const pool =
+    kind === 'RANDOM_ENEMY_MINION' ? opponent.battlefield : player.battlefield;
+  if (pool.length === 0) {
+    return [];
+  }
+  const picked = ctx.rng.pick(pool);
+  return [{ type: 'MINION', instanceId: picked.instanceId }];
+}
+
 function resolveTargetPlayerIndex(
   params: Record<string, unknown>,
   playerIndex: number,
@@ -73,6 +95,8 @@ function resolveMinionTargets(
       return [...player.battlefield];
     case 'ALL_ENEMY_MINIONS':
       return [...opponent.battlefield];
+    case 'ALL_MINIONS':
+      return [...player.battlefield, ...opponent.battlefield];
     case 'RANDOM_FRIENDLY_MINION':
       return [...player.battlefield];
     case 'RANDOM_ENEMY_MINION':
@@ -96,6 +120,15 @@ function resolveEffectTargets(
 
   if (target === 'ENEMY_HERO') {
     return [{ type: 'HERO', playerIndex: getOpponentIndex(ctx.playerIndex) }];
+  }
+
+  const randomKind = isRandomMinionKind(params.targetFilter)
+    ? params.targetFilter
+    : isRandomMinionKind(target)
+      ? target
+      : null;
+  if (randomKind) {
+    return pickRandomMinionTargets(ctx, randomKind);
   }
 
   if (target === 'FRIENDLY_MINION' || target === 'ENEMY_MINION') {
@@ -230,6 +263,29 @@ function applyDamageEffect(effect: CardEffect, ctx: EffectContext): void {
   }
 }
 
+function applyHealEffect(effect: CardEffect, ctx: EffectContext): void {
+  const amount = getNumericParam(effect.params, 'amount');
+  const params = effect.params;
+
+  if (typeof params.targetInstanceId === 'string') {
+    ctx.mutator.heal(
+      { type: 'MINION', instanceId: params.targetInstanceId },
+      amount,
+    );
+    return;
+  }
+
+  if (params.target === undefined && params.targetFilter === undefined) {
+    ctx.mutator.heal({ type: 'HERO', playerIndex: ctx.playerIndex }, amount);
+    return;
+  }
+
+  const targets = resolveEffectTargets(ctx, params);
+  for (const targetRef of targets) {
+    ctx.mutator.heal(targetRef, amount);
+  }
+}
+
 function applyRandomDestroyEffect(effect: CardEffect, ctx: EffectContext): void {
   const targets = resolveMinionTargets(ctx, effect.params);
   if (targets.length === 0) {
@@ -352,14 +408,7 @@ export function executeCardEffects(trigger: CardEffect['trigger'], ctx: EffectCo
         ctx.mutator.drawCards(ctx.playerIndex, getNumericParam(effect.params, 'count', 1));
         break;
       case 'HEAL':
-        {
-          const target = effect.params.target ?? 'HERO';
-          if (target === 'HERO') {
-            ctx.mutator.heal({ type: 'HERO', playerIndex: ctx.playerIndex }, getNumericParam(effect.params, 'amount'));
-          } else if (typeof effect.params.targetInstanceId === 'string') {
-            ctx.mutator.heal({ type: 'MINION', instanceId: effect.params.targetInstanceId }, getNumericParam(effect.params, 'amount'));
-          }
-        }
+        applyHealEffect(effect, ctx);
         break;
       case 'GAIN_ARMOR':
         ctx.mutator.gainArmor(ctx.playerIndex, getNumericParam(effect.params, 'amount'));

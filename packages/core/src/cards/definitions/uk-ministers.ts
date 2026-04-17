@@ -32,12 +32,7 @@ export const DRAKE = uk.minister({
     name: 'Privateer Raid',
     description: 'Deal 2 damage to a random enemy minion',
     cost: 2,
-    // 原定义使用 `target: 'RANDOM_ENEMY_MINION'`（非标准 SingleTarget），
-    // 走 custom 逃生舱原样保留。
-    effect: onPlay.custom('DAMAGE', {
-      target: 'RANDOM_ENEMY_MINION',
-      amount: 2,
-    }),
+    effect: onPlay.damage('RANDOM_ENEMY_MINION', 2),
   }),
 });
 

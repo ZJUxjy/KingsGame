@@ -10,9 +10,7 @@ export const V2_ROCKET = germany.sorcery({
   description:
     'Deal 4 damage to a random enemy minion and 1 damage to all enemy minions.',
   effects: [
-    // NOTE: 原定义用 `target: 'RANDOM_ENEMY_MINION'`（非 SingleTarget，属于已有弱类型实现中的历史形状）。
-    // 通过 custom 逃生舱一字不差地保留，行为与迁移前完全一致。
-    onPlay.custom('DAMAGE', { target: 'RANDOM_ENEMY_MINION', amount: 4 }),
+    onPlay.damage('RANDOM_ENEMY_MINION', 4),
     onPlay.damage('ALL_ENEMY_MINIONS', 1),
   ],
 });
@@ -64,11 +62,7 @@ export const HIGH_SEAS_FLEET = germany.sorcery({
   name: '公海舰队',
   cost: 5,
   description: '对一个随机敌方生物造成4点伤害，并抽一张牌。',
-  effects: [
-    // 同 V2_ROCKET：保留原始历史 target 形状。
-    onPlay.custom('DAMAGE', { target: 'RANDOM_ENEMY_MINION', amount: 4 }),
-    onPlay.draw(1),
-  ],
+  effects: [onPlay.damage('RANDOM_ENEMY_MINION', 4), onPlay.draw(1)],
 });
 
 export const GERMANY_SORCERIES: Card[] = [

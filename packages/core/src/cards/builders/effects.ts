@@ -232,7 +232,7 @@ function makeTriggerBuilders(trigger: EffectTrigger) {
 
     /**
      * 逃生舱：当前 DSL 未覆盖的 effect 类型或非常规 params 形状可用它。
-     * 例如保留某些定义中既有的 `target: 'RANDOM_ENEMY_MINION'`（非标准 SingleTarget）写法。
+     * 随机敌方/友方伤害请用 `damage('RANDOM_ENEMY_MINION' | 'RANDOM_FRIENDLY_MINION', amount)`。
      */
     custom: (type: EffectType, params: Record<string, unknown>): CardEffect =>
       mkEffect(trigger, type, params),
