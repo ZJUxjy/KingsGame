@@ -1,3 +1,5 @@
+import { SkillTooltip } from './SkillTooltip.js';
+
 interface GeneralSkillsPanelProps {
   generals: Array<{
     instanceId: string;
@@ -5,7 +7,9 @@ interface GeneralSkillsPanelProps {
       name: string;
       generalSkills?: Array<{
         name: string;
+        description: string;
         cost: number;
+        usesPerTurn: number;
       }>;
     };
   }>;
@@ -57,34 +61,41 @@ export function GeneralSkillsPanel({
               const isPending = pendingSkillKey === skillKey;
 
               return (
-                <button
+                <SkillTooltip
                   key={skillKey}
-                  type="button"
-                  data-anchor-id={`general-skill:${general.instanceId}:${skillIndex}`}
-                  disabled={!canUse}
-                  onPointerDown={(e) => { e.preventDefault(); onSkillPointerDown(general.instanceId, skillIndex); }}
-                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold transition-all duration-150${isPending && canUse ? ' general-skill-pending' : ''}`}
-                  style={
-                    canUse
-                      ? {
-                          background: isPending
-                            ? `linear-gradient(135deg, var(--general-skill-pending-from), var(--general-skill-pending-to))`
-                            : `linear-gradient(135deg, var(--general-skill-from), var(--general-skill-to))`,
-                          color: isPending ? 'var(--general-skill-pending-text)' : 'var(--general-skill-text)',
-                          border: `1px solid var(--general-skill-border)`,
-                          boxShadow: isPending ? undefined : `0 0 4px var(--general-skill-glow)`,
-                          cursor: 'pointer',
-                        }
-                      : {
-                          background: '#1f2937',
-                          color: '#6b7280',
-                          border: '1px solid transparent',
-                          cursor: 'not-allowed',
-                        }
-                  }
+                  name={skill.name}
+                  description={skill.description}
+                  cost={skill.cost}
+                  usesPerTurn={skill.usesPerTurn}
                 >
-                  {skill.name}({skill.cost})
-                </button>
+                  <button
+                    type="button"
+                    data-anchor-id={`general-skill:${general.instanceId}:${skillIndex}`}
+                    disabled={!canUse}
+                    onPointerDown={(e) => { e.preventDefault(); onSkillPointerDown(general.instanceId, skillIndex); }}
+                    className={`rounded px-1.5 py-0.5 text-[9px] font-bold transition-all duration-150${isPending && canUse ? ' general-skill-pending' : ''}`}
+                    style={
+                      canUse
+                        ? {
+                            background: isPending
+                              ? `linear-gradient(135deg, var(--general-skill-pending-from), var(--general-skill-pending-to))`
+                              : `linear-gradient(135deg, var(--general-skill-from), var(--general-skill-to))`,
+                            color: isPending ? 'var(--general-skill-pending-text)' : 'var(--general-skill-text)',
+                            border: `1px solid var(--general-skill-border)`,
+                            boxShadow: isPending ? undefined : `0 0 4px var(--general-skill-glow)`,
+                            cursor: 'pointer',
+                          }
+                        : {
+                            background: '#1f2937',
+                            color: '#6b7280',
+                            border: '1px solid transparent',
+                            cursor: 'not-allowed',
+                          }
+                    }
+                  >
+                    {skill.name}({skill.cost})
+                  </button>
+                </SkillTooltip>
               );
             })}
           </div>

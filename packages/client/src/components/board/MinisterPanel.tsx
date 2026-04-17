@@ -1,6 +1,7 @@
 import type { Minister } from '@king-card/shared';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { getMinistersDisplayText } from '../../utils/cardText.js';
+import { SkillTooltip } from './SkillTooltip.js';
 
 interface MinisterPanelProps {
   ministers: Minister[];
@@ -80,30 +81,37 @@ export function MinisterPanel({
           </span>
         </div>
         {/* Skill button */}
-        <button
-          type="button"
-          data-anchor-id={skillAnchorId}
-          onPointerDown={(e) => { e.preventDefault(); onSkillPointerDown?.(); }}
-          disabled={!canUseSkill}
-          className={`px-2 py-0.5 rounded text-[10px] font-bold text-white transition-all duration-150${skillPending && canUseSkill ? ' skill-pending' : ''}`}
-          style={
-            canUseSkill
-              ? {
-                  background: 'linear-gradient(135deg, var(--skill-from), var(--skill-to))',
-                  border: '1px solid var(--skill-border)',
-                  boxShadow: skillPending ? undefined : '0 0 6px var(--skill-glow)',
-                  cursor: 'pointer',
-                }
-              : {
-                  background: '#374151',
-                  color: '#9ca3af',
-                  border: '1px solid transparent',
-                  cursor: 'not-allowed',
-                }
-          }
+        <SkillTooltip
+          name={active.activeSkill.name}
+          description={active.activeSkill.description}
+          cost={active.activeSkill.cost}
+          cooldown={active.cooldown}
         >
-          {active.activeSkill.name}({active.activeSkill.cost})
-        </button>
+          <button
+            type="button"
+            data-anchor-id={skillAnchorId}
+            onPointerDown={(e) => { e.preventDefault(); onSkillPointerDown?.(); }}
+            disabled={!canUseSkill}
+            className={`px-2 py-0.5 rounded text-[10px] font-bold text-white transition-all duration-150${skillPending && canUseSkill ? ' skill-pending' : ''}`}
+            style={
+              canUseSkill
+                ? {
+                    background: 'linear-gradient(135deg, var(--skill-from), var(--skill-to))',
+                    border: '1px solid var(--skill-border)',
+                    boxShadow: skillPending ? undefined : '0 0 6px var(--skill-glow)',
+                    cursor: 'pointer',
+                  }
+                : {
+                    background: '#374151',
+                    color: '#9ca3af',
+                    border: '1px solid transparent',
+                    cursor: 'not-allowed',
+                  }
+            }
+          >
+            {active.activeSkill.name}({active.activeSkill.cost})
+          </button>
+        </SkillTooltip>
       </div>
       {/* Switch buttons */}
       {displayMinisters.length > 1 && canSwitch && (

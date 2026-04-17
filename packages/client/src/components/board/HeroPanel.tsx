@@ -1,3 +1,5 @@
+import { SkillTooltip } from './SkillTooltip.js';
+
 interface HeroPanelProps {
   heroName: string;
   health: number;
@@ -5,6 +7,8 @@ interface HeroPanelProps {
   armor: number;
   skillName?: string;
   skillCost?: number;
+  skillDescription?: string;
+  skillCooldown?: number;
   canUseSkill?: boolean;
   skillPending?: boolean;
   isOpponent?: boolean;
@@ -25,6 +29,8 @@ export function HeroPanel({
   armor,
   skillName,
   skillCost,
+  skillDescription,
+  skillCooldown,
   canUseSkill,
   skillPending,
   isOpponent,
@@ -145,33 +151,40 @@ export function HeroPanel({
 
       {/* Skill button (player only) */}
       {!isOpponent && skillName && (
-        <button
-          type="button"
-          data-anchor-id={skillAnchorId}
-          data-card-interactive="true"
-          onPointerDown={(e) => { e.preventDefault(); onSkillPointerDown?.(); }}
-          disabled={!canUseSkill}
-          className={`flex-shrink-0 px-2 py-1 text-[10px] font-bold text-white rounded transition-all duration-150${skillPending && canUseSkill ? ' skill-pending' : ''}`}
-          style={
-            canUseSkill
-              ? {
-                  background: 'linear-gradient(135deg, var(--skill-from), var(--skill-to))',
-                  border: '1px solid var(--skill-border)',
-                  boxShadow: skillPending ? undefined : '0 0 8px var(--skill-glow)',
-                  cursor: 'pointer',
-                }
-              : {
-                  background: '#374151',
-                  border: '1px solid transparent',
-                  color: '#6b7280',
-                  cursor: 'not-allowed',
-                }
-          }
+        <SkillTooltip
+          name={skillName}
+          description={skillDescription ?? ''}
+          cost={skillCost ?? 0}
+          cooldown={skillCooldown}
         >
-          {skillName}
-          <br />
-          <span className="text-[8px]">({skillCost})</span>
-        </button>
+          <button
+            type="button"
+            data-anchor-id={skillAnchorId}
+            data-card-interactive="true"
+            onPointerDown={(e) => { e.preventDefault(); onSkillPointerDown?.(); }}
+            disabled={!canUseSkill}
+            className={`flex-shrink-0 px-2 py-1 text-[10px] font-bold text-white rounded transition-all duration-150${skillPending && canUseSkill ? ' skill-pending' : ''}`}
+            style={
+              canUseSkill
+                ? {
+                    background: 'linear-gradient(135deg, var(--skill-from), var(--skill-to))',
+                    border: '1px solid var(--skill-border)',
+                    boxShadow: skillPending ? undefined : '0 0 8px var(--skill-glow)',
+                    cursor: 'pointer',
+                  }
+                : {
+                    background: '#374151',
+                    border: '1px solid transparent',
+                    color: '#6b7280',
+                    cursor: 'not-allowed',
+                  }
+            }
+          >
+            {skillName}
+            <br />
+            <span className="text-[8px]">({skillCost})</span>
+          </button>
+        </SkillTooltip>
       )}
     </div>
   );
