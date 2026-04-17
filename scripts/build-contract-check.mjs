@@ -68,7 +68,7 @@ assertArtifacts(
 );
 
 cleanBuildArtifacts();
-run('corepack', ['pnpm', '-r', 'run', 'build']);
+run('corepack', ['pnpm', 'build']);
 assertArtifacts([
   'packages/shared/dist/index.js',
   'packages/core/dist/index.js',

@@ -8,11 +8,14 @@ import {
 
 const clientWorkspacePackages = ['@king-card/shared', '@king-card/core'] as const;
 
-export default defineConfig({
+export default defineConfig(({ command, isPreview }) => ({
   plugins: [react(), tailwindcss()],
   root: '.',
   resolve: {
-    alias: createWorkspaceAliasEntries(clientWorkspacePackages),
+    alias:
+      command === 'serve' && !isPreview
+        ? createWorkspaceAliasEntries(clientWorkspacePackages)
+        : undefined,
   },
   server: {
     fs: {
@@ -33,4 +36,4 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
   },
-});
+}));

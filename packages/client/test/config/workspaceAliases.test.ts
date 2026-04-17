@@ -73,9 +73,23 @@ function getAliasMap(aliasConfig: unknown): Map<string, string> {
   );
 }
 
+function getResolvedViteConfig(command: 'serve' | 'build') {
+  if (typeof viteConfig === 'function') {
+    return viteConfig({
+      command,
+      isPreview: false,
+      isSsrBuild: false,
+      mode: 'test',
+    });
+  }
+
+  return viteConfig;
+}
+
 describe('workspace alias configuration', () => {
-  it('resolves shared workspace packages to source entries in vite and vitest', () => {
-    const viteAliases = getAliasMap(viteConfig.resolve?.alias);
+  it('resolves shared workspace packages to source entries for vite dev and vitest', () => {
+    const serveViteConfig = getResolvedViteConfig('serve');
+    const viteAliases = getAliasMap(serveViteConfig.resolve?.alias);
     const vitestAliases = getAliasMap(vitestConfig.resolve?.alias);
     const coreAliases = getAliasMap(coreVitestConfig.resolve?.alias);
     const serverAliases = getAliasMap(serverVitestConfig.resolve?.alias);
@@ -98,8 +112,17 @@ describe('workspace alias configuration', () => {
     );
   });
 
+  it('does not force workspace source aliases into production vite builds', () => {
+    const buildViteConfig = getResolvedViteConfig('build');
+    const buildAliases = getAliasMap(buildViteConfig.resolve?.alias);
+
+    expect(buildAliases.has('@king-card/shared')).toBe(false);
+    expect(buildAliases.has('@king-card/core')).toBe(false);
+  });
+
   it('allows vite dev server access to aliased workspace source directories', () => {
-    const allowedDirs = viteConfig.server?.fs?.allow ?? [];
+    const serveViteConfig = getResolvedViteConfig('serve');
+    const allowedDirs = serveViteConfig.server?.fs?.allow ?? [];
 
     expect(allowedDirs).toEqual(expect.arrayContaining(expectedAllowedDirs));
   });
@@ -198,6 +221,18 @@ describe('workspace alias configuration', () => {
   it('does not keep a duplicate client-only workspace alias helper', () => {
     expect(existsSync(new URL('../../workspaceAliases.ts', import.meta.url))).toBe(
       false,
+    );
+  });
+
+  it('uses the root build entrypoint in the build-contract check script', () => {
+    const buildContractScript = readFileSync(
+      new URL('../../../../scripts/build-contract-check.mjs', import.meta.url),
+      'utf8',
+    );
+
+    expect(buildContractScript).toContain("run('corepack', ['pnpm', 'build']);");
+    expect(buildContractScript).not.toContain(
+      "run('corepack', ['pnpm', '-r', 'run', 'build']);",
     );
   });
 });
