@@ -1,7 +1,7 @@
 import type { Card } from '@king-card/shared';
 import { onPlay, uk } from '../builders/index.js';
 
-// ─── UK Minion Cards (6) ────────────────────────────────────────────
+// ─── UK Minion Cards (7) ────────────────────────────────────────────
 
 export const REDCOAT = uk.minion({
   slug: 'redcoat',
@@ -70,6 +70,17 @@ export const MAN_OF_WAR = uk.minion({
   effects: [onPlay.damage('ENEMY_MINION', 2)],
 });
 
+export const NAVAL_BLOCKADER = uk.minion({
+  slug: 'naval_blockader',
+  name: 'Naval Blockader',
+  rarity: 'RARE',
+  cost: 4,
+  attack: 2,
+  health: 5,
+  description: 'Blockade: While alive, opponent gains 1 less energy per turn.',
+  keywords: ['BLOCKADE', 'TAUNT'],
+});
+
 export const UK_MINIONS: Card[] = [
   REDCOAT,
   LONGBOWMAN,
@@ -77,4 +88,5 @@ export const UK_MINIONS: Card[] = [
   ROYAL_GUARD,
   PRIVATEER,
   MAN_OF_WAR,
+  NAVAL_BLOCKADER,
 ];

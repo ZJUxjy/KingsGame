@@ -18,3 +18,4 @@ import './combo-strike.js';
 import './mobilize.js';
 import './garrison.js';
 import './aura.js';
+import './blockade.js';
