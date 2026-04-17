@@ -20,7 +20,7 @@ import { HandZone } from './HandZone.js';
 import { TargetingArrow } from './TargetingArrow.js';
 import GameOverlay from './GameOverlay.js';
 import Toast from './Toast.js';
-import type { ValidAction } from '@king-card/shared';
+import type { ValidAction, CardInstance } from '@king-card/shared';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { getCardDisplayText, getGeneralSkillsDisplayText, getHeroSkillDisplayText } from '../../utils/cardText.js';
 
@@ -279,11 +279,22 @@ export default function GameBoard() {
   const { me, opponent } = gameState;
   const myTurn = isMyTurn();
 
-  // Merge dying minions back into battlefield for death animation
+  // Merge dying minions back into battlefield for death animation,
+  // preserving their original position so the death animation plays in-place.
+  function mergeWithDying(alive: CardInstance[], dying: CardInstance[]): CardInstance[] {
+    if (dying.length === 0) return alive;
+    const merged = [...alive];
+    for (const d of dying) {
+      const pos = d.position ?? merged.length;
+      merged.splice(Math.min(pos, merged.length), 0, d);
+    }
+    return merged;
+  }
+
   const myDying = pendingRemovals.filter((m) => m.ownerIndex === playerIndex);
   const oppDying = pendingRemovals.filter((m) => m.ownerIndex !== playerIndex);
-  const myBattlefield = [...me.battlefield, ...myDying];
-  const oppBattlefield = [...opponent.battlefield, ...oppDying];
+  const myBattlefield = mergeWithDying(me.battlefield, myDying);
+  const oppBattlefield = mergeWithDying(opponent.battlefield, oppDying);
 
   // Extract hero data with defaults
   const myHero = me.hero;
