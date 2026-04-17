@@ -1,7 +1,9 @@
+import { memo } from 'react';
+import type { CardInstance } from '@king-card/shared';
 import { CardComponent } from './CardComponent.js';
 
 interface BattlefieldProps {
-  minions: any[];
+  minions: CardInstance[];
   isOpponent?: boolean;
   onMinionPointerDown?: (instanceId: string, isMine: boolean) => void;
   actionableIds?: Set<string>;
@@ -12,7 +14,7 @@ interface BattlefieldProps {
   animationMap?: Map<string, string>;
 }
 
-export function Battlefield({
+function BattlefieldInner({
   minions,
   isOpponent = false,
   onMinionPointerDown,
@@ -35,7 +37,7 @@ export function Battlefield({
           className="h-[172px] w-full max-w-[420px] rounded-3xl border border-dashed border-gray-700/80 bg-gray-900/35"
         />
       ) : (
-        minions.map((minion: any) => {
+        minions.map((minion: CardInstance) => {
           const isSelected = minion.instanceId === selectedAttackerId;
           const isHoveredTarget = hoveredTargetId === minion.instanceId;
           const isTargetable = validTargetIds?.has(minion.instanceId) ?? false;
@@ -79,3 +81,5 @@ export function Battlefield({
     </div>
   );
 }
+
+export const Battlefield = memo(BattlefieldInner);

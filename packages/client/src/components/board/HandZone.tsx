@@ -1,10 +1,10 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, memo } from 'react';
 import type { Card, CardInstance } from '@king-card/shared';
 import { CardComponent } from './CardComponent.js';
 import { computeFanLayout } from '../../utils/fanLayout.js';
 
 interface HandZoneProps {
-  cards: any[];
+  cards: Card[];
   isOpponent?: boolean;
   containerWidth?: number;
   onPlayCard?: (index: number) => void;
@@ -14,7 +14,7 @@ interface HandZoneProps {
 const DEFAULT_CONTAINER_WIDTH = 800;
 const CONTAINER_HEIGHT = 185;
 
-export function HandZone({
+function HandZoneInner({
   cards,
   isOpponent = false,
   containerWidth,
@@ -203,3 +203,5 @@ export function HandZone({
     </div>
   );
 }
+
+export const HandZone = memo(HandZoneInner);
