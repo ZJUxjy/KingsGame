@@ -1,6 +1,12 @@
 import { useState } from 'react';
-import { ALL_EMPEROR_DATA_LIST } from '@king-card/core';
-import { getCivilizationMeta, CIVILIZATION_ORDER, type Civilization } from '@king-card/shared';
+import { ALL_CARDS, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
+import {
+  getCivilizationMeta,
+  CIVILIZATION_ORDER,
+  validateDeckDefinition,
+  type Civilization,
+} from '@king-card/shared';
+import { useDeckStore } from '../../stores/deckStore.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
 import { getCardDisplayText } from '../../utils/cardText.js';
@@ -19,9 +25,21 @@ export default function HeroSelect() {
   const connected = useGameStore((s) => s.connected);
   const error = useGameStore((s) => s.error);
   const reset = useGameStore((s) => s._reset);
+  const setUiPhase = useGameStore((s) => s.setUiPhase);
+  const getDeck = useDeckStore((state) => state.getDeck);
+  const setEditingEmperorCardId = useDeckStore((state) => state.setEditingEmperorCardId);
   const locale = useLocaleStore((state) => state.locale);
   const [selectedCivilization, setSelectedCivilization] = useState<Civilization | null>(null);
   const [selectedEmperorIndex, setSelectedEmperorIndex] = useState<number | null>(null);
+
+  const selectedEmperor = selectedEmperorIndex === null
+    ? null
+    : EMPEROR_OPTIONS[selectedEmperorIndex]?.data ?? null;
+  const selectedDeck = selectedEmperor ? getDeck(selectedEmperor.emperorCard.id) ?? null : null;
+  const deckValidation = selectedDeck && selectedEmperor
+    ? validateDeckDefinition(selectedDeck, ALL_CARDS, selectedEmperor)
+    : null;
+  const deckReady = selectedDeck !== null && deckValidation?.ok === true;
 
   const civilizationEmperors = selectedCivilization === null
     ? []
@@ -57,17 +75,32 @@ export default function HeroSelect() {
   const startLabel = gameMode === 'pvp'
     ? locale === 'en-US' ? 'Find Opponent' : '匹配对手'
     : locale === 'en-US' ? 'Start Battle' : '开始对战';
+  const deckStatusLabel = selectedEmperor === null
+    ? locale === 'en-US' ? 'Select an emperor to inspect the saved deck.' : '请选择帝王以查看已保存套牌。'
+    : deckReady
+      ? locale === 'en-US' ? 'Deck ready' : '套牌已就绪'
+      : locale === 'en-US' ? 'No legal deck saved for this emperor yet' : '尚未准备合法套牌';
+  const editDeckLabel = locale === 'en-US' ? 'Edit Deck' : '编辑套牌';
 
   const handleStart = () => {
-    if (selectedEmperorIndex === null) {
+    if (selectedEmperorIndex === null || !selectedDeck || !deckReady) {
       return;
     }
 
     if (gameMode === 'pvp') {
-      joinPvp(selectedEmperorIndex);
+      joinPvp(selectedEmperorIndex, selectedDeck);
     } else {
-      joinGame(selectedEmperorIndex);
+      joinGame(selectedEmperorIndex, selectedDeck);
     }
+  };
+
+  const handleEditDeck = () => {
+    if (!selectedEmperor) {
+      return;
+    }
+
+    setEditingEmperorCardId(selectedEmperor.emperorCard.id);
+    setUiPhase('deck-builder');
   };
 
   const handleCivilizationSelect = (civilization: Civilization) => {
@@ -209,12 +242,29 @@ export default function HeroSelect() {
           </div>
         )}
 
+        <div className="mb-4 w-full max-w-3xl rounded-xl border border-stone-700/80 bg-stone-950/70 px-6 py-4 text-sm text-stone-200">
+          {deckStatusLabel}
+        </div>
+
         <div className="flex flex-wrap items-center justify-center gap-4">
           <button
+            type="button"
+            onClick={handleEditDeck}
+            disabled={selectedEmperor === null}
+            className={`rounded-xl border px-6 py-4 text-base font-bold transition-all duration-200 ${
+              selectedEmperor !== null
+                ? 'cursor-pointer border-emerald-500/70 text-emerald-200 hover:border-emerald-400 hover:text-emerald-100'
+                : 'cursor-not-allowed border-stone-700 text-stone-500'
+            }`}
+          >
+            {editDeckLabel}
+          </button>
+
+          <button
             onClick={handleStart}
-            disabled={selectedEmperorIndex === null || !connected}
+            disabled={selectedEmperorIndex === null || !connected || !deckReady}
             className={`rounded-xl px-12 py-4 text-xl font-bold transition-all duration-200 ${
-              selectedEmperorIndex !== null && connected
+              selectedEmperorIndex !== null && connected && deckReady
                 ? 'cursor-pointer bg-yellow-600 text-white hover:bg-yellow-500'
                 : 'cursor-not-allowed bg-gray-700 text-gray-500'
             }`}

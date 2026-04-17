@@ -10,6 +10,7 @@ import type {
   Card,
   ActiveStratagem,
   Civilization,
+  DeckDefinition,
 } from '@king-card/shared';
 import { socketService } from '../services/socketService.js';
 import { useLocaleStore } from './localeStore.js';
@@ -96,8 +97,8 @@ interface GameStore {
 
   // Actions (emit to server)
   connect: (url: string) => void;
-  joinGame: (emperorIndex: number) => void;
-  joinPvp: (emperorIndex: number) => void;
+  joinGame: (emperorIndex: number, deck: DeckDefinition) => void;
+  joinPvp: (emperorIndex: number, deck: DeckDefinition) => void;
   playCard: (handIndex: number, boardPosition?: number) => void;
   attack: (attackerInstanceId: string, target: TargetRef) => void;
   endTurn: () => void;
@@ -172,7 +173,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  joinGame: (emperorIndex: number) => {
+  joinGame: (emperorIndex: number, deck: DeckDefinition) => {
     try {
       const socket = socketService.getSocket();
       if (!socket.connected) {
@@ -184,7 +185,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
         return;
       }
-      socket.emit('game:join', { emperorIndex });
+      socket.emit('game:join', { emperorIndex, deck });
     } catch {
       set({
         error: getClientErrorMessage(
@@ -195,7 +196,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  joinPvp: (emperorIndex: number) => {
+  joinPvp: (emperorIndex: number, deck: DeckDefinition) => {
     try {
       const socket = socketService.getSocket();
       if (!socket.connected) {
@@ -207,7 +208,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
         return;
       }
-      socket.emit('game:pvpJoin', { emperorIndex });
+      socket.emit('game:pvpJoin', { emperorIndex, deck });
     } catch {
       set({
         error: getClientErrorMessage(
