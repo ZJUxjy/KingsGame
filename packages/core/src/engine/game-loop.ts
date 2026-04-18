@@ -212,6 +212,7 @@ export function executeTurnStart(
   }
 
   for (const minion of [...player.battlefield]) {
+    if (state.isGameOver) break;
     const effectCtx: EffectContext = {
       state,
       mutator,
@@ -225,6 +226,10 @@ export function executeTurnStart(
     executeCardEffects('ON_TURN_START', effectCtx);
     resolveEffects('ON_TURN_START', effectCtx);
   }
+
+  // If an ON_TURN_START handler ended the game, stop before the rest
+  // of the turn-start phases mutate post-game state.
+  if (state.isGameOver) return;
 
   // ── Phase 4: MAIN ─────────────────────────────────────────────────
   state.phase = 'MAIN';
@@ -289,6 +294,7 @@ export function executeTurnEnd(
   const mutator = createStateMutator(state, eventBus, turnStartRng, counter);
 
   for (const minion of [...player.battlefield]) {
+    if (state.isGameOver) break;
     const effectCtx: EffectContext = {
       state,
       mutator,

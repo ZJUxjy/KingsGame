@@ -568,6 +568,13 @@ export function executeEndTurn(
   // depend on this firing for the correct player's battlefield.
   executeTurnEnd(state, collectingBus, counter);
 
+  // If an ON_TURN_END handler ended the game (e.g. COLONY drew from an
+  // empty deck), do NOT advance state any further. The GAME_OVER event
+  // has already been emitted by the mutator path that triggered it.
+  if (state.isGameOver) {
+    return success(events);
+  }
+
   // Emit TURN_END for the player whose turn is actually ending.
   // Must happen before the player switch + turnNumber increment in
   // executeTurnStart so listeners receive the just-ended turn's metadata.
