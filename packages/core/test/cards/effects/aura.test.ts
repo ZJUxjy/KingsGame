@@ -5,6 +5,7 @@ import {
 } from '../../../src/cards/effects/index.js';
 import { registerAura } from '../../../src/cards/effects/aura.js';
 import type { EffectContext, CardInstance, Buff } from '@king-card/shared';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -68,6 +69,7 @@ function makePlayer(overrides: Partial<EffectContext['state']['players'][0]> = {
     battlefield: [],
     activeStratagems: [],
     costModifiers: [],
+    costReduction: 0,
     energyCrystal: 10,
     maxEnergy: 10,
     cannotDrawNextTurn: false,
@@ -102,6 +104,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
       pick: (arr) => arr[0],
       shuffle: (a) => a,
     },
+    counter: new IdCounter(),
     ...overrides,
   };
 }

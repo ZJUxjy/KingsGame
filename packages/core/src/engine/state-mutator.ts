@@ -14,20 +14,10 @@ import type {
   EffectContext,
 } from '@king-card/shared';
 import { createCardInstance } from '../models/card-instance.js';
-import { DefaultRNG } from './rng.js';
 import { resolveEffects } from '../cards/effects/index.js';
+import type { IdCounter } from './id-counter.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────
-
-let stratagemCounter = 0;
-
-function generateStratagemId(): string {
-  return `stratagem_${++stratagemCounter}`;
-}
-
-export function resetStratagemCounter(): void {
-  stratagemCounter = 0;
-}
 
 function findMinion(state: GameState, instanceId: string): CardInstance | undefined {
   for (const player of state.players) {
@@ -46,7 +36,8 @@ function emit(eventBus: { emit: (event: GameEvent) => void }, event: GameEvent):
 export function createStateMutator(
   state: GameState,
   eventBus: { emit: (event: GameEvent) => void },
-  rng: EffectContext['rng'] = new DefaultRNG(),
+  rng: EffectContext['rng'],
+  counter: IdCounter,
 ): StateMutator {
   return {
     // ── damage ────────────────────────────────────────────────────
@@ -57,12 +48,22 @@ export function createStateMutator(
 
         // Armor absorbs damage first
         if (player.hero.armor > 0) {
+          const armorBefore = player.hero.armor;
           if (player.hero.armor >= remaining) {
             player.hero.armor -= remaining;
             remaining = 0;
           } else {
             remaining -= player.hero.armor;
             player.hero.armor = 0;
+          }
+          const armorDelta = player.hero.armor - armorBefore;
+          if (armorDelta !== 0) {
+            emit(eventBus, {
+              type: 'ARMOR_CHANGED',
+              playerIndex: target.playerIndex,
+              amount: armorDelta,
+              totalArmor: player.hero.armor,
+            });
           }
         }
 
@@ -84,7 +85,7 @@ export function createStateMutator(
 
       if (minion.currentHealth <= 0) {
         // destroyMinion is called internally via the mutator itself
-        const destroyResult = createStateMutator(state, eventBus, rng).destroyMinion(target.instanceId);
+        const destroyResult = createStateMutator(state, eventBus, rng, counter).destroyMinion(target.instanceId);
         return destroyResult;
       }
 
@@ -139,7 +140,8 @@ export function createStateMutator(
           return null;
         }
 
-        const card = player.deck.shift()!;
+        const drawn = player.deck.shift()!;
+        const card = drawn.card;
 
         if (player.hand.length >= player.handLimit) {
           // Hand full: discard the drawn card
@@ -149,6 +151,24 @@ export function createStateMutator(
           player.hand.push(card);
           emit(eventBus, { type: 'CARD_DRAWN', playerIndex, card });
         }
+      }
+
+      return null;
+    },
+
+    // ── addCardToHand ─────────────────────────────────────────────
+    addCardToHand(playerIndex: number, card: Card): EngineErrorCode | null {
+      const player = state.players[playerIndex];
+      if (!player) return 'INVALID_TARGET';
+
+      const copy: Card = { ...card };
+
+      if (player.hand.length >= player.handLimit) {
+        player.graveyard.push(copy);
+        emit(eventBus, { type: 'CARD_DISCARDED', playerIndex, card: copy });
+      } else {
+        player.hand.push(copy);
+        emit(eventBus, { type: 'CARD_DRAWN', playerIndex, card: copy });
       }
 
       return null;
@@ -174,7 +194,7 @@ export function createStateMutator(
 
       if (player.battlefield.length >= GAME_CONSTANTS.MAX_BOARD_SIZE) return { instance: null, error: 'BOARD_FULL' };
 
-      const instance = createCardInstance(card, ownerIndex as 0 | 1);
+      const instance = createCardInstance(card, ownerIndex as 0 | 1, counter);
       instance.position = position ?? player.battlefield.length;
 
       if (position !== undefined) {
@@ -201,7 +221,7 @@ export function createStateMutator(
 
           const effectCtx: EffectContext = {
             state,
-            mutator: createStateMutator(state, eventBus, rng),
+            mutator: createStateMutator(state, eventBus, rng, counter),
             source: minion,
             playerIndex: minion.ownerIndex,
             eventBus: {
@@ -210,6 +230,7 @@ export function createStateMutator(
               removeAllListeners: () => {},
             },
             rng,
+            counter,
           };
 
           resolveEffects('ON_DEATH', effectCtx);
@@ -243,7 +264,7 @@ export function createStateMutator(
         }
         // If health dropped to 0 or below, destroy the minion
         if (minion.currentHealth <= 0) {
-          createStateMutator(state, eventBus, rng).destroyMinion(minion.instanceId);
+          createStateMutator(state, eventBus, rng, counter).destroyMinion(minion.instanceId);
         }
       }
 
@@ -305,7 +326,7 @@ export function createStateMutator(
       emit(eventBus, { type: 'BUFF_REMOVED', target: minion, buff: removed });
 
       if (minion.currentHealth <= 0) {
-        return createStateMutator(state, eventBus, rng).destroyMinion(target.instanceId);
+        return createStateMutator(state, eventBus, rng, counter).destroyMinion(target.instanceId);
       }
 
       return null;
@@ -315,13 +336,15 @@ export function createStateMutator(
     gainArmor(playerIndex: number, amount: number): EngineErrorCode | null {
       const player = state.players[playerIndex];
       if (!player) return 'INVALID_TARGET';
+      if (amount <= 0) return null;
 
       player.hero.armor += amount;
-
-      // Note: ARMOR_CHANGED is not a defined event in the shared events.ts.
-      // We emit HERO_DAMAGED-equivalent is not appropriate. No event matches.
-      // The spec says "emit ARMOR_CHANGED" but shared only has ENERGY_GAINED/SPENT, etc.
-      // For now we skip emitting an event since there's no matching event type.
+      emit(eventBus, {
+        type: 'ARMOR_CHANGED',
+        playerIndex,
+        amount,
+        totalArmor: player.hero.armor,
+      });
       return null;
     },
 
@@ -348,7 +371,7 @@ export function createStateMutator(
 
       const stratagem: ActiveStratagem = {
         card,
-        instanceId: generateStratagemId(),
+        instanceId: counter.nextStratagemId(),
         ownerIndex,
         remainingTurns: 2, // Default: lasts 2 turns
         appliedEffects: [],

@@ -3,6 +3,7 @@ import { GAME_CONSTANTS } from '@king-card/shared';
 import { createStateMutator } from './state-mutator.js';
 import { checkWinCondition } from './win-condition.js';
 import { executeCardEffects, resolveEffects } from '../cards/effects/index.js';
+import { IdCounter } from './id-counter.js';
 
 const turnStartRng: EffectContext['rng'] = {
   nextInt(min: number): number {
@@ -35,11 +36,34 @@ function createEffectEventBus(
   };
 }
 
+/**
+ * Decrement `remainingTurns` on every TEMPORARY buff on every player's
+ * battlefield at the start of each turn (active *and* opponent).
+ *
+ * Important invariant:
+ *   A buff with `remainingTurns: N` lives through `N` turn-starts after
+ *   it is applied, regardless of which player owns the affected minion.
+ *
+ * Practical consequences:
+ *   - `remainingTurns: 1` = "lasts until the very next turn-start (which
+ *     could be the opponent's turn)". Suitable for buffs that are
+ *     re-applied at the start of each owner turn — e.g. MOBILIZATION_ORDER
+ *     gives +1/+1 for "this turn only" and re-emits the buff every turn,
+ *     so a single decrement is exactly the lifetime we want.
+ *   - For "lasts until the SAME player's next turn", use
+ *     `remainingTurns: 2` (one decrement on the opponent's turn-start,
+ *     one on the return to the owner). Verify each call site against
+ *     this two-decrement model when authoring such effects.
+ *
+ * Buffs of type other than TEMPORARY, or with no numeric `remainingTurns`,
+ * are left untouched.
+ */
 function expireTemporaryBuffs(
   state: GameState,
   eventBus: { emit: (event: GameEvent) => void },
+  counter: IdCounter,
 ): void {
-  const mutator = createStateMutator(state, eventBus, turnStartRng);
+  const mutator = createStateMutator(state, eventBus, turnStartRng, counter);
 
   for (const player of state.players) {
     for (const minion of [...player.battlefield]) {
@@ -72,9 +96,13 @@ function expireTemporaryBuffs(
  * Execute the start of a turn for the current player.
  * Runs the five phases in order: ENERGY_GAIN -> DRAW -> UPKEEP -> MAIN -> END.
  */
-export function executeTurnStart(state: GameState, eventBus: { emit: (event: GameEvent) => void }): void {
+export function executeTurnStart(
+  state: GameState,
+  eventBus: { emit: (event: GameEvent) => void },
+  counter: IdCounter,
+): void {
   const player = state.players[state.currentPlayerIndex];
-  const mutator = createStateMutator(state, eventBus, turnStartRng);
+  const mutator = createStateMutator(state, eventBus, turnStartRng, counter);
   player.cardsPlayedThisTurn = 0;
 
   // ── Phase 1: ENERGY_GAIN ──────────────────────────────────────────
@@ -95,6 +123,29 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
     amount: energyGained,
     totalEnergy: player.maxEnergy,
   });
+
+  // ── BLOCKADE penalty: opponent's BLOCKADE minions reduce our usable energy ──
+  // Applied here (after the energy refresh) rather than via an ON_TURN_START
+  // handler on the opponent's battlefield, because IRON_FIST / MOBILIZATION_ORDER
+  // / GARRISON handlers lack owner guards and would spuriously trigger.
+  const opponentIdx = (1 - state.currentPlayerIndex) as 0 | 1;
+  const blockadeCount = state.players[opponentIdx].battlefield.filter(
+    (m) => m.card.keywords.includes('BLOCKADE'),
+  ).length;
+
+  if (blockadeCount > 0) {
+    const reduction = Math.min(blockadeCount, player.energyCrystal);
+    player.energyCrystal -= reduction;
+    if (reduction > 0) {
+      eventBus.emit({
+        type: 'ENERGY_SPENT',
+        playerIndex: state.currentPlayerIndex,
+        amount: reduction,
+        remainingEnergy: player.energyCrystal,
+        reason: 'BLOCKADE',
+      });
+    }
+  }
 
   state.turnNumber += 1;
   eventBus.emit({
@@ -117,7 +168,7 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
   eventBus.emit({ type: 'PHASE_CHANGE', phase: 'UPKEEP', previousPhase: 'DRAW' });
 
   // 3a. Temporary buff countdown
-  expireTemporaryBuffs(state, eventBus);
+  expireTemporaryBuffs(state, eventBus, counter);
 
   // 3b. Stratagem countdown
   const expiredStratagems: typeof player.activeStratagems = [];
@@ -161,6 +212,7 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
   }
 
   for (const minion of [...player.battlefield]) {
+    if (state.isGameOver) break;
     const effectCtx: EffectContext = {
       state,
       mutator,
@@ -168,11 +220,16 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
       playerIndex: state.currentPlayerIndex,
       eventBus: createEffectEventBus(eventBus),
       rng: turnStartRng,
+      counter,
     };
 
     executeCardEffects('ON_TURN_START', effectCtx);
     resolveEffects('ON_TURN_START', effectCtx);
   }
+
+  // If an ON_TURN_START handler ended the game, stop before the rest
+  // of the turn-start phases mutate post-game state.
+  if (state.isGameOver) return;
 
   // ── Phase 4: MAIN ─────────────────────────────────────────────────
   state.phase = 'MAIN';
@@ -215,10 +272,40 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
       reason: result.winReason!,
     });
   }
+}
 
-  eventBus.emit({
-    type: 'TURN_END',
-    playerIndex: state.currentPlayerIndex,
-    turnNumber: state.turnNumber,
-  });
+// ─── Turn End ───────────────────────────────────────────────────────
+
+/**
+ * Fire ON_TURN_END effect handlers for every minion on the current
+ * player's battlefield. Called by executeEndTurn BEFORE the player
+ * switch so handlers like COLONY trigger for the player whose turn
+ * is actually ending.
+ *
+ * Snapshot the battlefield to be safe in case a handler removes a
+ * minion mid-iteration.
+ */
+export function executeTurnEnd(
+  state: GameState,
+  eventBus: { emit: (event: GameEvent) => void },
+  counter: IdCounter,
+): void {
+  const player = state.players[state.currentPlayerIndex];
+  const mutator = createStateMutator(state, eventBus, turnStartRng, counter);
+
+  for (const minion of [...player.battlefield]) {
+    if (state.isGameOver) break;
+    const effectCtx: EffectContext = {
+      state,
+      mutator,
+      source: minion,
+      playerIndex: state.currentPlayerIndex,
+      eventBus: createEffectEventBus(eventBus),
+      rng: turnStartRng,
+      counter,
+    };
+
+    executeCardEffects('ON_TURN_END', effectCtx);
+    resolveEffects('ON_TURN_END', effectCtx);
+  }
 }

@@ -7,10 +7,13 @@ import {
 } from '../../../src/cards/effects/index.js';
 import { deathrattleHandler } from '../../../src/cards/effects/deathrattle.js';
 import { createStateMutator } from '../../../src/engine/state-mutator.js';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { BINGMAYONG } from '../../../src/cards/definitions/china-minions.js';
 import type { EffectContext, EffectHandler, CardInstance } from '@king-card/shared';
+
+let counter: IdCounter = new IdCounter();
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -77,6 +80,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
           battlefield: [],
           activeStratagems: [],
           costModifiers: [],
+          costReduction: 0,
           energyCrystal: 10,
           maxEnergy: 10,
           cannotDrawNextTurn: false,
@@ -109,6 +113,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
           battlefield: [],
           activeStratagems: [],
           costModifiers: [],
+          costReduction: 0,
           energyCrystal: 10,
           maxEnergy: 10,
           cannotDrawNextTurn: false,
@@ -137,6 +142,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
       pick: (arr) => arr[0],
       shuffle: (a) => a,
     },
+    counter,
     ...overrides,
   };
 }
@@ -146,7 +152,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
 describe('DEATHRATTLE effect handler', () => {
   beforeEach(() => {
     clearEffectHandlers();
-    resetInstanceCounter();
+    counter = new IdCounter();
   });
 
   it('registers DEATHRATTLE handler without error', () => {
@@ -199,9 +205,9 @@ describe('DEATHRATTLE effect handler', () => {
 
     const bus = new EventBus();
     const ctx = makeEffectContext({ source: makeCardInstance({ card: makeCard('placeholder') }) });
-    ctx.state.players[0].deck = [{ ...makeCard('draw_target') }];
-    const mutator = createStateMutator(ctx.state, bus);
-    const source = createCardInstance(BINGMAYONG, 0);
+    ctx.state.players[0].deck = [createCardInstance({ ...makeCard('draw_target') }, 0, counter)];
+    const mutator = createStateMutator(ctx.state, bus, undefined, counter);
+    const source = createCardInstance(BINGMAYONG, 0, counter);
     ctx.state.players[0].battlefield.push(source);
 
     mutator.destroyMinion(source.instanceId);

@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import type { Card } from '@king-card/shared';
+
+let counter: IdCounter;
 
 const dummyCard: Card = {
   id: 'test_minion',
@@ -18,54 +21,54 @@ const dummyCard: Card = {
 
 describe('createCardInstance', () => {
   beforeEach(() => {
-    resetInstanceCounter();
+    counter = new IdCounter();
   });
 
   it('should set currentAttack/currentHealth/currentMaxHealth from card', () => {
-    const instance = createCardInstance(dummyCard, 0);
+    const instance = createCardInstance(dummyCard, 0, counter);
     expect(instance.currentAttack).toBe(4);
     expect(instance.currentHealth).toBe(5);
     expect(instance.currentMaxHealth).toBe(5);
   });
 
   it('should set remainingAttacks to 0 for minion without RUSH/CHARGE/ASSASSIN', () => {
-    const instance = createCardInstance(dummyCard, 0);
+    const instance = createCardInstance(dummyCard, 0, counter);
     expect(instance.remainingAttacks).toBe(0);
   });
 
   it('should set remainingAttacks to 1 for RUSH minion', () => {
     const rushCard: Card = { ...dummyCard, id: 'rush_minion', keywords: ['RUSH'] };
-    const instance = createCardInstance(rushCard, 0);
+    const instance = createCardInstance(rushCard, 0, counter);
     expect(instance.remainingAttacks).toBe(1);
   });
 
   it('should set remainingAttacks to 1 for CHARGE minion', () => {
     const chargeCard: Card = { ...dummyCard, id: 'charge_minion', keywords: ['CHARGE'] };
-    const instance = createCardInstance(chargeCard, 0);
+    const instance = createCardInstance(chargeCard, 0, counter);
     expect(instance.remainingAttacks).toBe(1);
   });
 
   it('should set remainingAttacks to 1 for ASSASSIN minion', () => {
     const assassinCard: Card = { ...dummyCard, id: 'assassin_minion', keywords: ['ASSASSIN'] };
-    const instance = createCardInstance(assassinCard, 0);
+    const instance = createCardInstance(assassinCard, 0, counter);
     expect(instance.remainingAttacks).toBe(1);
   });
 
   it('should set justPlayed to true', () => {
-    const instance = createCardInstance(dummyCard, 0);
+    const instance = createCardInstance(dummyCard, 0, counter);
     expect(instance.justPlayed).toBe(true);
   });
 
   it('should generate unique instanceId', () => {
-    const inst1 = createCardInstance(dummyCard, 0);
-    const inst2 = createCardInstance(dummyCard, 0);
+    const inst1 = createCardInstance(dummyCard, 0, counter);
+    const inst2 = createCardInstance(dummyCard, 0, counter);
     expect(inst1.instanceId).not.toBe(inst2.instanceId);
     expect(inst1.instanceId).toBe('test_minion_1');
     expect(inst2.instanceId).toBe('test_minion_2');
   });
 
   it('should initialize buffs as empty array', () => {
-    const instance = createCardInstance(dummyCard, 0);
+    const instance = createCardInstance(dummyCard, 0, counter);
     expect(instance.buffs).toEqual([]);
   });
 
@@ -76,7 +79,7 @@ describe('createCardInstance', () => {
       keywords: ['RUSH'],
     };
 
-    const instance = createCardInstance(sourceCard, 0);
+    const instance = createCardInstance(sourceCard, 0, counter);
     instance.card.keywords.push('TAUNT');
 
     expect(instance.card).not.toBe(sourceCard);
@@ -85,13 +88,13 @@ describe('createCardInstance', () => {
   });
 
   it('should set sleepTurns to 0 for non-RESEARCH minion', () => {
-    const instance = createCardInstance(dummyCard, 0);
+    const instance = createCardInstance(dummyCard, 0, counter);
     expect(instance.sleepTurns).toBe(0);
   });
 
   it('should set sleepTurns to 1 for RESEARCH minion', () => {
     const researchCard: Card = { ...dummyCard, id: 'research_minion', keywords: ['RESEARCH'] };
-    const instance = createCardInstance(researchCard, 0);
+    const instance = createCardInstance(researchCard, 0, counter);
     expect(instance.sleepTurns).toBe(1);
   });
 });

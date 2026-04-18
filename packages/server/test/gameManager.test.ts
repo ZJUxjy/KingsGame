@@ -270,6 +270,33 @@ describe('GameManager', () => {
     );
   });
 
+  it('findWaitingPvpGame excludes session whose player[0] socket equals caller', () => {
+    const session = manager.createPvpWaiting(0);
+    manager.setPlayerSocket(session.id, 0, 'socket-A');
+
+    expect(manager.findWaitingPvpGame('socket-A')).toBeUndefined();
+    expect(manager.findWaitingPvpGame('socket-B')?.id).toBe(session.id);
+  });
+
+  it('getWaitingSessionsForSocket finds only waiting PvP sessions owned by the given socket', () => {
+    const own = manager.createPvpWaiting(0);
+    manager.setPlayerSocket(own.id, 0, 'socket-A');
+
+    // Another socket's waiting session (must not be returned)
+    const other = manager.createPvpWaiting(1);
+    manager.setPlayerSocket(other.id, 0, 'socket-B');
+
+    // Already-paired session owned by socket-A (must not be returned: not waiting)
+    const paired = manager.createPvpWaiting(0);
+    manager.setPlayerSocket(paired.id, 0, 'socket-A');
+    manager.setPlayerSocket(paired.id, 1, 'socket-X');
+    paired.state = 'playing';
+
+    const owned = manager.getWaitingSessionsForSocket('socket-A');
+    expect(owned).toHaveLength(1);
+    expect(owned[0].id).toBe(own.id);
+  });
+
   it('initializePvpEngine materializes stored custom decks for both PvP players', () => {
     const createSpy = vi.spyOn(GameEngine, 'create');
     const player0Deck = makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[3]);

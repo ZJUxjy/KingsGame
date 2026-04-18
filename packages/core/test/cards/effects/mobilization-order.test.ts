@@ -4,7 +4,8 @@ import {
   clearEffectHandlers,
 } from '../../../src/cards/effects/index.js';
 import { registerMobilizationOrder } from '../../../src/cards/effects/mobilization-order.js';
-import type { EffectContext, CardInstance } from '@king-card/shared';
+import type { Buff, EffectContext, CardInstance, TargetRef } from '@king-card/shared';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
     state: {
       players: [makePlayer(), makePlayer()],
       currentPlayerIndex: 0,
-      turnNumber: 1,
+      turnNumber: 7,
       phase: 'MAIN',
       isGameOver: false,
       winnerIndex: null,
@@ -104,6 +105,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
       pick: (arr) => arr[0],
       shuffle: (a) => a,
     },
+    counter: new IdCounter(),
     ...overrides,
   };
 }
@@ -124,6 +126,7 @@ function ctx_mutator_base() {
     activateStratagem: () => null,
     setDrawLock: () => null,
     grantExtraAttack: () => null,
+    addCardToHand: () => null,
   };
 }
 
@@ -135,8 +138,8 @@ describe('MOBILIZATION_ORDER effect handler', () => {
     registerMobilizationOrder();
   });
 
-  it('gives all friendly minions +1 attack when ≥3 on board at turn start', () => {
-    const modifyCalls: Array<{ instanceId: string; stat: string; delta: number }> = [];
+  it('applies a TEMPORARY +1 attack buff to all friendly minions when >=3 on board at turn start', () => {
+    const buffCalls: Array<{ instanceId: string; buff: Buff }> = [];
 
     const minion1 = makeCardInstance({
       instanceId: 'minion_1',
@@ -155,25 +158,39 @@ describe('MOBILIZATION_ORDER effect handler', () => {
       source: minion1,
       mutator: {
         ...ctx_mutator_base(),
-        modifyStat(target, stat, delta) {
-          modifyCalls.push({ instanceId: target.instanceId, stat, delta });
+        applyBuff(target: TargetRef, buff: Buff) {
+          if (target.type === 'MINION') {
+            buffCalls.push({ instanceId: target.instanceId, buff });
+          }
           return null;
         },
-      },
+      } as any,
     });
 
     (ctx.state as any).players[0].battlefield = [minion1, minion2, minion3];
 
     resolveEffects('ON_TURN_START', ctx);
 
-    expect(modifyCalls).toHaveLength(3);
-    expect(modifyCalls).toContainEqual({ instanceId: 'minion_1', stat: 'attack', delta: 1 });
-    expect(modifyCalls).toContainEqual({ instanceId: 'minion_2', stat: 'attack', delta: 1 });
-    expect(modifyCalls).toContainEqual({ instanceId: 'minion_3', stat: 'attack', delta: 1 });
+    expect(buffCalls).toHaveLength(3);
+    const targeted = buffCalls.map((c) => c.instanceId).sort();
+    expect(targeted).toEqual(['minion_1', 'minion_2', 'minion_3']);
+
+    for (const call of buffCalls) {
+      expect(call.buff).toMatchObject({
+        type: 'TEMPORARY',
+        attackBonus: 1,
+        healthBonus: 0,
+        maxHealthBonus: 0,
+        keywordsGranted: [],
+        remainingTurns: 1,
+      });
+      expect(call.buff.id).toMatch(/^buff_/);
+      expect(call.buff.sourceInstanceId).toBe(`mobilization_order_turn_${ctx.state.turnNumber}`);
+    }
   });
 
   it('does not trigger with <3 minions', () => {
-    const modifyCalls: Array<{ instanceId: string; stat: string; delta: number }> = [];
+    const buffCalls: Array<{ instanceId: string; buff: Buff }> = [];
 
     const minion1 = makeCardInstance({
       instanceId: 'minion_1',
@@ -188,22 +205,24 @@ describe('MOBILIZATION_ORDER effect handler', () => {
       source: minion1,
       mutator: {
         ...ctx_mutator_base(),
-        modifyStat(target, stat, delta) {
-          modifyCalls.push({ instanceId: target.instanceId, stat, delta });
+        applyBuff(target: TargetRef, buff: Buff) {
+          if (target.type === 'MINION') {
+            buffCalls.push({ instanceId: target.instanceId, buff });
+          }
           return null;
         },
-      },
+      } as any,
     });
 
     (ctx.state as any).players[0].battlefield = [minion1, minion2];
 
     resolveEffects('ON_TURN_START', ctx);
 
-    expect(modifyCalls).toHaveLength(0);
+    expect(buffCalls).toHaveLength(0);
   });
 
-  it('non-MOBILIZATION_ORDER minion is not affected', () => {
-    const modifyCalls: Array<{ instanceId: string; stat: string; delta: number }> = [];
+  it('non-MOBILIZATION_ORDER source minion does not trigger', () => {
+    const buffCalls: Array<{ instanceId: string; buff: Buff }> = [];
 
     const normalMinion = makeCardInstance({
       instanceId: 'normal_minion',
@@ -222,17 +241,105 @@ describe('MOBILIZATION_ORDER effect handler', () => {
       source: normalMinion,
       mutator: {
         ...ctx_mutator_base(),
-        modifyStat(target, stat, delta) {
-          modifyCalls.push({ instanceId: target.instanceId, stat, delta });
+        applyBuff(target: TargetRef, buff: Buff) {
+          if (target.type === 'MINION') {
+            buffCalls.push({ instanceId: target.instanceId, buff });
+          }
           return null;
         },
-      },
+      } as any,
     });
 
     (ctx.state as any).players[0].battlefield = [normalMinion, minion2, minion3];
 
     resolveEffects('ON_TURN_START', ctx);
 
-    expect(modifyCalls).toHaveLength(0);
+    expect(buffCalls).toHaveLength(0);
+  });
+
+  it('dedupes within the same turn: a second MOBILIZATION_ORDER source does not re-buff', () => {
+    const buffCalls: Array<{ instanceId: string; buff: Buff }> = [];
+
+    const minion1 = makeCardInstance({
+      instanceId: 'minion_1',
+      card: makeCard('card_1', ['MOBILIZATION_ORDER']),
+    });
+    const minion2 = makeCardInstance({
+      instanceId: 'minion_2',
+      card: makeCard('card_2', ['MOBILIZATION_ORDER']),
+    });
+    const minion3 = makeCardInstance({
+      instanceId: 'minion_3',
+      card: makeCard('card_3'),
+    });
+
+    const battlefield = [minion1, minion2, minion3];
+
+    const ctx = makeEffectContext({
+      source: minion1,
+      mutator: {
+        ...ctx_mutator_base(),
+        applyBuff(target: TargetRef, buff: Buff) {
+          if (target.type === 'MINION') {
+            const target_minion = battlefield.find((m) => m.instanceId === target.instanceId);
+            if (target_minion) target_minion.buffs.push(buff);
+            buffCalls.push({ instanceId: target.instanceId, buff });
+          }
+          return null;
+        },
+      } as any,
+    });
+
+    (ctx.state as any).players[0].battlefield = battlefield;
+
+    resolveEffects('ON_TURN_START', ctx);
+    expect(buffCalls).toHaveLength(3);
+
+    // Second MOBILIZATION_ORDER source firing in the same turn must dedupe
+    resolveEffects('ON_TURN_START', { ...ctx, source: minion2 });
+
+    expect(buffCalls).toHaveLength(3);
+  });
+
+  it('skips when source is not on the active player side', () => {
+    const buffCalls: Array<{ instanceId: string; buff: Buff }> = [];
+
+    const opponentMinion = makeCardInstance({
+      instanceId: 'opp_minion',
+      ownerIndex: 1,
+      card: makeCard('opp_card', ['MOBILIZATION_ORDER']),
+    });
+    const m2 = makeCardInstance({
+      instanceId: 'm2',
+      ownerIndex: 1,
+      card: makeCard('c2'),
+    });
+    const m3 = makeCardInstance({
+      instanceId: 'm3',
+      ownerIndex: 1,
+      card: makeCard('c3'),
+    });
+
+    const ctx = makeEffectContext({
+      source: opponentMinion,
+      playerIndex: 1,
+      mutator: {
+        ...ctx_mutator_base(),
+        applyBuff(target: TargetRef, buff: Buff) {
+          if (target.type === 'MINION') {
+            buffCalls.push({ instanceId: target.instanceId, buff });
+          }
+          return null;
+        },
+      } as any,
+    });
+
+    // currentPlayerIndex stays at 0 (default), so opponent's MOBILIZATION_ORDER
+    // must not fire even though their own playerIndex is 1.
+    (ctx.state as any).players[1].battlefield = [opponentMinion, m2, m3];
+
+    resolveEffects('ON_TURN_START', ctx);
+
+    expect(buffCalls).toHaveLength(0);
   });
 });

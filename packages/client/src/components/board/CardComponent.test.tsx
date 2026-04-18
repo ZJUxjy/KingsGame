@@ -154,7 +154,7 @@ describe('CardComponent – redesign structure', () => {
   });
 
   it('shows a detailed description tooltip on hover', () => {
-    const { container, queryByTestId } = render(
+    const { container } = render(
       <CardComponent
         card={makeCard({
           type: 'STRATAGEM',

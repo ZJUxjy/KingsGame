@@ -571,28 +571,59 @@ describe('ON_TURN_END trigger', () => {
 Run: `cd packages/core && npx vitest run test/engine/on-turn-end-trigger.test.ts`
 Expected: FAIL，`expected 0 to be 1`。
 
-- [ ] **Step 3: 在 game-loop.ts END phase 触发 ON_TURN_END**
+- [ ] **Step 3: 新建 `executeTurnEnd` 并在 `executeEndTurn` 切换玩家前调用（修订）**
+
+> **重要修订（2026-04-18 实现期间发现）:** 计划草案曾建议把 ON_TURN_END 放到 `executeTurnStart` 末尾的 Phase 5 END。但 `executeTurnStart` 的实际调用时机是 `executeEndTurn` **切换 `currentPlayerIndex` 之后**，因此 Phase 5 END 内 `state.players[state.currentPlayerIndex]` 已经是新玩家，ON_TURN_END 会在错误一侧触发，COLONY 之类的 handler 拿不到正确的拥有者战场。
+>
+> 实际正确做法：在 `game-loop.ts` 中**新增**一个独立 `executeTurnEnd(state, eventBus, counter)` 函数，由 `action-executor.ts:executeEndTurn` 在切换 `currentPlayerIndex` **之前**调用。
 
 ```typescript
-// packages/core/src/engine/game-loop.ts —— 在 // ── Phase 5: END ───
-// 之前（即 4c reset minister pool 之后）插入：
+// packages/core/src/engine/game-loop.ts —— 在文件末尾新增导出函数：
 
-// ── Phase 5a: ON_TURN_END handlers ────────────────────────────
-for (const minion of [...player.battlefield]) {
-  const effectCtx: EffectContext = {
-    state,
-    mutator,
-    source: minion,
-    playerIndex: state.currentPlayerIndex,
-    eventBus: createEffectEventBus(eventBus),
-    rng: turnStartRng,
-  };
-  executeCardEffects('ON_TURN_END', effectCtx);
-  resolveEffects('ON_TURN_END', effectCtx);
+export function executeTurnEnd(
+  state: GameState,
+  eventBus: { emit: (event: GameEvent) => void },
+  counter: IdCounter,
+): void {
+  const player = state.players[state.currentPlayerIndex];
+  const mutator = createStateMutator(state, eventBus, turnStartRng, counter);
+
+  for (const minion of [...player.battlefield]) {
+    const effectCtx: EffectContext = {
+      state,
+      mutator,
+      source: minion,
+      playerIndex: state.currentPlayerIndex,
+      eventBus: createEffectEventBus(eventBus),
+      rng: turnStartRng,
+      counter,
+    };
+    executeCardEffects('ON_TURN_END', effectCtx);
+    resolveEffects('ON_TURN_END', effectCtx);
+  }
 }
 ```
 
-注意：`executeTurnStart` 名字仅是历史名，实际上覆盖了一个完整回合（START + END）。因此把 ON_TURN_END 触发放在该函数末尾、`TURN_END` 事件之前是正确语义。
+```typescript
+// packages/core/src/engine/action-executor.ts —— 在 executeEndTurn 内，
+// 在 state.currentPlayerIndex = (1 - state.currentPlayerIndex) as 0 | 1 之前插入：
+
+import { executeTurnStart, executeTurnEnd } from './game-loop.js';
+
+// ...
+// Fire ON_TURN_END handlers for the player whose turn is ending,
+// before switching control. COLONY and other end-of-turn keywords
+// depend on this firing for the correct player's battlefield.
+executeTurnEnd(state, collectingBus, counter);
+
+// Switch current player
+state.currentPlayerIndex = (1 - state.currentPlayerIndex) as 0 | 1;
+
+// Start the new turn
+executeTurnStart(state, eventBus, counter);
+```
+
+> **对 Task 4 的影响：** Task 4（修复 `TURN_END` 事件位置）必须在**同一位置** emit `TURN_END`——即 `executeTurnEnd` 之后、玩家切换之前。详见 Task 4 Step 3 修订。
 
 - [ ] **Step 4: 运行测试通过**
 
@@ -790,41 +821,39 @@ describe('TURN_END event semantics', () => {
 Run: `cd packages/core && npx vitest run test/engine/turn-end-event.test.ts`
 Expected: FAIL，`turnNumber` 与 `playerIndex` 与回合开始前不一致。
 
-- [ ] **Step 3: 调整 game-loop.ts 触发顺序**
+- [ ] **Step 3: 在 `executeTurnEnd` 之后、切换玩家之前 emit TURN_END（修订）**
 
-`executeTurnStart` 命名已经误导（它跑的是"上一回合 END + 本回合 START"）。最小改动方案：在 `engine.endTurn()` 流程中，把 `TURN_END` 事件移到**切换玩家与自增 turnNumber 之前**触发。
+> **与 Task 2 协调:** Task 2 已新增 `executeTurnEnd(state, eventBus, counter)` 并在 `executeEndTurn` 切换玩家**之前**调用它。Task 4 的修复**复用同一位置**：在 `executeTurnEnd` 调用之后、`currentPlayerIndex` 翻转之前 emit `TURN_END`，同时删除 `executeTurnStart` 末尾错误位置的旧 emit。
 
-定位点：`packages/core/src/engine/game-engine.ts` 中 `endTurn()` 实际负责"切换"。修改它：
+修改 `packages/core/src/engine/action-executor.ts` 的 `executeEndTurn` 函数，在 `executeTurnEnd(state, collectingBus, counter);` **之后**插入 TURN_END emit：
 
 ```typescript
-// packages/core/src/engine/game-engine.ts —— endTurn()
-endTurn(): EngineResult {
-  const result = executeEndTurn(
-    this.state, this.eventBus, this.rng,
-    this.state.currentPlayerIndex,
-  );
-  if (!result.success) return result;
+// packages/core/src/engine/action-executor.ts —— executeEndTurn 内
+// ...原有 validation...
 
-  // ── Emit TURN_END for the player whose turn is ending ──
-  this.eventBus.emit({
-    type: 'TURN_END',
-    playerIndex: this.state.currentPlayerIndex,
-    turnNumber: this.state.turnNumber,
-  });
+// Fire ON_TURN_END handlers BEFORE switching control (Task 2)
+executeTurnEnd(state, collectingBus, counter);
 
-  // ── Switch player BEFORE executeTurnStart ──
-  this.state.currentPlayerIndex = (1 - this.state.currentPlayerIndex) as 0 | 1;
+// Emit TURN_END for the player whose turn is actually ending (Task 4)
+collectingBus.emit({
+  type: 'TURN_END',
+  playerIndex: state.currentPlayerIndex,
+  turnNumber: state.turnNumber,
+});
 
-  // ── Run next player's turn start ──
-  executeTurnStart(this.state, this.eventBus);
+// Switch current player
+state.currentPlayerIndex = (1 - state.currentPlayerIndex) as 0 | 1;
 
-  return result;
-}
+// Start the new turn
+executeTurnStart(state, eventBus, counter);
 ```
 
-并删除 `packages/core/src/engine/game-loop.ts:219-223` 中错误位置的 `TURN_END` emit。
+**同时删除** `packages/core/src/engine/game-loop.ts:226-230` 中 `executeTurnStart` 末尾的旧 `TURN_END` emit（它在错误位置发出新回合的 `playerIndex` / `turnNumber`，是本 Task 修复的对象）。
 
-如果当前 `endTurn` 不是这种实现，按文件实际结构最小化调整：找到 turnNumber 自增/玩家切换的位置，在其**之前** emit `TURN_END`。
+注意：
+- 用 `collectingBus`（而不是 `eventBus`）保证 TURN_END 能被 `EngineResult.events` 收集，与其他事件一致。
+- `state.currentPlayerIndex` 与 `state.turnNumber` 在切换前读取，正确反映"刚结束的回合"。
+- 不要再向 `engine.endTurn()` 添加 emit；它已被 `executeEndTurn`/`executeTurnStart` 完整覆盖。
 
 - [ ] **Step 4: 运行测试通过**
 
@@ -840,13 +869,16 @@ Expected: 全部通过。
 
 ```bash
 git add packages/core/src/engine/game-loop.ts \
-  packages/core/src/engine/game-engine.ts \
+  packages/core/src/engine/action-executor.ts \
   packages/core/test/engine/turn-end-event.test.ts
 git commit -m "$(cat <<'EOF'
 fix(core): emit TURN_END before switching player and incrementing turn
 
 Previously TURN_END carried the *next* turn's playerIndex/turnNumber,
 breaking listeners that expected the just-ended turn's metadata.
+Now emitted from executeEndTurn alongside the ON_TURN_END handler
+invocation introduced by Task 2, and the misplaced emit at the end
+of executeTurnStart is removed.
 EOF
 )"
 ```
@@ -924,37 +956,42 @@ Expected: FAIL（手牌超过上限或 CARD_DRAWN 未发出）。
 
 - [ ] **Step 3: 在 StateMutator 接口新增 addCardToHand**
 
+> **实现修订（commit `bc4c0fc`）:** 实际签名是 `addCardToHand(playerIndex: number, card: Card): EngineErrorCode | null`，**不返回 `'HAND_FULL'`**——`EngineErrorCode` 联合类型里没有这个错误码，且与 `drawCards` 在手满时的处理对称（push 到 graveyard + emit `CARD_DISCARDED`）更合理。下方的 Step 4 实现已按修订版本编写。
+
 ```typescript
 // packages/shared/src/engine-types.ts —— 在 StateMutator 接口中追加：
 /**
- * Add a card copy to the given player's hand, respecting handLimit.
- * Returns 'HAND_FULL' if rejected, otherwise null. Emits CARD_DRAWN.
+ * Add a card copy to the given player's hand.
+ * - If hand has room: pushes the (shallow-copied) card and emits CARD_DRAWN.
+ * - If hand is full: pushes the copy to graveyard and emits CARD_DISCARDED
+ *   (mirrors drawCards' hand-full behavior).
  */
-addCardToHand(playerIndex: 0 | 1, card: Card): EngineErrorCode | null;
+addCardToHand(playerIndex: number, card: Card): EngineErrorCode | null;
 ```
 
-- [ ] **Step 4: 在 state-mutator.ts 实现 addCardToHand**
+- [ ] **Step 4: 在 state-mutator.ts 实现 addCardToHand（修订版）**
+
+参考 commit `bc4c0fc` 的实际实现，与 `drawCards` 满手分支对称：
 
 ```typescript
 // packages/core/src/engine/state-mutator.ts —— 在 createStateMutator 返回对象内追加：
-addCardToHand(playerIndex: 0 | 1, card: Card): EngineErrorCode | null {
+addCardToHand(playerIndex: number, card: Card): EngineErrorCode | null {
   const player = state.players[playerIndex];
-  if (player.hand.length >= player.handLimit) {
-    return 'HAND_FULL';
-  }
+  if (!player) return 'INVALID_TARGET';
+
   const copy: Card = { ...card };
-  player.hand.push(copy);
-  emit(eventBus, {
-    type: 'CARD_DRAWN',
-    playerIndex,
-    card: copy,
-    source: 'EFFECT',
-  });
+
+  if (player.hand.length >= player.handLimit) {
+    player.graveyard.push(copy);
+    emit(eventBus, { type: 'CARD_DISCARDED', playerIndex, card: copy });
+  } else {
+    player.hand.push(copy);
+    emit(eventBus, { type: 'CARD_DRAWN', playerIndex, card: copy });
+  }
+
   return null;
 },
 ```
-
-如果 `CARD_DRAWN` 事件没有 `source` 字段，去掉它，与现有形状对齐。
 
 - [ ] **Step 5: 修改 research.ts 使用 mutator**
 

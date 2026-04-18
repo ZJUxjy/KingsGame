@@ -1,6 +1,5 @@
 import type { Card, CardEffect, CardInstance, GeneralSkill, HeroSkill } from '@king-card/shared';
-
-let instanceCounter = 0;
+import type { IdCounter } from '../engine/id-counter.js';
 
 function cloneCardEffect(effect: CardEffect): CardEffect {
   return {
@@ -35,7 +34,11 @@ function cloneCard(card: Card): Card {
   };
 }
 
-export function createCardInstance(card: Card, ownerIndex: 0 | 1): CardInstance {
+export function createCardInstance(
+  card: Card,
+  ownerIndex: 0 | 1,
+  counter: IdCounter,
+): CardInstance {
   const instanceCard = cloneCard(card);
   const hasRush = instanceCard.keywords.includes('RUSH');
   const hasCharge = instanceCard.keywords.includes('CHARGE');
@@ -43,7 +46,7 @@ export function createCardInstance(card: Card, ownerIndex: 0 | 1): CardInstance 
 
   return {
     card: instanceCard,
-    instanceId: `${card.id}_${++instanceCounter}`,
+    instanceId: counter.nextInstanceId(card.id),
     ownerIndex,
     baseKeywords: [...instanceCard.keywords],
     currentAttack: card.attack ?? 0,
@@ -58,8 +61,4 @@ export function createCardInstance(card: Card, ownerIndex: 0 | 1): CardInstance 
     buffs: [],
     position: undefined,
   };
-}
-
-export function resetInstanceCounter(): void {
-  instanceCounter = 0;
 }

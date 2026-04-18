@@ -1,13 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { executePlayCard, executeAttack, executeEndTurn, executeUseHeroSkill } from '../../../src/engine/action-executor.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
-import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
 import { WUGUZHIHUO } from '../../../src/cards/definitions/china-sorceries.js';
 import { BINGFA_SANSHILIUJI, MINGXIU_ZHANDAO } from '../../../src/cards/definitions/china-stratagems.js';
 import { TANG_TAIZONG } from '../../../src/cards/definitions/china-emperors.js';
 import type { Card, GameState, CardInstance } from '@king-card/shared';
+
+let counter: IdCounter;
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -70,6 +72,7 @@ function makeBaseGameState(): GameState {
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 5,
         maxEnergy: 5,
         cannotDrawNextTurn: false,
@@ -102,6 +105,7 @@ function makeBaseGameState(): GameState {
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 5,
         maxEnergy: 5,
         cannotDrawNextTurn: false,
@@ -120,12 +124,11 @@ function makeBaseGameState(): GameState {
 }
 
 function setup() {
-  resetInstanceCounter();
-  resetStratagemCounter();
+  counter = new IdCounter();
   const bus = new EventBus();
   const state = makeBaseGameState();
   const rng = new SeededRNG(42);
-  return { state, bus, rng };
+  return { state, bus, rng, counter };
 }
 
 function addMinionToBattlefield(
@@ -134,7 +137,7 @@ function addMinionToBattlefield(
   cardOverrides: Partial<Card> & { id: string },
 ): CardInstance {
   const card = makeMinionCard(cardOverrides);
-  const instance = createCardInstance(card, playerIndex as 0 | 1);
+  const instance = createCardInstance(card, playerIndex as 0 | 1, counter);
   instance.justPlayed = false;
   instance.remainingAttacks = 1;
   state.players[playerIndex].battlefield.push(instance);
@@ -151,7 +154,7 @@ describe('ActionExecutor', () => {
       const card = makeMinionCard({ id: 'minion_1', cost: 2 });
       state.players[0].hand.push(card);
 
-      const result = executePlayCard(state, bus, rng, 0, 0);
+      const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(result.success).toBe(true);
       expect(state.players[0].hand).toHaveLength(0);
@@ -164,7 +167,7 @@ describe('ActionExecutor', () => {
       const card = makeMinionCard({ id: 'expensive', cost: 10 });
       state.players[0].hand.push(card);
 
-      const result = executePlayCard(state, bus, rng, 0, 0);
+      const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -185,7 +188,7 @@ describe('ActionExecutor', () => {
         addMinionToBattlefield(state, 0, { id: `fill_${i}` });
       }
 
-      const result = executePlayCard(state, bus, rng, 0, 0);
+      const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -199,7 +202,7 @@ describe('ActionExecutor', () => {
       const card = makeMinionCard({ id: 'minion_p2', cost: 1 });
       state.players[1].hand.push(card);
 
-      const result = executePlayCard(state, bus, rng, 1, 0);
+      const result = executePlayCard(state, bus, rng, 1, 0, counter);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -212,7 +215,7 @@ describe('ActionExecutor', () => {
       const card = makeStratagemCard('strat_1', 2);
       state.players[0].hand.push(card);
 
-      const result = executePlayCard(state, bus, rng, 0, 0);
+      const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(result.success).toBe(true);
       expect(state.players[0].hand).toHaveLength(0);
@@ -224,7 +227,7 @@ describe('ActionExecutor', () => {
       const card = makeMinionCard({ id: 'minion_cost3', cost: 3 });
       state.players[0].hand.push(card);
 
-      executePlayCard(state, bus, rng, 0, 0);
+      executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(state.players[0].energyCrystal).toBe(2); // 5 - 3
     });
@@ -234,7 +237,7 @@ describe('ActionExecutor', () => {
       const card = makeMinionCard({ id: 'minion_move', cost: 1, attack: 4, health: 5 });
       state.players[0].hand.push(card);
 
-      executePlayCard(state, bus, rng, 0, 0);
+      executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(state.players[0].hand).toHaveLength(0);
       expect(state.players[0].battlefield).toHaveLength(1);
@@ -248,7 +251,7 @@ describe('ActionExecutor', () => {
       const card = makeMinionCard({ id: 'minion_event', cost: 1 });
       state.players[0].hand.push(card);
 
-      const result = executePlayCard(state, bus, rng, 0, 0);
+      const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(result.success).toBe(true);
       if (!result.success) {
@@ -278,7 +281,7 @@ describe('ActionExecutor', () => {
       const friendlyMinion = addMinionToBattlefield(state, 0, { id: 'friendly_target' });
       const enemyMinion = addMinionToBattlefield(state, 1, { id: 'enemy_target' });
 
-      const result = executePlayCard(state, bus, rng, 0, 0);
+      const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(result.success).toBe(true);
       expect(state.players[0].battlefield).not.toContain(friendlyMinion);
@@ -296,11 +299,11 @@ describe('ActionExecutor', () => {
       const { state, bus, rng } = setup();
       state.players[0].hand.push(BINGFA_SANSHILIUJI);
       state.players[0].deck.push(
-        makeMinionCard({ id: 'draw_1' }),
-        makeMinionCard({ id: 'draw_2' }),
+        createCardInstance(makeMinionCard({ id: 'draw_1' }), 0, counter),
+        createCardInstance(makeMinionCard({ id: 'draw_2' }), 0, counter),
       );
 
-      const result = executePlayCard(state, bus, rng, 0, 0);
+      const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(result.success).toBe(true);
       expect(state.players[0].hand.map((card) => card.id)).toEqual(['draw_1', 'draw_2']);
@@ -317,13 +320,13 @@ describe('ActionExecutor', () => {
       state.players[0].energyCrystal = 3;
       state.players[0].hand.push(MINGXIU_ZHANDAO);
 
-      const stratagemResult = executePlayCard(state, bus, rng, 0, 0);
+      const stratagemResult = executePlayCard(state, bus, rng, 0, 0, counter);
       expect(stratagemResult.success).toBe(true);
       expect(state.players[0].costModifiers).toHaveLength(1);
 
       state.players[0].hand.push(makeMinionCard({ id: 'discounted_minion', cost: 2 }));
 
-      const result = executePlayCard(state, bus, rng, 0, 0);
+      const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
       expect(result.success).toBe(true);
       expect(state.players[0].energyCrystal).toBe(0);
@@ -337,14 +340,14 @@ describe('ActionExecutor', () => {
   // ── executeAttack ──────────────────────────────────────────────
   describe('executeAttack', () => {
     it('should successfully attack an enemy minion', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'attacker', attack: 3, health: 3 });
       const target = addMinionToBattlefield(state, 1, { id: 'target', attack: 2, health: 5 });
 
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'MINION',
         instanceId: target.instanceId,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(true);
       expect(target.currentHealth).toBe(2); // 5 - 3
@@ -352,7 +355,7 @@ describe('ActionExecutor', () => {
     });
 
     it('should fail when attacker has no remaining attacks', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'tired' });
       attacker.remainingAttacks = 0;
       const target = addMinionToBattlefield(state, 1, { id: 'target2' });
@@ -360,7 +363,7 @@ describe('ActionExecutor', () => {
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'MINION',
         instanceId: target.instanceId,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -369,14 +372,14 @@ describe('ActionExecutor', () => {
     });
 
     it('should fail when attacker belongs to non-current player', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const attacker = addMinionToBattlefield(state, 1, { id: 'enemy_attacker' });
       const target = addMinionToBattlefield(state, 0, { id: 'my_minion' });
 
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'MINION',
         instanceId: target.instanceId,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -385,7 +388,7 @@ describe('ActionExecutor', () => {
     });
 
     it('should decrement remaining attacks after attacking', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'attack_once' });
       attacker.remainingAttacks = 1;
       const target = addMinionToBattlefield(state, 1, { id: 'target3', health: 10 });
@@ -393,13 +396,13 @@ describe('ActionExecutor', () => {
       executeAttack(state, bus, attacker.instanceId, {
         type: 'MINION',
         instanceId: target.instanceId,
-      });
+      }, rng, counter);
 
       expect(attacker.remainingAttacks).toBe(0);
     });
 
     it('should allow a ready RUSH minion to attack hero on subsequent turns', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'rusher', keywords: ['RUSH'] });
       attacker.remainingAttacks = 1;
       // justPlayed = false (already set by addMinionToBattlefield) — simulates a later turn
@@ -407,7 +410,7 @@ describe('ActionExecutor', () => {
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'HERO',
         playerIndex: 1,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(true);
       expect(state.players[1].hero.health).toBe(28);
@@ -415,16 +418,16 @@ describe('ActionExecutor', () => {
     });
 
     it('should NOT allow a freshly played RUSH minion to attack the hero on the turn it is played', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const card = makeMinionCard({ id: 'rush_fresh', attack: 3, keywords: ['RUSH'] });
-      const attacker = createCardInstance(card, 0);
+      const attacker = createCardInstance(card, 0, counter);
       // justPlayed = true (default from createCardInstance), remainingAttacks = 1 (RUSH)
       state.players[0].battlefield.push(attacker);
 
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'HERO',
         playerIndex: 1,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -434,60 +437,60 @@ describe('ActionExecutor', () => {
     });
 
     it('should allow a freshly played RUSH minion to attack an enemy minion on the turn it is played', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const card = makeMinionCard({ id: 'rush_fresh2', attack: 3, keywords: ['RUSH'] });
-      const attacker = createCardInstance(card, 0);
+      const attacker = createCardInstance(card, 0, counter);
       state.players[0].battlefield.push(attacker);
       const enemyMinion = addMinionToBattlefield(state, 1, { id: 'enemy_target', health: 5 });
 
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'MINION',
         instanceId: enemyMinion.instanceId,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(true);
       expect(enemyMinion.currentHealth).toBeLessThan(5);
     });
 
     it('should allow a freshly played CHARGE minion to attack the hero on the turn it is played', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const card = makeMinionCard({ id: 'charge_fresh', attack: 4, keywords: ['CHARGE'] });
-      const attacker = createCardInstance(card, 0);
+      const attacker = createCardInstance(card, 0, counter);
       // justPlayed = true (default), remainingAttacks = 1 (CHARGE)
       state.players[0].battlefield.push(attacker);
 
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'HERO',
         playerIndex: 1,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(true);
       expect(state.players[1].hero.health).toBe(26); // 30 - 4
     });
 
     it('should allow CHARGE minion to attack hero', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'charger', attack: 5, keywords: ['CHARGE'] });
       attacker.remainingAttacks = 1;
 
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'HERO',
         playerIndex: 1,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(true);
       expect(state.players[1].hero.health).toBe(25); // 30 - 5
     });
 
     it('should allow an ordinary ready minion to attack the enemy hero', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'ready_hero_attacker', attack: 4 });
       attacker.remainingAttacks = 1;
 
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'HERO',
         playerIndex: 1,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(true);
       expect(state.players[1].hero.health).toBe(26);
@@ -495,14 +498,14 @@ describe('ActionExecutor', () => {
     });
 
     it('should not allow a freshly summoned non-CHARGE minion to attack the enemy hero', () => {
-      const { state, bus } = setup();
-      const attacker = createCardInstance(makeMinionCard({ id: 'fresh_hero_attacker', attack: 4 }), 0);
+      const { state, bus, rng } = setup();
+      const attacker = createCardInstance(makeMinionCard({ id: 'fresh_hero_attacker', attack: 4 }), 0, counter);
       state.players[0].battlefield.push(attacker);
 
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'HERO',
         playerIndex: 1,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -512,7 +515,7 @@ describe('ActionExecutor', () => {
     });
 
     it('should require attacking TAUNT minion first', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'normal_att', attack: 3 });
       attacker.remainingAttacks = 1;
       // Add a taunt minion on opponent's side
@@ -524,7 +527,7 @@ describe('ActionExecutor', () => {
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'MINION',
         instanceId: nonTaunt.instanceId,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -535,12 +538,12 @@ describe('ActionExecutor', () => {
       const result2 = executeAttack(state, bus, attacker.instanceId, {
         type: 'MINION',
         instanceId: taunt.instanceId,
-      });
+      }, rng, counter);
       expect(result2.success).toBe(true);
     });
 
     it('should still require attacking a TAUNT minion before the enemy hero', () => {
-      const { state, bus } = setup();
+      const { state, bus, rng } = setup();
       const attacker = addMinionToBattlefield(state, 0, { id: 'hero_attacker', attack: 3 });
       const tauntMinion = addMinionToBattlefield(state, 1, {
         id: 'hero_guard',
@@ -552,7 +555,7 @@ describe('ActionExecutor', () => {
       const result = executeAttack(state, bus, attacker.instanceId, {
         type: 'HERO',
         playerIndex: 1,
-      });
+      }, rng, counter);
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -569,12 +572,12 @@ describe('ActionExecutor', () => {
     it('should switch current player and start new turn', () => {
       const { state, bus } = setup();
       // Give players some deck cards for draw
-      state.players[0].deck.push(makeMinionCard({ id: 'deck_0' }));
-      state.players[1].deck.push(makeMinionCard({ id: 'deck_1' }));
+      state.players[0].deck.push(createCardInstance(makeMinionCard({ id: 'deck_0' }), 0, counter));
+      state.players[1].deck.push(createCardInstance(makeMinionCard({ id: 'deck_1' }), 1, counter));
 
       expect(state.currentPlayerIndex).toBe(0);
 
-      const result = executeEndTurn(state, bus);
+      const result = executeEndTurn(state, bus, counter);
 
       expect(result.success).toBe(true);
       expect(state.currentPlayerIndex).toBe(1);
@@ -604,7 +607,7 @@ describe('ActionExecutor', () => {
         health: 6,
       });
 
-      const result = executeUseHeroSkill(state, bus, rng, 0, {
+      const result = executeUseHeroSkill(state, bus, rng, 0, counter, {
         type: 'MINION',
         instanceId: enemyMinion.instanceId,
       });
@@ -624,7 +627,7 @@ describe('ActionExecutor', () => {
         health: 8,
       });
 
-      const result = executeUseHeroSkill(state, bus, rng, 0, {
+      const result = executeUseHeroSkill(state, bus, rng, 0, counter, {
         type: 'MINION',
         instanceId: target.instanceId,
       });
@@ -657,7 +660,7 @@ describe('ActionExecutor', () => {
       }
       const target = state.players[0].battlefield[0];
 
-      const result = executeUseHeroSkill(state, bus, rng, 0, {
+      const result = executeUseHeroSkill(state, bus, rng, 0, counter, {
         type: 'MINION',
         instanceId: target.instanceId,
       });

@@ -71,9 +71,15 @@ export class GameManager {
   /**
    * Find a PvP game that is waiting for a second player.
    */
-  findWaitingPvpGame(): GameSession | undefined {
+  findWaitingPvpGame(callerSocketId?: string): GameSession | undefined {
     for (const session of this.games.values()) {
-      if (session.mode === 'pvp' && session.state === 'waiting' && session.players[0] && !session.players[1]) {
+      if (
+        session.mode === 'pvp' &&
+        session.state === 'waiting' &&
+        session.players[0] &&
+        !session.players[1] &&
+        session.players[0] !== callerSocketId
+      ) {
         return session;
       }
     }
@@ -118,5 +124,21 @@ export class GameManager {
 
   getAllGames(): GameSession[] {
     return Array.from(this.games.values());
+  }
+
+  /**
+   * Find all sessions where the given socketId is player 0 and the
+   * session is still waiting (no opponent yet). Used to clean up
+   * orphan waiting sessions when a player retries pvpJoin without
+   * cancelling the previous waiting room.
+   */
+  getWaitingSessionsForSocket(socketId: string): GameSession[] {
+    return Array.from(this.games.values()).filter(
+      (s) =>
+        s.mode === 'pvp' &&
+        s.state === 'waiting' &&
+        s.players[0] === socketId &&
+        !s.players[1],
+    );
   }
 }

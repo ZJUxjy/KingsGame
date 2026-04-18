@@ -211,6 +211,29 @@ describe('gameStore', () => {
     expect(useGameStore.getState().pendingSkillAction).toBeNull();
   });
 
+  it('restartGame transitions out of game-over UI immediately (uiPhase becomes lobby)', () => {
+    const deck = createDeck();
+
+    useGameStore.setState({
+      uiPhase: 'game-over',
+      gameState: createGameState({ isGameOver: true, winnerIndex: 0, winReason: 'HERO_KILLED' }),
+      playerIndex: 0,
+      lastEmperorIndex: 2,
+      lastDeckDefinition: deck,
+      gameMode: 'pve',
+    });
+
+    useGameStore.getState().restartGame();
+
+    expect(useGameStore.getState().uiPhase).not.toBe('game-over');
+    expect(useGameStore.getState().uiPhase).toBe('lobby');
+    expect(useGameStore.getState().gameState).toBeNull();
+    expect(emit).toHaveBeenCalledWith('game:join', {
+      emperorIndex: 2,
+      deck,
+    });
+  });
+
   it('sets a localized connection error when connect_error fires before connect', async () => {
     const handlers = new Map<string, (err?: Error) => void>();
     const mockSocket = {

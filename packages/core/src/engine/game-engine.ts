@@ -11,7 +11,7 @@ import type {
   RNG,
   EffectContext,
 } from '@king-card/shared';
-import { GAME_CONSTANTS } from '@king-card/shared';
+import { GAME_CONSTANTS, getEffectiveCardCost } from '@king-card/shared';
 import { createGameState } from '../models/game.js';
 import { createStateMutator } from './state-mutator.js';
 import { executeTurnStart } from './game-loop.js';
@@ -19,13 +19,7 @@ import { executePlayCard, executeAttack, executeEndTurn, executeUseHeroSkill, ex
 import { EventBusImpl } from './event-bus.js';
 import { DefaultRNG } from './rng.js';
 import { registerEmperorData } from './emperor-registry.js';
-
-function getEffectiveCardCost(player: Player, card: Card): number {
-  return player.costModifiers.reduce(
-    (cost, modifier) => modifier.condition(card) ? modifier.modifier(cost) : cost,
-    card.cost,
-  );
-}
+import { IdCounter } from './id-counter.js';
 
 function requiresFriendlyMinionTarget(card: Card): boolean {
   return card.effects.some(
@@ -97,11 +91,13 @@ export class GameEngine {
   private state: GameState;
   private eventBus: EventBus;
   private rng: RNG;
+  private counter: IdCounter;
 
-  private constructor(state: GameState, eventBus: EventBus, rng: RNG) {
+  private constructor(state: GameState, eventBus: EventBus, rng: RNG, counter: IdCounter) {
     this.state = state;
     this.eventBus = eventBus;
     this.rng = rng;
+    this.counter = counter;
   }
 
   // ─── Factory ──────────────────────────────────────────────────────
@@ -129,21 +125,20 @@ export class GameEngine {
     // 2. Default RNG
     const actualRng = rng ?? new DefaultRNG();
 
+    // 2.1 Per-engine ID counter (replaces the old module-level counters that
+    // caused ID collisions between players within a game and across concurrent
+    // games). Threaded into createGameState, the StateMutator, and every
+    // EffectContext so all generated ids share one monotonic source.
+    const counter = new IdCounter();
+
     // 2.5 Register emperor data for lookup during EMPEROR card play
     registerEmperorData(emperor1);
     registerEmperorData(emperor2);
 
     // 3. Create initial state
-    const state = createGameState(deck1, deck2, emperor1, emperor2);
+    const state = createGameState(deck1, deck2, emperor1, emperor2, counter);
 
-    // 4. Replace deck contents with original Card objects.
-    // createGameState internally wraps deck cards as CardInstance, but the game
-    // engine expects deck cards to be plain Card objects so that drawCards
-    // moves plain Card objects into hand (executePlayCard reads card.cost, card.type).
-    state.players[0].deck = [...deck1];
-    state.players[1].deck = [...deck2];
-
-    // 6. Shuffle decks
+    // 4. Shuffle decks (CardInstance[] arrays produced by createGameState)
     state.players[0].deck = actualRng.shuffle(state.players[0].deck);
     state.players[1].deck = actualRng.shuffle(state.players[1].deck);
 
@@ -153,17 +148,17 @@ export class GameEngine {
     // 8. Pre-draw cards before first turn start
     // executeTurnStart draws 1 card per turn. We need STARTING_HAND_SIZE total for each player.
     // So pre-draw (STARTING_HAND_SIZE - 1) for player 0 and STARTING_HAND_SIZE for player 1.
-    const mutator = createStateMutator(state, eventBus, actualRng as EffectContext['rng']);
+    const mutator = createStateMutator(state, eventBus, actualRng as EffectContext['rng'], counter);
     mutator.drawCards(0, GAME_CONSTANTS.STARTING_HAND_SIZE - 1);
     mutator.drawCards(1, GAME_CONSTANTS.STARTING_HAND_SIZE);
 
     // Now run executeTurnStart for player 0 (gains energy, draws 1 more card)
-    executeTurnStart(state, eventBus);
+    executeTurnStart(state, eventBus, counter);
 
     // 9. Second-player compensation: player 1 draws an extra card
     mutator.drawCards(1, 1);
 
-    return new GameEngine(state, eventBus, actualRng);
+    return new GameEngine(state, eventBus, actualRng, counter);
   }
 
   // ─── Query Interface ──────────────────────────────────────────────
@@ -339,26 +334,35 @@ export class GameEngine {
     return this.state.players[this.state.currentPlayerIndex];
   }
 
+  /**
+   * Test-only accessor: lets tests inject CardInstance objects sharing
+   * the same id namespace as the engine's deck. Production code should
+   * never need to mint instance ids outside the engine's lifecycle.
+   */
+  getCounter(): IdCounter {
+    return this.counter;
+  }
+
   // ─── Action Interface ─────────────────────────────────────────────
 
   playCard(playerIndex: number, handIndex: number, targetBoardPosition?: number): EngineResult {
-    return executePlayCard(this.state, this.eventBus, this.rng, playerIndex, handIndex, targetBoardPosition);
+    return executePlayCard(this.state, this.eventBus, this.rng, playerIndex, handIndex, this.counter, targetBoardPosition);
   }
 
   attack(attackerInstanceId: string, target: TargetRef): EngineResult {
-    return executeAttack(this.state, this.eventBus, attackerInstanceId, target, this.rng);
+    return executeAttack(this.state, this.eventBus, attackerInstanceId, target, this.rng, this.counter);
   }
 
   endTurn(): EngineResult {
-    return executeEndTurn(this.state, this.eventBus);
+    return executeEndTurn(this.state, this.eventBus, this.counter);
   }
 
   useHeroSkill(playerIndex: number, target?: TargetRef): EngineResult {
-    return executeUseHeroSkill(this.state, this.eventBus, this.rng, playerIndex, target);
+    return executeUseHeroSkill(this.state, this.eventBus, this.rng, playerIndex, this.counter, target);
   }
 
   useMinisterSkill(playerIndex: number, target?: TargetRef): EngineResult {
-    return executeUseMinisterSkill(this.state, this.eventBus, this.rng, playerIndex, target);
+    return executeUseMinisterSkill(this.state, this.eventBus, this.rng, playerIndex, this.counter, target);
   }
 
   switchMinister(playerIndex: number, ministerIndex: number): EngineResult {
@@ -366,7 +370,7 @@ export class GameEngine {
   }
 
   useGeneralSkill(playerIndex: number, instanceId: string, skillIndex: number, target?: TargetRef): EngineResult {
-    return executeUseGeneralSkill(this.state, this.eventBus, this.rng, playerIndex, instanceId, skillIndex, target);
+    return executeUseGeneralSkill(this.state, this.eventBus, this.rng, playerIndex, instanceId, skillIndex, this.counter, target);
   }
 
   // ─── Event Subscription ────────────────────────────────────────────

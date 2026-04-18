@@ -55,7 +55,6 @@ export function SkillTooltip({
 
     // Vertical placement
     const spaceAbove = wrapperRect.top;
-    const spaceBelow = viewportHeight - wrapperRect.bottom;
     const nextPlacement = spaceAbove >= estimatedHeight + VIEWPORT_MARGIN ? 'above' : 'below';
     setPlacement(nextPlacement);
 

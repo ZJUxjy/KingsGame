@@ -21,33 +21,45 @@ function isGameOver(engine: GameEngine): boolean {
 }
 
 export async function runAiTurn(engine: GameEngine, playerIndex: number): Promise<void> {
-  // 1. Play cards (highest cost first)
-  let actions = engine.getValidActions(playerIndex);
-  const playCardActions = actions
-    .filter((a): a is Extract<ValidAction, { type: 'PLAY_CARD' }> => a.type === 'PLAY_CARD')
-    .sort((a, b) => {
-      const state = engine.getGameState();
+  // 1. Play cards (highest cost first). Re-fetch valid actions between
+  // each play because handIndex shifts when a card leaves the hand;
+  // a stale snapshot would point at the wrong card or be out-of-bounds.
+  while (true) {
+    if (isGameOver(engine)) return;
+    const fresh = engine.getValidActions(playerIndex);
+    const playActions = fresh.filter(
+      (a): a is Extract<ValidAction, { type: 'PLAY_CARD' }> => a.type === 'PLAY_CARD',
+    );
+    if (playActions.length === 0) break;
+
+    const state = engine.getGameState();
+    const sorted = [...playActions].sort((a, b) => {
       const cardA = state.players[playerIndex].hand[a.handIndex];
       const cardB = state.players[playerIndex].hand[b.handIndex];
       return (cardB?.cost ?? 0) - (cardA?.cost ?? 0);
     });
 
-  for (const action of playCardActions) {
-    if (isGameOver(engine)) return;
-    engine.playCard(playerIndex, action.handIndex);
+    engine.playCard(playerIndex, sorted[0].handIndex);
     await delay(AI_ACTION_DELAY);
   }
 
-  // 2. Attack with all minions that can attack
-  actions = engine.getValidActions(playerIndex);
-  const attackActions = actions.filter(
-    (a): a is Extract<ValidAction, { type: 'ATTACK' }> => a.type === 'ATTACK',
-  );
+  let actions: ValidAction[];
 
-  for (const action of attackActions) {
+  // 2. Attack with all minions that can attack.
+  // Re-fetch valid actions between iterations: a previous attack may have
+  // killed the target (or the attacker), invalidating later entries in a
+  // stale snapshot. Without this, the engine would silently reject the
+  // follow-up attacks with INVALID_TARGET.
+  while (true) {
     if (isGameOver(engine)) return;
-    const target = convertTargetInstanceId(action.targetInstanceId, playerIndex);
-    engine.attack(action.attackerInstanceId, target);
+    const fresh = engine.getValidActions(playerIndex);
+    const next = fresh.find(
+      (a): a is Extract<ValidAction, { type: 'ATTACK' }> => a.type === 'ATTACK',
+    );
+    if (!next) break;
+
+    const target = convertTargetInstanceId(next.targetInstanceId, playerIndex);
+    engine.attack(next.attackerInstanceId, target);
     await delay(AI_ACTION_DELAY);
   }
 

@@ -117,9 +117,13 @@ describe('PvP socket flow', () => {
         sessions.set(session.id, session);
         return session;
       }),
-      findWaitingPvpGame: vi.fn(() => {
+      findWaitingPvpGame: vi.fn((callerSocketId?: string) => {
         for (const s of sessions.values()) {
-          if (s.mode === 'pvp' && s.state === 'waiting' && s.players[0] && !s.players[1]) {
+          if (
+            s.mode === 'pvp' && s.state === 'waiting' &&
+            s.players[0] && !s.players[1] &&
+            s.players[0] !== callerSocketId
+          ) {
             return s;
           }
         }
@@ -129,8 +133,8 @@ describe('PvP socket flow', () => {
         session.engine = {
           getGameState: vi.fn(() => ({
             players: [
-              { id: 'p0', name: 'P0', hand: [], battlefield: [], deck: [], graveyard: [], activeStratagems: [], costModifiers: [], ministerPool: [], boundCards: [], civilization: 'CHINA', hero: { health: 30, maxHealth: 30, armor: 0, heroSkill: null, skillUsedThisTurn: false, skillCooldownRemaining: 0 }, energyCrystal: 1, maxEnergy: 1, handLimit: 10, deckCount: 25, activeMinisterIndex: 0, cannotDrawNextTurn: false },
-              { id: 'p1', name: 'P1', hand: [], battlefield: [], deck: [], graveyard: [], activeStratagems: [], costModifiers: [], ministerPool: [], boundCards: [], civilization: 'CHINA', hero: { health: 30, maxHealth: 30, armor: 0, heroSkill: null, skillUsedThisTurn: false, skillCooldownRemaining: 0 }, energyCrystal: 1, maxEnergy: 1, handLimit: 10, deckCount: 25, activeMinisterIndex: 0, cannotDrawNextTurn: false },
+              { id: 'p0', name: 'P0', hand: [], battlefield: [], deck: [], graveyard: [], activeStratagems: [], costModifiers: [], costReduction: 0, ministerPool: [], boundCards: [], civilization: 'CHINA', hero: { health: 30, maxHealth: 30, armor: 0, heroSkill: null, skillUsedThisTurn: false, skillCooldownRemaining: 0 }, energyCrystal: 1, maxEnergy: 1, handLimit: 10, deckCount: 25, activeMinisterIndex: 0, cannotDrawNextTurn: false },
+              { id: 'p1', name: 'P1', hand: [], battlefield: [], deck: [], graveyard: [], activeStratagems: [], costModifiers: [], costReduction: 0, ministerPool: [], boundCards: [], civilization: 'CHINA', hero: { health: 30, maxHealth: 30, armor: 0, heroSkill: null, skillUsedThisTurn: false, skillCooldownRemaining: 0 }, energyCrystal: 1, maxEnergy: 1, handLimit: 10, deckCount: 25, activeMinisterIndex: 0, cannotDrawNextTurn: false },
             ],
             currentPlayerIndex: 0,
             turnNumber: 1,
@@ -150,6 +154,15 @@ describe('PvP socket flow', () => {
       }),
       destroyGame: vi.fn(),
       getAllGames: vi.fn(() => Array.from(sessions.values())),
+      getWaitingSessionsForSocket: vi.fn((socketId: string) =>
+        Array.from(sessions.values()).filter(
+          (s) =>
+            s.mode === 'pvp' &&
+            s.state === 'waiting' &&
+            s.players[0] === socketId &&
+            !s.players[1],
+        ),
+      ),
     };
 
     io = {

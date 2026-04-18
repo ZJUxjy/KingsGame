@@ -2,17 +2,15 @@ import type {
   GameState,
   Player,
 } from '@king-card/shared';
-import type { SerializedGameState, SerializedPlayer, HiddenCard } from './types.js';
+import { getEffectiveCardCost } from '@king-card/shared';
+import type { SerializedGameState, SerializedPlayer } from './types.js';
 
 function serializePlayer(player: Player, hideHand: boolean): SerializedPlayer {
   const visibleHand = hideHand
     ? player.hand.map(() => ({ hidden: true as const }))
     : player.hand.map((card) => ({
       ...card,
-      cost: player.costModifiers.reduce(
-        (cost, modifier) => modifier.condition(card) ? modifier.modifier(cost) : cost,
-        card.cost,
-      ),
+      cost: getEffectiveCardCost(player, card),
     }));
 
   return {

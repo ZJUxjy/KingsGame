@@ -45,6 +45,7 @@ function makeGameState(overrides: Partial<GameState> = {}): GameState {
     battlefield: [],
     activeStratagems: [],
     costModifiers: [],
+    costReduction: 0,
     energyCrystal: 10,
     maxEnergy: 10,
     cannotDrawNextTurn: false,
@@ -99,23 +100,26 @@ describe('aiPlayer', () => {
     const gameState = makeGameState();
     const engine = createMockEngine(gameState);
 
-    // First call returns play card actions; subsequent calls return empty
-    const playActions: ValidAction[] = [
+    // Stateful mock: drain one play_card per engine.playCard call. The
+    // AI re-fetches valid actions every iteration, so the mock returns
+    // the current view of remaining playable cards each time.
+    const remaining: ValidAction[] = [
       { type: 'PLAY_CARD', handIndex: 0 }, // cost 3
       { type: 'PLAY_CARD', handIndex: 1 }, // cost 1
     ];
-    vi.mocked(engine.getValidActions)
-      .mockReturnValueOnce(playActions)
-      .mockReturnValue([]);
+    vi.mocked(engine.getValidActions).mockImplementation(() => [...remaining]);
+    vi.mocked(engine.playCard).mockImplementation(() => {
+      if (remaining.length > 0) remaining.shift();
+    });
 
     const promise = runAiTurn(engine, 1);
 
-    // Advance past the two delays (one for each card played)
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(2000);
 
     expect(engine.playCard).toHaveBeenCalledTimes(2);
-    // Highest cost first (handIndex 0 = cost 3)
+    // Highest cost first (handIndex 0 = cost 3) on first iteration.
     expect(engine.playCard).toHaveBeenNthCalledWith(1, 1, 0);
+    // Second iteration sees the remaining cost-1 card at handIndex 1.
     expect(engine.playCard).toHaveBeenNthCalledWith(2, 1, 1);
     expect(engine.endTurn).toHaveBeenCalledTimes(1);
 
@@ -126,17 +130,21 @@ describe('aiPlayer', () => {
     const gameState = makeGameState();
     const engine = createMockEngine(gameState);
 
-    const attackActions: ValidAction[] = [
+    // Stateful mock: drain one attack per engine.attack call. The card-phase
+    // prefetch sees the same list but filters out non-PLAY_CARD entries.
+    // Each attack-loop iteration sees the remaining list; when empty, the
+    // loop breaks.
+    const remaining: ValidAction[] = [
       { type: 'ATTACK', attackerInstanceId: 'minion-1', targetInstanceId: 'minion-2' },
       { type: 'ATTACK', attackerInstanceId: 'minion-3', targetInstanceId: 'HERO' },
     ];
-    vi.mocked(engine.getValidActions)
-      .mockReturnValueOnce([])        // no cards to play
-      .mockReturnValueOnce(attackActions) // attack actions
-      .mockReturnValue([]);           // hero skill check
+    vi.mocked(engine.getValidActions).mockImplementation(() => [...remaining]);
+    vi.mocked(engine.attack).mockImplementation(() => {
+      remaining.shift();
+    });
 
     const promise = runAiTurn(engine, 1);
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(2000);
 
     expect(engine.attack).toHaveBeenCalledTimes(2);
     expect(engine.attack).toHaveBeenNthCalledWith(1, 'minion-1', { type: 'MINION', instanceId: 'minion-2' });
@@ -229,6 +237,71 @@ describe('aiPlayer', () => {
     await vi.advanceTimersByTimeAsync(1500);
 
     expect(engine.attack).toHaveBeenCalledWith('m1', { type: 'MINION', instanceId: 'enemy-minion-42' });
+
+    await promise;
+  });
+
+  it('re-fetches valid actions between play_card invocations (handIndex shifts after each play)', async () => {
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    // After playing handIndex 0 (cost 3), the cost-1 card slides into
+    // handIndex 0. If the AI iterated over a stale snapshot, the second
+    // playCard would fire with handIndex 1 (out-of-bounds). With the fix
+    // it re-fetches and sees only handIndex 0 remaining, so the second
+    // playCard fires with handIndex 0.
+    let callCount = 0;
+    vi.mocked(engine.getValidActions).mockImplementation(() => {
+      callCount += 1;
+      if (callCount === 1) {
+        return [
+          { type: 'PLAY_CARD', handIndex: 0 },
+          { type: 'PLAY_CARD', handIndex: 1 },
+        ];
+      }
+      if (callCount === 2) {
+        return [{ type: 'PLAY_CARD', handIndex: 0 }];
+      }
+      return [];
+    });
+
+    const promise = runAiTurn(engine, 1);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(engine.playCard).toHaveBeenCalledTimes(2);
+    expect(engine.playCard).toHaveBeenNthCalledWith(1, 1, 0);
+    expect(engine.playCard).toHaveBeenNthCalledWith(2, 1, 0);
+    expect(engine.endTurn).toHaveBeenCalledTimes(1);
+
+    await promise;
+  });
+
+  it('re-fetches valid actions between attacks (avoids stale INVALID_TARGET)', async () => {
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    // Sequence:
+    //   1) cards phase prefetch: []
+    //   2) attack loop iter 1: two attacks both targeting enemy-1
+    //   3) attack loop iter 2 (after m1 killed enemy-1): []
+    //   4+) hero/minister/general phase prefetches: []
+    vi.mocked(engine.getValidActions)
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce([
+        { type: 'ATTACK', attackerInstanceId: 'm1', targetInstanceId: 'enemy-1' },
+        { type: 'ATTACK', attackerInstanceId: 'm2', targetInstanceId: 'enemy-1' },
+      ])
+      .mockReturnValueOnce([])
+      .mockReturnValue([]);
+
+    const promise = runAiTurn(engine, 1);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    // Only the first attack fires; the AI must re-evaluate and discover that
+    // enemy-1 is no longer a valid target for m2.
+    expect(engine.attack).toHaveBeenCalledTimes(1);
+    expect(engine.attack).toHaveBeenCalledWith('m1', { type: 'MINION', instanceId: 'enemy-1' });
+    expect(engine.endTurn).toHaveBeenCalledTimes(1);
 
     await promise;
   });

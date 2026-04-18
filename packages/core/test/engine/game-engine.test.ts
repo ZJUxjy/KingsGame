@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GameEngine } from '../../../src/engine/game-engine.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
-import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import { TANG_TAIZONG } from '../../../src/cards/definitions/china-emperors.js';
 import type { Card, EmperorData, Minister } from '@king-card/shared';
+
+let counter: IdCounter = new IdCounter();
 
 // ─── Test Fixtures ───────────────────────────────────────────────────
 
@@ -79,21 +81,20 @@ function makeDeck(count: number): Card[] {
 }
 
 function createTestEngine(rng?: SeededRNG): GameEngine {
-  resetInstanceCounter();
-  resetStratagemCounter();
   const deck1 = makeDeck(30);
   const deck2 = makeDeck(30);
   const emp1 = makeEmperorData();
   const emp2 = makeEmperorData();
-  return GameEngine.create(deck1, deck2, emp1, emp2, rng);
+  const engine = GameEngine.create(deck1, deck2, emp1, emp2, rng);
+  counter = engine.getCounter();
+  return engine;
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────
 
 describe('GameEngine', () => {
   beforeEach(() => {
-    resetInstanceCounter();
-    resetStratagemCounter();
+    counter = new IdCounter();
   });
 
   // ─── Game Creation ────────────────────────────────────────────────
@@ -147,8 +148,7 @@ describe('GameEngine', () => {
     });
 
     it('should not include PLAY_CARD for cards that cost more than available energy', () => {
-      resetInstanceCounter();
-      resetStratagemCounter();
+      counter = new IdCounter();
       // Create deck where all cards cost more than the starting energy (1)
       const deck1 = Array.from({ length: 30 }, (_, i) =>
         makeMinionCard({ id: `p1_exp_${i}`, cost: 5 }),
@@ -191,8 +191,8 @@ describe('GameEngine', () => {
         },
       };
 
-      const targetA = createCardInstance(makeMinionCard({ id: 'target_a' }), 0);
-      const targetB = createCardInstance(makeMinionCard({ id: 'target_b' }), 0);
+      const targetA = createCardInstance(makeMinionCard({ id: 'target_a' }), 0, counter);
+      const targetB = createCardInstance(makeMinionCard({ id: 'target_b' }), 0, counter);
       state.players[0].battlefield.push(targetA, targetB);
 
       const actions = engine.getValidActions(state.currentPlayerIndex);
@@ -217,7 +217,7 @@ describe('GameEngine', () => {
 
       state.players[0].hero.heroSkill = TANG_TAIZONG.heroSkill!;
       for (let i = 0; i < 7; i += 1) {
-        state.players[0].battlefield.push(createCardInstance(makeMinionCard({ id: `full_${i}` }), 0));
+        state.players[0].battlefield.push(createCardInstance(makeMinionCard({ id: `full_${i}` }), 0, counter));
       }
 
       const actions = engine.getValidActions(state.currentPlayerIndex);
@@ -230,7 +230,7 @@ describe('GameEngine', () => {
       const engine = createTestEngine();
       const state = engine.getGameState();
 
-      const attacker = createCardInstance(makeMinionCard({ id: 'ready_attacker', attack: 4 }), 0);
+      const attacker = createCardInstance(makeMinionCard({ id: 'ready_attacker', attack: 4 }), 0, counter);
       attacker.justPlayed = false;
       attacker.remainingAttacks = 1;
       state.players[0].battlefield.push(attacker);
@@ -249,8 +249,8 @@ describe('GameEngine', () => {
       const engine = createTestEngine();
       const state = engine.getGameState();
 
-      const freshMinion = createCardInstance(makeMinionCard({ id: 'fresh_attacker' }), 0);
-      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_target' }), 1);
+      const freshMinion = createCardInstance(makeMinionCard({ id: 'fresh_attacker' }), 0, counter);
+      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_target' }), 1, counter);
       state.players[0].battlefield.push(freshMinion);
       state.players[1].battlefield.push(enemyMinion);
 
@@ -271,12 +271,13 @@ describe('GameEngine', () => {
       const rushMinion = createCardInstance(
         makeMinionCard({ id: 'rush_minion', attack: 3, keywords: ['RUSH'] as any }),
         0,
+        counter,
       );
       // justPlayed = true (default), remainingAttacks = 1 (set by createCardInstance for RUSH)
       expect(rushMinion.justPlayed).toBe(true);
       state.players[0].battlefield.push(rushMinion);
 
-      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_minion' }), 1);
+      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_minion' }), 1, counter);
       state.players[1].battlefield.push(enemyMinion);
 
       const actions = engine.getValidActions(state.currentPlayerIndex);
@@ -305,11 +306,12 @@ describe('GameEngine', () => {
       const rushMinion = createCardInstance(
         makeMinionCard({ id: 'rush_minion2', attack: 3, keywords: ['RUSH'] as any }),
         0,
+        counter,
       );
       rushMinion.justPlayed = false; // simulate subsequent turn
       state.players[0].battlefield.push(rushMinion);
 
-      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_minion2' }), 1);
+      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_minion2' }), 1, counter);
       state.players[1].battlefield.push(enemyMinion);
 
       const actions = engine.getValidActions(state.currentPlayerIndex);
@@ -336,12 +338,13 @@ describe('GameEngine', () => {
       const chargeMinion = createCardInstance(
         makeMinionCard({ id: 'charge_minion', attack: 4, keywords: ['CHARGE'] as any }),
         0,
+        counter,
       );
       // justPlayed = true (default), remainingAttacks = 1 (set by createCardInstance for CHARGE)
       expect(chargeMinion.justPlayed).toBe(true);
       state.players[0].battlefield.push(chargeMinion);
 
-      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_minion3' }), 1);
+      const enemyMinion = createCardInstance(makeMinionCard({ id: 'enemy_minion3' }), 1, counter);
       state.players[1].battlefield.push(enemyMinion);
 
       const actions = engine.getValidActions(state.currentPlayerIndex);
@@ -391,8 +394,7 @@ describe('GameEngine', () => {
     });
 
     it('should fail when not enough energy', () => {
-      resetInstanceCounter();
-      resetStratagemCounter();
+      counter = new IdCounter();
       // Create deck with expensive cards
       const deck1 = Array.from({ length: 30 }, (_, i) =>
         makeMinionCard({ id: `p1_exp_${i}`, cost: 5 }),
@@ -413,8 +415,7 @@ describe('GameEngine', () => {
 
   describe('attack()', () => {
     it('should damage the opponent hero on successful attack', () => {
-      resetInstanceCounter();
-      resetStratagemCounter();
+      counter = new IdCounter();
       // Create deck with a CHARGE minion
       const deck1 = Array.from({ length: 30 }, (_, i) =>
         makeMinionCard({ id: `p1_charge_${i}`, cost: 1, keywords: ['CHARGE'], attack: 3 }),

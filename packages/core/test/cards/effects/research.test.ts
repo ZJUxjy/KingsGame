@@ -5,6 +5,10 @@ import {
 } from '../../../src/cards/effects/index.js';
 import { registerResearch } from '../../../src/cards/effects/research.js';
 import type { EffectContext, CardInstance } from '@king-card/shared';
+import { IdCounter } from '../../../src/engine/id-counter.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+
+const fixtureCounter = new IdCounter();
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -118,15 +122,28 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
       pick: (arr) => arr[0],
       shuffle: (a) => a,
     },
+    counter: new IdCounter(),
     ...overrides,
   };
 }
 
-function ctx_mutator_base() {
+function ctx_mutator_base(state?: EffectContext['state']) {
   return {
     damage: () => null,
     heal: () => null,
     drawCards: () => null,
+    addCardToHand: (playerIndex: number, card: any) => {
+      // Mirror real mutator semantics so handler tests can assert on player.hand.
+      if (!state) return null;
+      const player = state.players[playerIndex] as any;
+      const copy = { ...card };
+      if (player.hand.length >= player.handLimit) {
+        player.graveyard.push(copy);
+      } else {
+        player.hand.push(copy);
+      }
+      return null;
+    },
     discardCard: () => null,
     summonMinion: () => null,
     destroyMinion: () => null,
@@ -159,13 +176,16 @@ describe('RESEARCH effect handler', () => {
     });
 
     const player = makePlayer({
-      deck: [sorcery1, sorcery2] as any,
+      deck: [
+        createCardInstance(sorcery1, 0, fixtureCounter),
+        createCardInstance(sorcery2, 0, fixtureCounter),
+      ] as any,
       hand: [] as any,
     });
 
     const ctx = makeEffectContext({
       source: researchMinion,
-      mutator: ctx_mutator_base() as any,
+      mutator: {} as any,
       rng: {
         nextInt: () => 0,
         next: () => 0,
@@ -175,6 +195,7 @@ describe('RESEARCH effect handler', () => {
     });
 
     (ctx.state as any).players[0] = player;
+    (ctx as any).mutator = ctx_mutator_base(ctx.state);
 
     resolveEffects('ON_PLAY', ctx);
 
@@ -205,16 +226,17 @@ describe('RESEARCH effect handler', () => {
     });
 
     const player = makePlayer({
-      deck: [minionCard] as any,
+      deck: [createCardInstance(minionCard as any, 0, fixtureCounter)] as any,
       hand: [] as any,
     });
 
     const ctx = makeEffectContext({
       source: researchMinion,
-      mutator: ctx_mutator_base() as any,
+      mutator: {} as any,
     });
 
     (ctx.state as any).players[0] = player;
+    (ctx as any).mutator = ctx_mutator_base(ctx.state);
 
     resolveEffects('ON_PLAY', ctx);
 
@@ -230,16 +252,17 @@ describe('RESEARCH effect handler', () => {
     });
 
     const player = makePlayer({
-      deck: [sorcery] as any,
+      deck: [createCardInstance(sorcery, 0, fixtureCounter)] as any,
       hand: [] as any,
     });
 
     const ctx = makeEffectContext({
       source: normalMinion,
-      mutator: ctx_mutator_base() as any,
+      mutator: {} as any,
     });
 
     (ctx.state as any).players[0] = player;
+    (ctx as any).mutator = ctx_mutator_base(ctx.state);
 
     resolveEffects('ON_PLAY', ctx);
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   executeAttack,
   executeEndTurn,
@@ -8,8 +8,11 @@ import {
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
 import { LISI, HANXIN, XIAOHE, CHENPING } from '../../../src/cards/definitions/china-ministers.js';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import type { Card, GameState, Minister } from '@king-card/shared';
+
+let counter: IdCounter;
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -50,6 +53,7 @@ function makeBaseGameState(): GameState {
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 5,
         maxEnergy: 5,
         cannotDrawNextTurn: false,
@@ -82,6 +86,7 @@ function makeBaseGameState(): GameState {
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 5,
         maxEnergy: 5,
         cannotDrawNextTurn: false,
@@ -116,11 +121,11 @@ function makeMinionCard(id: string): Card {
 }
 
 function setup() {
-  resetInstanceCounter();
+  counter = new IdCounter();
   const bus = new EventBus();
   const state = makeBaseGameState();
   const rng = new SeededRNG(42);
-  return { state, bus, rng };
+  return { state, bus, rng, counter };
 }
 
 // ─── Tests ───────────────────────────────────────────────────────
@@ -128,7 +133,7 @@ function setup() {
 describe('Minister Operations', () => {
   it('should successfully use minister skill', () => {
     const { state, bus, rng } = setup();
-    state.players[0].deck.push({
+    state.players[0].deck.push(createCardInstance({
       id: 'draw_target',
       name: 'Draw Target',
       civilization: 'CHINA',
@@ -140,10 +145,10 @@ describe('Minister Operations', () => {
       description: 'A card to draw',
       keywords: [],
       effects: [],
-    });
+    }, 0, counter));
 
     // Active minister is LISI (index 0), cost 1
-    const result = executeUseMinisterSkill(state, bus, rng, 0);
+    const result = executeUseMinisterSkill(state, bus, rng, 0, counter);
 
     expect(result.success).toBe(true);
     expect(state.players[0].ministerPool[0].skillUsedThisTurn).toBe(true);
@@ -168,7 +173,7 @@ describe('Minister Operations', () => {
     const { state, bus, rng } = setup();
     state.players[0].activeMinisterIndex = 1;
 
-    const targetMinion = createCardInstance(makeMinionCard('friendly_target'), 0);
+    const targetMinion = createCardInstance(makeMinionCard('friendly_target'), 0, counter);
     state.players[0].battlefield.push(targetMinion);
 
     const result = executeUseMinisterSkill(
@@ -176,6 +181,7 @@ describe('Minister Operations', () => {
       bus,
       rng,
       0,
+      counter,
       { type: 'MINION', instanceId: targetMinion.instanceId },
     );
 
@@ -199,8 +205,8 @@ describe('Minister Operations', () => {
     const { state, bus, rng } = setup();
     state.players[0].activeMinisterIndex = 3;
 
-    const friendlyTarget = createCardInstance(makeMinionCard('friendly_target'), 0);
-    const enemyAttacker = createCardInstance(makeMinionCard('enemy_attacker'), 1);
+    const friendlyTarget = createCardInstance(makeMinionCard('friendly_target'), 0, counter);
+    const enemyAttacker = createCardInstance(makeMinionCard('enemy_attacker'), 1, counter);
     enemyAttacker.justPlayed = false;
     enemyAttacker.remainingAttacks = 1;
 
@@ -212,6 +218,7 @@ describe('Minister Operations', () => {
       bus,
       rng,
       0,
+      counter,
       { type: 'MINION', instanceId: enemyAttacker.instanceId },
     );
 
@@ -223,7 +230,7 @@ describe('Minister Operations', () => {
     const attackResult = executeAttack(state, bus, enemyAttacker.instanceId, {
       type: 'MINION',
       instanceId: friendlyTarget.instanceId,
-    });
+    }, rng, counter);
 
     expect(attackResult.success).toBe(false);
     if (!attackResult.success) {
@@ -234,8 +241,8 @@ describe('Minister Operations', () => {
 
   it('should expire temporary minister buffs at the next turn start before the next player acts', () => {
     const { state, bus, rng } = setup();
-    state.players[0].deck.push(makeMinionCard('p1_draw'));
-    state.players[1].deck.push(makeMinionCard('p2_draw'));
+    state.players[0].deck.push(createCardInstance(makeMinionCard('p1_draw'), 0, counter));
+    state.players[1].deck.push(createCardInstance(makeMinionCard('p2_draw'), 1, counter));
     state.players[0].activeMinisterIndex = 1;
 
     const targetCard: Card = {
@@ -251,7 +258,7 @@ describe('Minister Operations', () => {
       keywords: ['RUSH'],
       effects: [],
     };
-    const targetMinion = createCardInstance(targetCard, 0);
+    const targetMinion = createCardInstance(targetCard, 0, counter);
     targetMinion.justPlayed = false;
     state.players[0].battlefield.push(targetMinion);
 
@@ -260,6 +267,7 @@ describe('Minister Operations', () => {
       bus,
       rng,
       0,
+      counter,
       { type: 'MINION', instanceId: targetMinion.instanceId },
     );
 
@@ -270,7 +278,7 @@ describe('Minister Operations', () => {
     expect(targetMinion.card.keywords).toContain('RUSH');
     expect(targetMinion.buffs).toHaveLength(1);
 
-    const endTurnResult = executeEndTurn(state, bus);
+    const endTurnResult = executeEndTurn(state, bus, counter);
 
     expect(endTurnResult.success).toBe(true);
     expect(state.currentPlayerIndex).toBe(1);
@@ -291,7 +299,7 @@ describe('Minister Operations', () => {
     const { state, bus, rng } = setup();
     state.players[0].energyCrystal = 0;
 
-    const result = executeUseMinisterSkill(state, bus, rng, 0);
+    const result = executeUseMinisterSkill(state, bus, rng, 0, counter);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -336,7 +344,7 @@ describe('Minister Operations', () => {
     // Set cooldown on the active minister
     state.players[0].ministerPool[0].cooldown = 2;
 
-    const result = executeUseMinisterSkill(state, bus, rng, 0);
+    const result = executeUseMinisterSkill(state, bus, rng, 0, counter);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -352,7 +360,7 @@ describe('Minister Operations', () => {
     expect(switchResult.success).toBe(true);
 
     // Now try to use XIAOHE's skill - should fail because cooldown was set
-    const skillResult = executeUseMinisterSkill(state, bus, rng, 0);
+    const skillResult = executeUseMinisterSkill(state, bus, rng, 0, counter);
 
     expect(skillResult.success).toBe(false);
     if (!skillResult.success) {

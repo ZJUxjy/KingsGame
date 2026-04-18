@@ -317,7 +317,6 @@ import { CHINA_MINIONS } from './china-minions.js';
 import { CHINA_STRATAGEMS } from './china-stratagems.js';
 import { CHINA_SORCERIES } from './china-sorceries.js';
 import { CHINA_EMPERORS } from './china-emperors.js';
-import { CHINA_MINISTERS } from './china-ministers.js';
 import { CHINA_GENERALS } from './china-generals.js';
 
 export const CHINA_ALL_CARDS: Card[] = [
@@ -334,7 +333,6 @@ import { JAPAN_MINIONS } from './japan-minions.js';
 import { JAPAN_STRATAGEMS } from './japan-stratagems.js';
 import { JAPAN_SORCERIES } from './japan-sorceries.js';
 import { JAPAN_EMPERORS } from './japan-emperors.js';
-import { JAPAN_MINISTERS } from './japan-ministers.js';
 import { JAPAN_GENERALS } from './japan-generals.js';
 
 export const JAPAN_ALL_CARDS: Card[] = [
@@ -351,7 +349,6 @@ import { USA_MINIONS } from './usa-minions.js';
 import { USA_STRATAGEMS } from './usa-stratagems.js';
 import { USA_SORCERIES } from './usa-sorceries.js';
 import { USA_EMPERORS } from './usa-emperors.js';
-import { USA_MINISTERS } from './usa-ministers.js';
 import { USA_GENERALS } from './usa-generals.js';
 
 export const USA_ALL_CARDS: Card[] = [
@@ -368,7 +365,6 @@ import { UK_MINIONS } from './uk-minions.js';
 import { UK_STRATAGEMS } from './uk-stratagems.js';
 import { UK_SORCERIES } from './uk-sorceries.js';
 import { UK_EMPERORS } from './uk-emperors.js';
-import { UK_MINISTERS } from './uk-ministers.js';
 import { UK_GENERALS } from './uk-generals.js';
 
 export const UK_ALL_CARDS: Card[] = [
@@ -385,7 +381,6 @@ import { GERMANY_MINIONS } from './germany-minions.js';
 import { GERMANY_STRATAGEMS } from './germany-stratagems.js';
 import { GERMANY_SORCERIES } from './germany-sorceries.js';
 import { GERMANY_EMPERORS } from './germany-emperors.js';
-import { GERMANY_MINISTERS } from './germany-ministers.js';
 import { GERMANY_GENERALS } from './germany-generals.js';
 
 export const GERMANY_ALL_CARDS: Card[] = [

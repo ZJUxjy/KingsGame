@@ -12,6 +12,17 @@ interface PlayerMapping {
   playerIndex: 0 | 1;
 }
 
+export function cleanupSessionMappings(
+  mapping: Map<string, PlayerMapping>,
+  gameId: string,
+): void {
+  for (const [socketId, m] of mapping) {
+    if (m.gameId === gameId) {
+      mapping.delete(socketId);
+    }
+  }
+}
+
 interface JoinPayload {
   emperorIndex: number;
   deck?: unknown;
@@ -246,8 +257,22 @@ export function registerSocketHandlers(
           return;
         }
 
+        // Idempotency: if this socket already owns a waiting PvP session
+        // (e.g. the client retried pvpJoin without cancelling first), tear
+        // down the orphan(s) before proceeding. Otherwise the next call to
+        // findWaitingPvpGame would skip the caller's own session, and a
+        // second createPvpWaiting would overwrite socketMapping while
+        // leaving the first session reachable to other players' lookups
+        // but unreachable for action routing.
+        const orphans = gameManager.getWaitingSessionsForSocket(socket.id);
+        for (const orphan of orphans) {
+          gameManager.destroyGame(orphan.id);
+          cleanupSessionMappings(socketMapping, orphan.id);
+          socket.leave(orphan.id);
+        }
+
         // Try to find a waiting PvP game
-        const waitingSession = gameManager.findWaitingPvpGame();
+        const waitingSession = gameManager.findWaitingPvpGame(socket.id);
 
         if (waitingSession) {
           // Join as player 1
@@ -577,6 +602,7 @@ export function registerSocketHandlers(
       }
 
       gameManager.destroyGame(session.id);
+      cleanupSessionMappings(socketMapping, session.id);
     });
 
     // ── disconnect ───────────────────────────────────────────────
@@ -597,7 +623,7 @@ export function registerSocketHandlers(
           }
           gameManager.destroyGame(mapping.gameId);
         }
-        socketMapping.delete(socket.id);
+        cleanupSessionMappings(socketMapping, mapping.gameId);
       }
       console.log(`Socket disconnected: ${socket.id}`);
     });

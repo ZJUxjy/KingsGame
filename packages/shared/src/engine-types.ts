@@ -176,7 +176,7 @@ export interface Player {
   civilization: Civilization;
   hand: Card[];
   handLimit: number;
-  deck: Card[];
+  deck: CardInstance[];
   graveyard: Card[];
   battlefield: CardInstance[];
   activeStratagems: ActiveStratagem[];
@@ -250,6 +250,12 @@ export interface StateMutator {
   damage(target: import('./types.js').TargetRef, amount: number): import('./types.js').EngineErrorCode | null;
   heal(target: import('./types.js').TargetRef, amount: number): import('./types.js').EngineErrorCode | null;
   drawCards(playerIndex: number, count: number): import('./types.js').EngineErrorCode | null;
+  /**
+   * Add a card copy to the given player's hand.
+   * - If hand has room: pushes the card and emits CARD_DRAWN.
+   * - If hand is full: pushes to graveyard and emits CARD_DISCARDED (mirrors drawCards behavior).
+   */
+  addCardToHand(playerIndex: number, card: Card): import('./types.js').EngineErrorCode | null;
   discardCard(playerIndex: number, handIndex: number): import('./types.js').EngineErrorCode | null;
   summonMinion(card: Card, ownerIndex: number, position?: number): SummonMinionResult;
   destroyMinion(instanceId: string): import('./types.js').EngineErrorCode | null;
@@ -282,5 +288,18 @@ export interface EffectContext {
     next: () => number;
     pick: <T>(arr: T[]) => T;
     shuffle: <T>(arr: T[]) => T[];
+  };
+  /**
+   * Per-engine ID generator (structural type to avoid `shared -> core` dep).
+   * Required: every EffectContext must carry the engine's IdCounter so that
+   * buff/stratagem/synthetic ids stay collision-free within a game and across
+   * concurrent games. Test fixtures that build EffectContext by hand should
+   * pass `counter: new IdCounter()` (or share one per test).
+   */
+  counter: {
+    nextBuffId(): string;
+    nextStratagemId(): string;
+    nextInstanceId(cardId: string): string;
+    nextSyntheticSourceId(prefix: string): string;
   };
 }

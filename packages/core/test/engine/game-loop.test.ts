@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { executeTurnStart } from '../../../src/engine/game-loop.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
-import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
+
+let counter: IdCounter;
 import { DATANG_JINGRUI } from '../../../src/cards/definitions/china-minions.js';
-import type { Card, GameState, EmperorData, Minister } from '@king-card/shared';
+import type { Card, GameState } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -24,42 +26,14 @@ function makeMinionCard(id: string): Card {
   };
 }
 
-function makeEmperorCard(): Card {
-  return {
-    id: 'emperor_1',
-    name: 'Test Emperor',
-    civilization: 'CHINA',
-    type: 'EMPEROR',
-    rarity: 'LEGENDARY',
-    cost: 0,
-    description: 'A test emperor',
-    keywords: [],
-    effects: [],
-    heroSkill: {
-      name: 'Test Skill',
-      description: '',
-      cost: 0,
-      cooldown: 0,
-      effect: { trigger: 'ON_PLAY', type: 'DAMAGE', params: {} },
-    },
-  };
-}
-
-function makeEmperorData(): EmperorData {
-  return {
-    emperorCard: makeEmperorCard(),
-    ministers: [] as Minister[],
-    boundGenerals: [],
-    boundSorceries: [],
-  };
-}
-
 function makeDeck(count: number): Card[] {
   return Array.from({ length: count }, (_, i) => makeMinionCard(`deck_card_${i}`));
 }
 
 function makeGameState(deckSize = 30): GameState {
-  const deck = makeDeck(deckSize);
+  const fixtureCounter = new IdCounter();
+  const deck = makeDeck(deckSize).map((c) => createCardInstance(c, 0, fixtureCounter));
+  const deck2 = makeDeck(30).map((c) => createCardInstance(c, 1, fixtureCounter));
   return {
     players: [
       {
@@ -87,6 +61,7 @@ function makeGameState(deckSize = 30): GameState {
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 0,
         maxEnergy: 0,
         cannotDrawNextTurn: false,
@@ -114,11 +89,12 @@ function makeGameState(deckSize = 30): GameState {
         civilization: 'JAPAN',
         hand: [],
         handLimit: 10,
-        deck: makeDeck(30),
+        deck: deck2,
         graveyard: [],
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 0,
         maxEnergy: 0,
         cannotDrawNextTurn: false,
@@ -137,11 +113,10 @@ function makeGameState(deckSize = 30): GameState {
 }
 
 function setup(deckSize = 30) {
-  resetInstanceCounter();
-  resetStratagemCounter();
+  counter = new IdCounter();
   const bus = new EventBus();
   const state = makeGameState(deckSize);
-  return { state, bus };
+  return { state, bus, counter };
 }
 
 // ─── Tests ───────────────────────────────────────────────────────
@@ -151,7 +126,7 @@ describe('GameLoop', () => {
   describe('ENERGY_GAIN phase', () => {
     it('should increase maxEnergy by 1 and set energyCrystal to maxEnergy', () => {
       const { state, bus } = setup();
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.players[0].maxEnergy).toBe(1);
       expect(state.players[0].energyCrystal).toBe(1);
@@ -159,7 +134,7 @@ describe('GameLoop', () => {
 
     it('should have maxEnergy=1 and energyCrystal=1 after first turn', () => {
       const { state, bus } = setup();
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.players[0].maxEnergy).toBe(1);
       expect(state.players[0].energyCrystal).toBe(1);
@@ -169,7 +144,7 @@ describe('GameLoop', () => {
       const { state, bus } = setup();
       // Run 5 turns for player 0
       for (let i = 0; i < 5; i++) {
-        executeTurnStart(state, bus);
+        executeTurnStart(state, bus, counter);
         state.currentPlayerIndex = 1 - state.currentPlayerIndex;
       }
 
@@ -185,7 +160,7 @@ describe('GameLoop', () => {
       const { state, bus } = setup();
       state.players[0].maxEnergy = 9;
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.players[0].maxEnergy).toBe(10);
       expect(state.players[0].energyCrystal).toBe(10);
@@ -195,7 +170,7 @@ describe('GameLoop', () => {
       state.currentPlayerIndex = 0; // back to player 0 for simplicity
       state.players[0].maxEnergy = 10;
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.players[0].maxEnergy).toBe(10);
     });
@@ -205,7 +180,7 @@ describe('GameLoop', () => {
       const events: unknown[] = [];
       bus.on('ENERGY_GAINED', (e) => events.push(e));
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(events).toHaveLength(1);
       expect(events[0]).toMatchObject({
@@ -221,7 +196,7 @@ describe('GameLoop', () => {
   describe('DRAW phase', () => {
     it('should draw 1 card on turn start', () => {
       const { state, bus } = setup();
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.players[0].hand).toHaveLength(1);
       expect(state.players[0].deck).toHaveLength(29);
@@ -231,7 +206,7 @@ describe('GameLoop', () => {
       const { state, bus } = setup();
       state.players[0].cannotDrawNextTurn = true;
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.players[0].hand).toHaveLength(0);
       expect(state.players[0].deck).toHaveLength(30);
@@ -244,7 +219,7 @@ describe('GameLoop', () => {
   describe('UPKEEP phase', () => {
     it('should decrement stratagem remainingTurns and remove expired ones', () => {
       const { state, bus } = setup();
-      resetStratagemCounter();
+      counter = new IdCounter();
       state.players[0].costModifiers = [
         {
           sourceId: 'stratagem_1',
@@ -277,7 +252,7 @@ describe('GameLoop', () => {
       const events: unknown[] = [];
       bus.on('STRATAGEM_EXPIRED', (e) => events.push(e));
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.players[0].activeStratagems).toHaveLength(1);
       expect(state.players[0].activeStratagems[0].remainingTurns).toBe(2);
@@ -288,15 +263,15 @@ describe('GameLoop', () => {
 
     it('should decrement garrisonTurns when > 0', () => {
       const { state, bus } = setup();
-      resetInstanceCounter();
-      const minion = createCardInstance(makeMinionCard('garrison_minion'), 0);
+      counter = new IdCounter();
+      const minion = createCardInstance(makeMinionCard('garrison_minion'), 0, counter);
       minion.garrisonTurns = 1;
       minion.currentAttack = 3;
       minion.currentHealth = 4;
       minion.currentMaxHealth = 4;
       state.players[0].battlefield.push(minion);
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       // game-loop only decrements garrisonTurns; the buff is applied
       // by the GARRISON effect handler (ON_TURN_START)
@@ -305,15 +280,15 @@ describe('GameLoop', () => {
 
     it('should emit TURN_START and trigger battlefield ON_TURN_START garrison effects', () => {
       const { state, bus } = setup();
-      resetInstanceCounter();
-      const minion = createCardInstance(DATANG_JINGRUI, 0);
+      counter = new IdCounter();
+      const minion = createCardInstance(DATANG_JINGRUI, 0, counter);
       minion.garrisonTurns = 1;
       state.players[0].battlefield.push(minion);
 
       const turnStartEvents: unknown[] = [];
       bus.on('TURN_START', (event) => turnStartEvents.push(event));
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(turnStartEvents).toHaveLength(1);
       expect(turnStartEvents[0]).toMatchObject({
@@ -329,16 +304,16 @@ describe('GameLoop', () => {
 
     it('should buff a ready garrison unit exactly once when other friendly minions are present', () => {
       const { state, bus } = setup();
-      resetInstanceCounter();
+      counter = new IdCounter();
 
-      const garrisonMinion = createCardInstance(DATANG_JINGRUI, 0);
+      const garrisonMinion = createCardInstance(DATANG_JINGRUI, 0, counter);
       garrisonMinion.garrisonTurns = 1;
 
-      const otherFriendlyMinion = createCardInstance(makeMinionCard('support_minion'), 0);
+      const otherFriendlyMinion = createCardInstance(makeMinionCard('support_minion'), 0, counter);
 
       state.players[0].battlefield.push(garrisonMinion, otherFriendlyMinion);
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(garrisonMinion.garrisonTurns).toBe(0);
       expect(garrisonMinion.currentAttack).toBe(6);
@@ -354,13 +329,13 @@ describe('GameLoop', () => {
   describe('MAIN phase', () => {
     it('should reset justPlayed to false and set remainingAttacks to 1', () => {
       const { state, bus } = setup();
-      resetInstanceCounter();
-      const minion = createCardInstance(makeMinionCard('test_minion'), 0);
+      counter = new IdCounter();
+      const minion = createCardInstance(makeMinionCard('test_minion'), 0, counter);
       minion.justPlayed = true;
       minion.remainingAttacks = 0;
       state.players[0].battlefield.push(minion);
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(minion.justPlayed).toBe(false);
       expect(minion.remainingAttacks).toBe(1);
@@ -368,7 +343,7 @@ describe('GameLoop', () => {
 
     it('should reset usedGeneralSkills for battlefield generals at turn start', () => {
       const { state, bus } = setup();
-      resetInstanceCounter();
+      counter = new IdCounter();
       const general = createCardInstance(
         makeMinionCard({
           id: 'general_minion',
@@ -387,11 +362,12 @@ describe('GameLoop', () => {
           ],
         }),
         0,
+        counter,
       );
       general.usedGeneralSkills = 1;
       state.players[0].battlefield.push(general);
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(general.usedGeneralSkills).toBe(0);
     });
@@ -401,7 +377,7 @@ describe('GameLoop', () => {
       state.players[0].hero.skillUsedThisTurn = true;
       state.players[0].hero.skillCooldownRemaining = 1;
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.players[0].hero.skillUsedThisTurn).toBe(false);
       expect(state.players[0].hero.skillCooldownRemaining).toBe(0);
@@ -426,7 +402,7 @@ describe('GameLoop', () => {
         },
       ];
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.players[0].ministerPool[0].skillUsedThisTurn).toBe(false);
       expect(state.players[0].ministerPool[0].cooldown).toBe(0);
@@ -439,7 +415,7 @@ describe('GameLoop', () => {
       const { state, bus } = setup();
       expect(state.turnNumber).toBe(0);
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.turnNumber).toBe(1);
     });
@@ -447,24 +423,19 @@ describe('GameLoop', () => {
     it('should set phase to MAIN after turn start', () => {
       const { state, bus } = setup();
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       expect(state.phase).toBe('MAIN');
     });
 
-    it('should emit TURN_END event', () => {
+    it('should not emit TURN_END (executeTurnStart starts a turn; TURN_END is emitted by executeEndTurn before the player switch)', () => {
       const { state, bus } = setup();
       const events: unknown[] = [];
       bus.on('TURN_END', (e) => events.push(e));
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
-      expect(events).toHaveLength(1);
-      expect(events[0]).toMatchObject({
-        type: 'TURN_END',
-        playerIndex: 0,
-        turnNumber: 1,
-      });
+      expect(events).toHaveLength(0);
     });
 
     it('should emit PHASE_CHANGE events for each phase', () => {
@@ -472,7 +443,7 @@ describe('GameLoop', () => {
       const events: unknown[] = [];
       bus.on('PHASE_CHANGE', (e) => events.push(e));
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       const phases = events.map((e: any) => e.phase);
       expect(phases).toEqual(['ENERGY_GAIN', 'DRAW', 'UPKEEP', 'MAIN']);
@@ -480,13 +451,13 @@ describe('GameLoop', () => {
 
     it('should not reset remainingAttacks for sleeping minions', () => {
       const { state, bus } = setup();
-      resetInstanceCounter();
-      const minion = createCardInstance(makeMinionCard('sleeping'), 0);
+      counter = new IdCounter();
+      const minion = createCardInstance(makeMinionCard('sleeping'), 0, counter);
       minion.sleepTurns = 2;
       minion.remainingAttacks = 0;
       state.players[0].battlefield.push(minion);
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       // sleepTurns decremented by 1 in UPKEEP, but still sleeping
       expect(minion.sleepTurns).toBe(1);
@@ -495,13 +466,13 @@ describe('GameLoop', () => {
 
     it('should wake up minion when sleepTurns reaches 0', () => {
       const { state, bus } = setup();
-      resetInstanceCounter();
-      const minion = createCardInstance(makeMinionCard('waking'), 0);
+      counter = new IdCounter();
+      const minion = createCardInstance(makeMinionCard('waking'), 0, counter);
       minion.sleepTurns = 1;
       minion.remainingAttacks = 0;
       state.players[0].battlefield.push(minion);
 
-      executeTurnStart(state, bus);
+      executeTurnStart(state, bus, counter);
 
       // UPKEEP wakes it up (remainingAttacks = 1), then MAIN resets to 1 again
       expect(minion.sleepTurns).toBe(0);

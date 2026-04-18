@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { executeCardEffects, resetBuffCounter } from '../../../src/cards/effects/execute-card-effects.js';
+import { describe, it, expect } from 'vitest';
+import { executeCardEffects } from '../../../src/cards/effects/execute-card-effects.js';
 import type { EffectContext, CardInstance } from '@king-card/shared';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -100,6 +101,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
       pick: (arr) => arr[0],
       shuffle: (a) => a,
     },
+    counter: new IdCounter(),
     ...overrides,
   };
 }
@@ -126,10 +128,6 @@ function ctx_mutator_base(): EffectContext['mutator'] {
 // ─── FREEZE Tests ───────────────────────────────────────────────
 
 describe('FREEZE effect', () => {
-  beforeEach(() => {
-    resetBuffCounter();
-  });
-
   it('sets frozenTurns on target minion', () => {
     const sourceCard = makeCard('freeze_source', [], [
       {

@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createStateMutator, resetStratagemCounter } from '../../../src/engine/state-mutator.js';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
+import { describe, it, expect, vi } from 'vitest';
+import { createStateMutator } from '../../../src/engine/state-mutator.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
-import type { Card, GameState, Buff } from '@king-card/shared';
+import type { Card, GameState, Buff, GameEvent } from '@king-card/shared';
+
+let counter: IdCounter;
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -47,6 +50,7 @@ function makeGameState(): GameState {
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 5,
         maxEnergy: 10,
         cannotDrawNextTurn: false,
@@ -66,6 +70,7 @@ function makeGameState(): GameState {
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 5,
         maxEnergy: 10,
         cannotDrawNextTurn: false,
@@ -84,11 +89,10 @@ function makeGameState(): GameState {
 }
 
 function setup() {
-  resetInstanceCounter();
-  resetStratagemCounter();
+  counter = new IdCounter();
   const bus = new EventBus();
   const state = makeGameState();
-  const mutator = createStateMutator(state, bus);
+  const mutator = createStateMutator(state, bus, undefined, counter);
   return { state, bus, mutator };
 }
 
@@ -122,14 +126,67 @@ describe('StateMutator', () => {
 
     it('should destroy minion when health drops to 0 or below', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.damage({ type: 'MINION', instanceId: instance.instanceId }, 5);
 
       expect(state.players[0].battlefield).toHaveLength(0);
       expect(state.players[0].graveyard).toHaveLength(1);
+    });
+
+    it('emits ARMOR_CHANGED with negative amount when armor absorbs partial damage', () => {
+      const { state, bus, mutator } = setup();
+      state.players[0].hero.armor = 5;
+      const events: GameEvent[] = [];
+      bus.on('ARMOR_CHANGED', (e) => events.push(e));
+      const heroDamaged = vi.fn();
+      bus.on('HERO_DAMAGED', heroDamaged);
+
+      mutator.damage({ type: 'HERO', playerIndex: 0 }, 3);
+
+      expect(state.players[0].hero.armor).toBe(2);
+      expect(state.players[0].hero.health).toBe(30);
+      expect(events).toContainEqual({
+        type: 'ARMOR_CHANGED',
+        playerIndex: 0,
+        amount: -3,
+        totalArmor: 2,
+      });
+      expect(heroDamaged).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'HERO_DAMAGED', playerIndex: 0, amount: 3 }),
+      );
+    });
+
+    it('emits ARMOR_CHANGED to 0 when armor is fully absorbed by damage', () => {
+      const { state, bus, mutator } = setup();
+      state.players[0].hero.armor = 3;
+      const events: GameEvent[] = [];
+      bus.on('ARMOR_CHANGED', (e) => events.push(e));
+
+      mutator.damage({ type: 'HERO', playerIndex: 0 }, 5);
+
+      expect(state.players[0].hero.armor).toBe(0);
+      expect(state.players[0].hero.health).toBe(28);
+      expect(events).toContainEqual({
+        type: 'ARMOR_CHANGED',
+        playerIndex: 0,
+        amount: -3,
+        totalArmor: 0,
+      });
+    });
+
+    it('does NOT emit ARMOR_CHANGED when hero has 0 armor', () => {
+      const { state, bus, mutator } = setup();
+      state.players[0].hero.armor = 0;
+      const handler = vi.fn();
+      bus.on('ARMOR_CHANGED', handler);
+
+      mutator.damage({ type: 'HERO', playerIndex: 0 }, 3);
+
+      expect(state.players[0].hero.health).toBe(27);
+      expect(handler).not.toHaveBeenCalled();
     });
   });
 
@@ -151,8 +208,8 @@ describe('StateMutator', () => {
 
     it('should heal minion up to currentMaxHealth', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       instance.currentHealth = 2;
       state.players[0].battlefield.push(instance);
 
@@ -166,7 +223,10 @@ describe('StateMutator', () => {
   describe('drawCards', () => {
     it('should draw cards from deck to hand', () => {
       const { state, bus, mutator } = setup();
-      state.players[0].deck = [{ ...dummyCard, id: 'card_a' }, { ...dummyCard, id: 'card_b' }];
+      state.players[0].deck = [
+        createCardInstance({ ...dummyCard, id: 'card_a' }, 0, counter),
+        createCardInstance({ ...dummyCard, id: 'card_b' }, 0, counter),
+      ];
       const handler = vi.fn();
       bus.on('CARD_DRAWN', handler);
 
@@ -181,7 +241,10 @@ describe('StateMutator', () => {
       const { state, bus, mutator } = setup();
       state.players[0].handLimit = 2;
       state.players[0].hand = [{ ...dummyCard, id: 'h1' }, { ...dummyCard, id: 'h2' }];
-      state.players[0].deck = [{ ...dummyCard, id: 'card_a' }, { ...dummyCard, id: 'card_b' }];
+      state.players[0].deck = [
+        createCardInstance({ ...dummyCard, id: 'card_a' }, 0, counter),
+        createCardInstance({ ...dummyCard, id: 'card_b' }, 0, counter),
+      ];
       const discardHandler = vi.fn();
       bus.on('CARD_DISCARDED', discardHandler);
 
@@ -206,7 +269,7 @@ describe('StateMutator', () => {
     it('should skip drawing when cannotDrawNextTurn is true', () => {
       const { state, bus, mutator } = setup();
       state.players[0].cannotDrawNextTurn = true;
-      state.players[0].deck = [{ ...dummyCard, id: 'card_a' }];
+      state.players[0].deck = [createCardInstance({ ...dummyCard, id: 'card_a' }, 0, counter)];
       const lockHandler = vi.fn();
       bus.on('DRAW_LOCKED', lockHandler);
 
@@ -260,9 +323,9 @@ describe('StateMutator', () => {
 
     it('should insert at specified position', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const inst1 = createCardInstance(dummyCard, 0);
-      const inst2 = createCardInstance(dummyCard, 0);
+
+      const inst1 = createCardInstance(dummyCard, 0, counter);
+      const inst2 = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield = [inst1, inst2];
 
       mutator.summonMinion({ ...dummyCard, id: 'new_card' }, 0, 1);
@@ -276,8 +339,8 @@ describe('StateMutator', () => {
   describe('destroyMinion', () => {
     it('should remove minion from battlefield and add to graveyard', () => {
       const { state, bus, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
       const handler = vi.fn();
       bus.on('MINION_DESTROYED', handler);
@@ -294,8 +357,8 @@ describe('StateMutator', () => {
   describe('modifyStat', () => {
     it('should modify attack of minion', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.modifyStat({ type: 'MINION', instanceId: instance.instanceId }, 'attack', 3);
@@ -305,8 +368,8 @@ describe('StateMutator', () => {
 
     it('should modify health and update currentMaxHealth when increased', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.modifyStat({ type: 'MINION', instanceId: instance.instanceId }, 'health', 3);
@@ -317,8 +380,8 @@ describe('StateMutator', () => {
 
     it('should reduce health without changing maxHealth', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.modifyStat({ type: 'MINION', instanceId: instance.instanceId }, 'health', -2);
@@ -332,8 +395,8 @@ describe('StateMutator', () => {
   describe('applyBuff', () => {
     it('should apply buff and update minion stats', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       const buff: Buff = {
@@ -358,8 +421,8 @@ describe('StateMutator', () => {
   describe('removeBuff', () => {
     it('should reverse buff effects', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       const buff: Buff = {
@@ -391,6 +454,28 @@ describe('StateMutator', () => {
       mutator.gainArmor(0, 5);
 
       expect(state.players[0].hero.armor).toBe(5);
+    });
+
+    it('emits ARMOR_CHANGED with amount and totalArmor', () => {
+      const { bus, mutator } = setup();
+      const events: GameEvent[] = [];
+      bus.on('ARMOR_CHANGED', (e) => events.push(e));
+
+      mutator.gainArmor(0, 3);
+      mutator.gainArmor(0, 2);
+
+      expect(events).toContainEqual({
+        type: 'ARMOR_CHANGED',
+        playerIndex: 0,
+        amount: 3,
+        totalArmor: 3,
+      });
+      expect(events).toContainEqual({
+        type: 'ARMOR_CHANGED',
+        playerIndex: 0,
+        amount: 2,
+        totalArmor: 5,
+      });
     });
   });
 
@@ -445,8 +530,8 @@ describe('StateMutator', () => {
   describe('grantExtraAttack', () => {
     it('should increment minion remainingAttacks', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.grantExtraAttack(instance.instanceId);

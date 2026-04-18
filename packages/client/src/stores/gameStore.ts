@@ -92,6 +92,10 @@ interface GameStore {
   pendingSkillAction: PendingSkillAction | null;
   error: string | null;
 
+  // Last game start args (for restartGame to replay the previous match)
+  lastEmperorIndex: number | null;
+  lastDeckDefinition: DeckDefinition | null;
+
   // Computed
   isMyTurn: () => boolean;
 
@@ -107,6 +111,8 @@ interface GameStore {
   useGeneralSkill: (instanceId: string, skillIndex: number, target?: TargetRef) => void;
   switchMinister: (ministerIndex: number) => void;
   concede: () => void;
+  restartGame: () => void;
+  backToMainMenu: () => void;
 
   // UI actions
   setSelectedAttacker: (id: string | null) => void;
@@ -143,6 +149,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   selectedAttacker: null,
   pendingSkillAction: null,
   error: null,
+
+  // Last game start args
+  lastEmperorIndex: null,
+  lastDeckDefinition: null,
 
   // Computed
   isMyTurn: () => {
@@ -185,6 +195,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
         return;
       }
+      set({
+        lastEmperorIndex: emperorIndex,
+        lastDeckDefinition: deck,
+        gameMode: 'pve',
+      });
       socket.emit('game:join', { emperorIndex, deck });
     } catch {
       set({
@@ -208,6 +223,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         });
         return;
       }
+      set({
+        lastEmperorIndex: emperorIndex,
+        lastDeckDefinition: deck,
+        gameMode: 'pvp',
+      });
       socket.emit('game:pvpJoin', { emperorIndex, deck });
     } catch {
       set({
@@ -254,6 +274,80 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   concede: () => {
     socketService.getSocket().emit('game:concede');
+  },
+
+  restartGame: () => {
+    const { lastEmperorIndex, lastDeckDefinition, gameMode } = get();
+    if (lastEmperorIndex == null || lastDeckDefinition == null) {
+      // Nothing to replay — fall back to lobby
+      get().backToMainMenu();
+      return;
+    }
+
+    // Reset gameplay state and immediately leave the game-over UI so the
+    // user does not see a stale "Defeat / Hero defeated" screen during the
+    // round-trip to the server. We land on 'lobby' (not a transient state)
+    // so even a slow or failed server response leaves the user somewhere
+    // usable; the server's game:joined response will move us to 'playing'.
+    set({
+      gameId: null,
+      playerIndex: null,
+      gameState: null,
+      validActions: [],
+      selectedAttacker: null,
+      pendingSkillAction: null,
+      error: null,
+      uiPhase: 'lobby',
+    });
+
+    try {
+      const socket = socketService.getSocket();
+      if (!socket.connected) {
+        set({
+          uiPhase: 'lobby',
+          error: getClientErrorMessage(
+            CLIENT_ERROR_CODE.NOT_CONNECTED_RETRY,
+            useLocaleStore.getState().locale,
+          ),
+        });
+        return;
+      }
+      if (gameMode === 'pve') {
+        socket.emit('game:join', {
+          emperorIndex: lastEmperorIndex,
+          deck: lastDeckDefinition,
+        });
+      } else {
+        socket.emit('game:pvpJoin', {
+          emperorIndex: lastEmperorIndex,
+          deck: lastDeckDefinition,
+        });
+      }
+    } catch {
+      set({
+        uiPhase: 'lobby',
+        error: getClientErrorMessage(
+          CLIENT_ERROR_CODE.NOT_CONNECTED_LOBBY,
+          useLocaleStore.getState().locale,
+        ),
+      });
+    }
+  },
+
+  backToMainMenu: () => {
+    // Navigate back to the lobby without disconnecting the socket so the
+    // user can immediately start another game. lastEmperorIndex/Deck are
+    // intentionally preserved so a subsequent restartGame still works.
+    set({
+      gameId: null,
+      playerIndex: null,
+      gameState: null,
+      validActions: [],
+      uiPhase: 'lobby',
+      selectedAttacker: null,
+      pendingSkillAction: null,
+      error: null,
+    });
   },
 
   // UI actions
@@ -345,6 +439,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       selectedAttacker: null,
       pendingSkillAction: null,
       error: null,
+      lastEmperorIndex: null,
+      lastDeckDefinition: null,
     });
     socketService.disconnect();
   },

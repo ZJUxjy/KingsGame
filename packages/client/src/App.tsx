@@ -14,7 +14,8 @@ import { useLocaleStore } from './stores/localeStore.js';
 function GameOverScreen() {
   const gameState = useGameStore(s => s.gameState);
   const playerIndex = useGameStore(s => s.playerIndex);
-  const _reset = useGameStore(s => s._reset);
+  const restartGame = useGameStore(s => s.restartGame);
+  const backToMainMenu = useGameStore(s => s.backToMainMenu);
   const locale = useLocaleStore((state) => state.locale);
 
   const won = gameState?.winnerIndex === playerIndex;
@@ -39,13 +40,13 @@ function GameOverScreen() {
       </p>
       <div className="flex flex-wrap items-center justify-center gap-4">
         <button
-          onClick={() => { _reset(); }}
+          onClick={() => { restartGame(); }}
           className="px-8 py-3 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-black font-bold text-lg cursor-pointer transition-colors"
         >
           {playAgainLabel}
         </button>
         <button
-          onClick={() => { _reset(); }}
+          onClick={() => { backToMainMenu(); }}
           className="px-8 py-3 rounded-lg border border-gray-500 bg-gray-800 hover:bg-gray-700 text-gray-100 font-bold text-lg cursor-pointer transition-colors"
         >
           {backLabel}

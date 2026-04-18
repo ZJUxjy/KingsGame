@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { executeCardEffects } from '../../../src/cards/effects/index.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
-import { createStateMutator, resetStratagemCounter } from '../../../src/engine/state-mutator.js';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
-import { resetBuffCounter } from '../../../src/cards/effects/execute-card-effects.js';
+import { createStateMutator } from '../../../src/engine/state-mutator.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import type { Card, EffectContext, GameState } from '@king-card/shared';
+
+let counter: IdCounter;
 
 function makeMinionCard(overrides: Partial<Card> & { id: string }): Card {
   return {
@@ -51,6 +53,7 @@ function makeGameState(): GameState {
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 5,
         maxEnergy: 5,
         cannotDrawNextTurn: false,
@@ -83,6 +86,7 @@ function makeGameState(): GameState {
         battlefield: [],
         activeStratagems: [],
         costModifiers: [],
+        costReduction: 0,
         energyCrystal: 5,
         maxEnergy: 5,
         cannotDrawNextTurn: false,
@@ -101,21 +105,17 @@ function makeGameState(): GameState {
 }
 
 function setup() {
-  resetInstanceCounter();
-  resetStratagemCounter();
-  resetBuffCounter();
+  counter = new IdCounter();
   const bus = new EventBus();
   const state = makeGameState();
-  const mutator = createStateMutator(state, bus);
+  const mutator = createStateMutator(state, bus, undefined, counter);
 
-  return { state, bus, mutator };
+  return { state, bus, mutator, counter };
 }
 
 describe('executeCardEffects', () => {
   beforeEach(() => {
-    resetInstanceCounter();
-    resetStratagemCounter();
-    resetBuffCounter();
+    counter = new IdCounter();
   });
 
   it('should apply DAMAGE to a targeted enemy minion', () => {
@@ -138,11 +138,13 @@ describe('executeCardEffects', () => {
         ],
       }),
       0,
+      counter,
     );
 
     const target = createCardInstance(
       makeMinionCard({ id: 'enemy_target', health: 5 }),
       1,
+      counter,
     );
     state.players[1].battlefield.push(target);
 
@@ -166,6 +168,7 @@ describe('executeCardEffects', () => {
         pick: (arr) => arr[0]!,
         shuffle: (arr) => [...arr],
       },
+      counter,
     };
 
     executeCardEffects('ON_PLAY', ctx);
@@ -190,8 +193,9 @@ describe('executeCardEffects', () => {
         ],
       }),
       0,
+      counter,
     );
-    const enemyTarget = createCardInstance(makeMinionCard({ id: 'enemy_target_noop', health: 5 }), 1);
+    const enemyTarget = createCardInstance(makeMinionCard({ id: 'enemy_target_noop', health: 5 }), 1, counter);
 
     state.players[0].battlefield.push(source);
     state.players[1].battlefield.push(enemyTarget);
@@ -208,6 +212,7 @@ describe('executeCardEffects', () => {
         pick: (arr) => arr[0]!,
         shuffle: (arr) => [...arr],
       },
+      counter,
     };
 
     executeCardEffects('ON_PLAY', ctx);
@@ -239,8 +244,9 @@ describe('executeCardEffects', () => {
         ],
       }),
       0,
+      counter,
     );
-    const friendlyTarget = createCardInstance(makeMinionCard({ id: 'friendly_target_noop' }), 0);
+    const friendlyTarget = createCardInstance(makeMinionCard({ id: 'friendly_target_noop' }), 0, counter);
 
     state.players[0].battlefield.push(source, friendlyTarget);
 
@@ -256,6 +262,7 @@ describe('executeCardEffects', () => {
         pick: (arr) => arr[0]!,
         shuffle: (arr) => [...arr],
       },
+      counter,
     };
 
     executeCardEffects('ON_PLAY', ctx);
@@ -288,6 +295,7 @@ describe('executeCardEffects', () => {
         ],
       }),
       0,
+      counter,
     );
     state.players[0].battlefield.push(source);
 
@@ -303,6 +311,7 @@ describe('executeCardEffects', () => {
         pick: (arr) => arr[0]!,
         shuffle: (arr) => [...arr],
       },
+      counter,
     };
 
     executeCardEffects('ON_PLAY', ctx);
@@ -316,7 +325,7 @@ describe('executeCardEffects', () => {
   it('should draw from CONDITIONAL_BUFF effects that unlock on threshold', () => {
     const { state, bus, mutator } = setup();
     state.players[0].cardsPlayedThisTurn = 3;
-    state.players[0].deck.push(makeMinionCard({ id: 'draw_target' }));
+    state.players[0].deck.push(createCardInstance(makeMinionCard({ id: 'draw_target' }), 0, counter));
 
     const source = createCardInstance(
       makeMinionCard({
@@ -333,6 +342,7 @@ describe('executeCardEffects', () => {
         ],
       }),
       0,
+      counter,
     );
 
     const ctx: EffectContext = {
@@ -347,6 +357,7 @@ describe('executeCardEffects', () => {
         pick: (arr) => arr[0]!,
         shuffle: (arr) => [...arr],
       },
+      counter,
     };
 
     executeCardEffects('ON_PLAY', ctx);
@@ -370,11 +381,12 @@ describe('executeCardEffects', () => {
         ],
       }),
       0,
+      counter,
     );
     state.players[0].battlefield.push(source);
 
-    const enemyA = createCardInstance(makeMinionCard({ id: 'enemy_a', health: 8 }), 1);
-    const enemyB = createCardInstance(makeMinionCard({ id: 'enemy_b', health: 8 }), 1);
+    const enemyA = createCardInstance(makeMinionCard({ id: 'enemy_a', health: 8 }), 1, counter);
+    const enemyB = createCardInstance(makeMinionCard({ id: 'enemy_b', health: 8 }), 1, counter);
     state.players[1].battlefield.push(enemyA, enemyB);
 
     const damageEvents: number[] = [];
@@ -396,6 +408,7 @@ describe('executeCardEffects', () => {
         pick: (arr) => arr[0]!,
         shuffle: (arr) => [...arr],
       },
+      counter,
     };
 
     executeCardEffects('ON_PLAY', ctx);
@@ -420,11 +433,12 @@ describe('executeCardEffects', () => {
         ],
       }),
       0,
+      counter,
     );
     state.players[0].battlefield.push(source);
 
-    const enemyA = createCardInstance(makeMinionCard({ id: 'e1', health: 5 }), 1);
-    const enemyB = createCardInstance(makeMinionCard({ id: 'e2', health: 5 }), 1);
+    const enemyA = createCardInstance(makeMinionCard({ id: 'e1', health: 5 }), 1, counter);
+    const enemyB = createCardInstance(makeMinionCard({ id: 'e2', health: 5 }), 1, counter);
     state.players[1].battlefield.push(enemyA, enemyB);
 
     const ctx: EffectContext = {
@@ -439,6 +453,7 @@ describe('executeCardEffects', () => {
         pick: (arr) => arr[0]!,
         shuffle: (arr) => [...arr],
       },
+      counter,
     };
 
     executeCardEffects('ON_PLAY', ctx);
@@ -462,9 +477,10 @@ describe('executeCardEffects', () => {
         ],
       }),
       0,
+      counter,
     );
-    const allyA = createCardInstance(makeMinionCard({ id: 'ally_a', health: 5 }), 0);
-    const allyB = createCardInstance(makeMinionCard({ id: 'ally_b', health: 5 }), 0);
+    const allyA = createCardInstance(makeMinionCard({ id: 'ally_a', health: 5 }), 0, counter);
+    const allyB = createCardInstance(makeMinionCard({ id: 'ally_b', health: 5 }), 0, counter);
     source.currentHealth = 1;
     allyA.currentHealth = 2;
     allyB.currentHealth = 3;
@@ -482,6 +498,7 @@ describe('executeCardEffects', () => {
         pick: (arr) => arr[0]!,
         shuffle: (arr) => [...arr],
       },
+      counter,
     };
 
     executeCardEffects('ON_PLAY', ctx);
@@ -500,6 +517,7 @@ describe('executeCardEffects', () => {
         effects: [{ trigger: 'ON_PLAY', type: 'HEAL', params: { amount: 5 } }],
       }),
       0,
+      counter,
     );
     state.players[0].battlefield.push(source);
     state.players[0].hero.health = 10;
@@ -516,6 +534,7 @@ describe('executeCardEffects', () => {
         pick: (arr) => arr[0]!,
         shuffle: (arr) => [...arr],
       },
+      counter,
     };
 
     executeCardEffects('ON_PLAY', ctx);

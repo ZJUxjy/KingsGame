@@ -6,7 +6,8 @@ import type {
   HeroSkill,
 } from '@king-card/shared';
 import { GAME_CONSTANTS } from '@king-card/shared';
-import { createCardInstance, resetInstanceCounter } from './card-instance.js';
+import { createCardInstance } from './card-instance.js';
+import type { IdCounter } from '../engine/id-counter.js';
 
 const DEFAULT_HERO_SKILL: HeroSkill = {
   name: 'Default Hero Skill',
@@ -23,10 +24,9 @@ export function createPlayer(
   civilization: Civilization,
   deck: Card[],
   startingEmperor: EmperorData,
+  counter: IdCounter,
 ): Player {
-  resetInstanceCounter();
-
-  const deckInstances = deck.map((card) => createCardInstance(card, ownerIndex));
+  const deckInstances = deck.map((card) => createCardInstance(card, ownerIndex, counter));
 
   const emperorCard = startingEmperor.emperorCard;
 
@@ -44,7 +44,7 @@ export function createPlayer(
     civilization,
     hand: [],
     handLimit: GAME_CONSTANTS.MAX_HAND_SIZE,
-    deck: deckInstances as unknown as Card[],
+    deck: deckInstances,
     graveyard: [],
     battlefield: [],
     activeStratagems: [],
