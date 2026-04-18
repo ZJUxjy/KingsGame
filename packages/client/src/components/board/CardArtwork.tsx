@@ -1,7 +1,6 @@
 import type React from 'react';
 import type { Card, CardInstance } from '@king-card/shared';
 import type { SupportedLocale } from '../../utils/locale.js';
-import { getKeywordText } from '../../utils/cardText.js';
 
 const CIV_COLORS: Record<string, { primary: string; secondary: string; accent: string; emblem: string }> = {
   CHINA: { primary: '#8B0000', secondary: '#FFD700', accent: '#DC143C', emblem: '龙' },
@@ -76,69 +75,6 @@ interface CardArtworkProps {
   locale: SupportedLocale;
 }
 
-interface DescriptionLayout {
-  maxCharsPerLine: number;
-  maxLines: number;
-  startY: number;
-  lineHeight: number;
-}
-
-function getDescriptionLayout(card: Card, size: CardSize): DescriptionLayout {
-  if (size === 'detail') {
-    return {
-      maxCharsPerLine: 17,
-      maxLines: card.type === 'GENERAL' ? 5 : 4,
-      startY: card.keywords.length > 0 ? 104 : 100,
-      lineHeight: 6,
-    };
-  }
-
-  if (size === 'collection' && (card.type === 'STRATAGEM' || card.type === 'SORCERY')) {
-    return {
-      maxCharsPerLine: 10,
-      maxLines: 3,
-      startY: card.keywords.length > 0 ? 138 : 132,
-      lineHeight: 6,
-    };
-  }
-
-  return {
-    maxCharsPerLine: size === 'collection' ? 10 : 12,
-    maxLines: 2,
-    startY: card.keywords.length > 0 ? 138 : 132,
-    lineHeight: 8,
-  };
-}
-
-function splitDescription(description: string, maxCharsPerLine: number, maxLines: number): string[] {
-  if (!description) {
-    return [];
-  }
-
-  const normalized = description.replace(/\s+/g, '');
-  const lines: string[] = [];
-  const leadingPunctuation = /^[，。！？；：、）】》」』’”]/;
-
-  for (let index = 0; index < normalized.length && lines.length < maxLines; index += maxCharsPerLine) {
-    const remaining = normalized.length - index;
-    let rawLine = normalized.slice(index, index + maxCharsPerLine);
-
-    if (lines.length > 0 && rawLine && leadingPunctuation.test(rawLine[0])) {
-      lines[lines.length - 1] += rawLine[0];
-      rawLine = rawLine.slice(1);
-    }
-
-    if (!rawLine) {
-      continue;
-    }
-
-    const isLastLine = lines.length === maxLines - 1 && remaining > maxCharsPerLine;
-    lines.push(isLastLine ? `${rawLine.slice(0, Math.max(0, rawLine.length - 1))}…` : rawLine);
-  }
-
-  return lines;
-}
-
 export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArtworkProps) {
   const typeKey = typeTokenKey(card.type);
   const isMinion = card.type === 'MINION' || card.type === 'GENERAL';
@@ -147,12 +83,6 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
   const attack = instance?.currentAttack ?? card.attack ?? 0;
   const health = instance?.currentHealth ?? card.health ?? 0;
   const maxHealth = instance?.currentMaxHealth ?? card.health ?? 0;
-  const descriptionLayout = getDescriptionLayout(card, size);
-  const descriptionLines = splitDescription(
-    card.description,
-    descriptionLayout.maxCharsPerLine,
-    descriptionLayout.maxLines,
-  );
 
   const costGlowId = `${svgIdBase}-cost-glow`;
   const typeGradId = `${svgIdBase}-type-grad`;
@@ -239,36 +169,6 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
           {typeBadgeLabel(card.type, locale)}
         </text>
       </g>
-
-      {/* Name */}
-      <text x="60" y="116" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
-        {card.name.length > 11 ? card.name.substring(0, 11) + '…' : card.name}
-      </text>
-
-      {/* Keywords */}
-      {card.keywords.length > 0 && (
-        <text x="60" y="128" textAnchor="middle" fill="#facc15" fontSize="8" fontWeight="bold">
-          {getKeywordText(card.keywords, locale)}
-        </text>
-      )}
-
-      {/* Description snippet */}
-      {descriptionLines.length > 0 && (
-        <text
-          data-testid="card-description-snippet"
-          x="60"
-          y={descriptionLayout.startY}
-          textAnchor="middle"
-          fill="#d6d3d1"
-          fontSize="8"
-        >
-          {descriptionLines.map((line, index) => (
-            <tspan key={`${line}-${index}`} x="60" dy={index === 0 ? 0 : descriptionLayout.lineHeight}>
-              {line}
-            </tspan>
-          ))}
-        </text>
-      )}
 
       {/* Bottom banner for ATK/HP */}
       <rect
