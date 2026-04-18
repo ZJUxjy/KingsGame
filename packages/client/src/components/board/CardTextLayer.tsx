@@ -1,7 +1,13 @@
 import type { Card } from '@king-card/shared';
 import { getKeywordText } from '../../utils/cardText.js';
 import type { SupportedLocale } from '../../utils/locale.js';
-import { TEXT_PANEL_BOTTOM_PCT, TEXT_PANEL_TOP_PCT, type CardSize } from './cardSize.js';
+import {
+  TEXT_PANEL_BOTTOM_PCT,
+  TEXT_PANEL_BOTTOM_PCT_NO_BANNER,
+  TEXT_PANEL_INLINE_PCT,
+  TEXT_PANEL_TOP_PCT,
+  type CardSize,
+} from './cardSize.js';
 
 interface SizeStyle {
   namePx: number;
@@ -10,12 +16,27 @@ interface SizeStyle {
   descriptionLineClamp: number;
 }
 
+// Hand and battlefield render at the same physical size, so they share one
+// style object reference — keeps the two from drifting silently when tuned.
+const HAND_BATTLEFIELD_STYLE: SizeStyle = {
+  namePx: 11,
+  keywordPx: 9,
+  descriptionPx: 9,
+  descriptionLineClamp: 2,
+};
+
 const SIZE_STYLE: Record<CardSize, SizeStyle> = {
-  hand: { namePx: 11, keywordPx: 9, descriptionPx: 9, descriptionLineClamp: 2 },
-  battlefield: { namePx: 11, keywordPx: 9, descriptionPx: 9, descriptionLineClamp: 2 },
+  hand: HAND_BATTLEFIELD_STYLE,
+  battlefield: HAND_BATTLEFIELD_STYLE,
   collection: { namePx: 13, keywordPx: 10, descriptionPx: 10, descriptionLineClamp: 3 },
   detail: { namePx: 18, keywordPx: 12, descriptionPx: 13, descriptionLineClamp: 4 },
 };
+
+// Cards that show ATK / HP badges (minions and generals) reserve room at the
+// bottom for the banner. Spell-like cards reclaim that space for description.
+function hasBottomBanner(card: Card): boolean {
+  return card.type === 'MINION' || card.type === 'GENERAL';
+}
 
 interface CardTextLayerProps {
   card: Card;
@@ -28,6 +49,8 @@ export function CardTextLayer({ card, size, locale }: CardTextLayerProps) {
   const hasKeywords = card.keywords.length > 0;
   const hasDescription = Boolean(card.description);
 
+  const bottomPct = hasBottomBanner(card) ? TEXT_PANEL_BOTTOM_PCT : TEXT_PANEL_BOTTOM_PCT_NO_BANNER;
+
   return (
     <div
       className="pointer-events-none absolute flex flex-col items-stretch text-white"
@@ -38,9 +61,9 @@ export function CardTextLayer({ card, size, locale }: CardTextLayerProps) {
         // upward and overlaps the SVG art region. top/bottom keep us aligned with
         // the SVG layout contract (art ends at y=ART_END_Y, banner at y=BANNER_Y).
         top: TEXT_PANEL_TOP_PCT,
-        bottom: TEXT_PANEL_BOTTOM_PCT,
-        left: '6%',
-        right: '6%',
+        bottom: bottomPct,
+        left: TEXT_PANEL_INLINE_PCT,
+        right: TEXT_PANEL_INLINE_PCT,
       }}
     >
       <div

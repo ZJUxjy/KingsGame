@@ -169,15 +169,17 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
         </text>
       </g>
 
-      {/* Bottom banner for ATK/HP */}
-      <rect
-        data-testid="card-bottom-banner"
-        x="0"
-        y={BANNER_Y}
-        width="120"
-        height={BANNER_HEIGHT}
-        fill="rgba(0,0,0,0.45)"
-      />
+      {/* Bottom banner for ATK/HP — only rendered for cards that show stats */}
+      {isMinion && (
+        <rect
+          data-testid="card-bottom-banner"
+          x="0"
+          y={BANNER_Y}
+          width="120"
+          height={BANNER_HEIGHT}
+          fill="rgba(0,0,0,0.45)"
+        />
+      )}
 
       {/* ATK badge – diamond */}
       {isMinion && (

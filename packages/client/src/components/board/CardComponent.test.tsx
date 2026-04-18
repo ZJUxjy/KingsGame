@@ -598,6 +598,15 @@ describe('CardComponent – bottom banner', () => {
     expect(banner?.getAttribute('y')).toBe('148');
     expect(banner?.getAttribute('height')).toBe('24');
   });
+
+  it('omits the bottom banner on cards without ATK/HP (e.g. stratagem)', () => {
+    const { container } = render(
+      <CardComponent card={makeCard({ type: 'STRATAGEM' })} size="collection" />,
+    );
+    expect(container.querySelector('[data-testid="card-bottom-banner"]')).toBeNull();
+    expect(container.querySelector('[data-testid="card-atk"]')).toBeNull();
+    expect(container.querySelector('[data-testid="card-hp"]')).toBeNull();
+  });
 });
 
 describe('CardComponent – HTML text layer', () => {

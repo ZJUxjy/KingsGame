@@ -18,3 +18,13 @@ function pct(value: number): string {
 // and stay aligned with the SVG layout regardless of card aspect ratio.
 export const TEXT_PANEL_TOP_PCT = pct(ART_END_Y);
 export const TEXT_PANEL_BOTTOM_PCT = pct(BANNER_HEIGHT);
+
+// When the card has no ATK/HP banner (non-minion / non-general cards), the
+// text panel can extend almost to the card bottom — only a small edge gap
+// is left so the description does not collide with the rounded card border.
+export const TEXT_PANEL_BOTTOM_PCT_NO_BANNER = '3%';
+
+// Horizontal safe area for the text overlay (CSS percentages on left/right
+// resolve against the parent's WIDTH, so this stays simple and aspect-ratio
+// agnostic).
+export const TEXT_PANEL_INLINE_PCT = '6%';

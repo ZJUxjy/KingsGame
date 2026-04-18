@@ -124,4 +124,17 @@ describe('CardTextLayer', () => {
     expect(root.style.paddingTop).toBe('');
     expect(root.style.paddingBottom).toBe('');
   });
+
+  it('extends the text panel toward the card bottom on non-minion cards (no ATK/HP banner to dodge)', () => {
+    const { container } = render(
+      <CardTextLayer
+        card={makeCard({ type: 'STRATAGEM' })}
+        size="collection"
+        locale="zh-CN"
+      />,
+    );
+    const root = container.firstElementChild as HTMLElement;
+
+    expect(root.style.bottom).toBe('3%');
+  });
 });
