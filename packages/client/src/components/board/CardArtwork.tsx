@@ -199,24 +199,21 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
 
       {/* Art area with textured background */}
       <g data-testid="card-art">
-        <rect x="0" y="0" width="120" height="104" fill={`url(#${typeGradId})`} />
-        <rect x="8" y="24" width="104" height="72" rx="4" fill={`url(#${svgIdBase}-civ-bg)`} />
-        <rect x="8" y="24" width="104" height="72" rx="4" fill={`url(#${svgIdBase}-texture)`} opacity="0.15" />
+        <rect x="0" y="0" width="120" height="96" fill={`url(#${typeGradId})`} />
+        <rect x="8" y="20" width="104" height="68" rx="4" fill={`url(#${svgIdBase}-civ-bg)`} />
+        <rect x="8" y="20" width="104" height="68" rx="4" fill={`url(#${svgIdBase}-texture)`} opacity="0.15" />
 
-        {/* Central art frame — double border */}
-        <ellipse cx="60" cy="60" rx="30" ry="28"
+        <ellipse cx="60" cy="52" rx="28" ry="24"
           fill="rgba(0,0,0,0.45)" stroke={typeStyle.borderColor} strokeWidth="2" />
-        <ellipse cx="60" cy="60" rx="27" ry="25"
+        <ellipse cx="60" cy="52" rx="25" ry="21"
           fill="none" stroke={`${typeStyle.borderColor}66`} strokeWidth="0.5" />
 
-        {/* Type icon — larger, with glow */}
-        <text x="60" y="66" textAnchor="middle" fill="white" fontSize="20" opacity="0.8" fontWeight="700"
+        <text x="60" y="58" textAnchor="middle" fill="white" fontSize="20" opacity="0.8" fontWeight="700"
           style={{ filter: `drop-shadow(0 0 4px ${typeStyle.glowColor})` }}>
           {typeBadgeLabel(card.type, locale)}
         </text>
 
-        {/* Civilization emblem in corner */}
-        <text x="100" y="34" textAnchor="middle" fill={civColors.secondary} fontSize="12" opacity="0.5">
+        <text x="100" y="32" textAnchor="middle" fill={civColors.secondary} fontSize="12" opacity="0.5">
           {civColors.emblem}
         </text>
       </g>
@@ -237,8 +234,8 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
 
       {/* Type badge pill */}
       <g data-testid="card-type-badge">
-        <rect x="88" y="84" width="26" height="16" rx="7" fill={`var(--badge-${typeKey})`} />
-        <text x="101" y="95" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">
+        <rect x="88" y="76" width="26" height="16" rx="7" fill={`var(--badge-${typeKey})`} />
+        <text x="101" y="87" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">
           {typeBadgeLabel(card.type, locale)}
         </text>
       </g>
@@ -273,16 +270,26 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
         </text>
       )}
 
+      {/* Bottom banner for ATK/HP */}
+      <rect
+        data-testid="card-bottom-banner"
+        x="0"
+        y="148"
+        width="120"
+        height="24"
+        fill="rgba(0,0,0,0.45)"
+      />
+
       {/* ATK badge – diamond */}
       {isMinion && (
         <g data-testid="card-atk">
           <path
-            d="M16 148 L28 155 L16 162 L4 155 Z"
+            d="M16 153 L28 160 L16 167 L4 160 Z"
             fill={`url(#${atkGradId})`}
             stroke="var(--atk-border)"
             strokeWidth="1"
           />
-          <text x="16" y="158" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
+          <text x="16" y="164" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">
             {attack}
           </text>
         </g>
@@ -293,15 +300,15 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
         <g data-testid="card-hp">
           <circle
             cx="104"
-            cy="155"
-            r="13"
+            cy="160"
+            r="12"
             fill={`url(#${hpGradId})`}
             stroke="var(--hp-border)"
             strokeWidth="1"
           />
           <text
             x="104"
-            y="159"
+            y="164"
             textAnchor="middle"
             fill={health < maxHealth ? 'var(--hp-text-damaged)' : 'var(--hp-text-full)'}
             fontSize="11"

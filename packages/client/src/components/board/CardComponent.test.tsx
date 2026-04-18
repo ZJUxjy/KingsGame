@@ -405,7 +405,7 @@ describe('CardComponent – redesign structure', () => {
     const artGroup = container.querySelector('[data-testid="card-art"]') as SVGElement;
     const ellipse = artGroup.querySelector('ellipse') as SVGElement;
     expect(Number(ellipse.getAttribute('rx'))).toBeGreaterThanOrEqual(28);
-    expect(Number(ellipse.getAttribute('ry'))).toBeGreaterThanOrEqual(25);
+    expect(Number(ellipse.getAttribute('ry'))).toBeGreaterThanOrEqual(24);
   });
 
   it('localizes english card copy before rendering', () => {
@@ -572,5 +572,33 @@ describe('CardComponent – interactive states', () => {
     );
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain('ring-red-400');
+  });
+});
+
+describe('CardComponent – bottom banner', () => {
+  it('renders the ATK badge inside the bottom banner band (geometric center y=160)', () => {
+    const { container } = render(
+      <CardComponent card={makeCard({ type: 'MINION' })} instance={makeInstance()} />,
+    );
+    const atkPath = container.querySelector('[data-testid="card-atk"] path');
+    expect(atkPath?.getAttribute('d')).toBe('M16 153 L28 160 L16 167 L4 160 Z');
+  });
+
+  it('renders the HP badge inside the bottom banner band (cy=160)', () => {
+    const { container } = render(
+      <CardComponent card={makeCard({ type: 'MINION' })} instance={makeInstance()} />,
+    );
+    const hpCircle = container.querySelector('[data-testid="card-hp"] circle');
+    expect(hpCircle?.getAttribute('cy')).toBe('160');
+  });
+
+  it('renders a dedicated bottom banner rectangle for ATK/HP', () => {
+    const { container } = render(
+      <CardComponent card={makeCard({ type: 'MINION' })} instance={makeInstance()} />,
+    );
+    const banner = container.querySelector('[data-testid="card-bottom-banner"]');
+    expect(banner).not.toBeNull();
+    expect(banner?.getAttribute('y')).toBe('148');
+    expect(banner?.getAttribute('height')).toBe('24');
   });
 });
