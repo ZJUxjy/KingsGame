@@ -117,9 +117,13 @@ describe('PvP socket flow', () => {
         sessions.set(session.id, session);
         return session;
       }),
-      findWaitingPvpGame: vi.fn(() => {
+      findWaitingPvpGame: vi.fn((callerSocketId?: string) => {
         for (const s of sessions.values()) {
-          if (s.mode === 'pvp' && s.state === 'waiting' && s.players[0] && !s.players[1]) {
+          if (
+            s.mode === 'pvp' && s.state === 'waiting' &&
+            s.players[0] && !s.players[1] &&
+            s.players[0] !== callerSocketId
+          ) {
             return s;
           }
         }
