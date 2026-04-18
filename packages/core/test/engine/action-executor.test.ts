@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { executePlayCard, executeAttack, executeEndTurn, executeUseHeroSkill } from '../../../src/engine/action-executor.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { createCardInstance } from '../../../src/models/card-instance.js';
@@ -570,7 +570,7 @@ describe('ActionExecutor', () => {
   // ── executeEndTurn ─────────────────────────────────────────────
   describe('executeEndTurn', () => {
     it('should switch current player and start new turn', () => {
-      const { state, bus, rng } = setup();
+      const { state, bus } = setup();
       // Give players some deck cards for draw
       state.players[0].deck.push(createCardInstance(makeMinionCard({ id: 'deck_0' }), 0, counter));
       state.players[1].deck.push(createCardInstance(makeMinionCard({ id: 'deck_1' }), 1, counter));

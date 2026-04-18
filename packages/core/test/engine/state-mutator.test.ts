@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createStateMutator } from '../../../src/engine/state-mutator.js';
 import { createCardInstance } from '../../../src/models/card-instance.js';
 import { IdCounter } from '../../../src/engine/id-counter.js';

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { EventBus } from '../../../src/engine/event-bus.js';
-import type { GameEvent } from '@king-card/shared';
 
 describe('EventBus', () => {
   it('should emit and receive events', () => {

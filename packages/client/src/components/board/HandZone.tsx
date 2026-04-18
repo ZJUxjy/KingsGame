@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, memo } from 'react';
-import type { Card, CardInstance } from '@king-card/shared';
+import type { Card } from '@king-card/shared';
 import { CardComponent } from './CardComponent.js';
 import { computeFanLayout } from '../../utils/fanLayout.js';
 

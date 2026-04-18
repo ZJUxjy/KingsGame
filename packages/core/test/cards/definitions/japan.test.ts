@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import type { Card, Minister, EmperorData } from '@king-card/shared';
 import {
   JAPAN_MINIONS,
   JAPAN_STRATAGEMS,
@@ -8,7 +7,6 @@ import {
   JAPAN_MINISTERS,
   JAPAN_GENERALS,
   JAPAN_ALL_CARDS,
-  EMPEROR_ODA,
   JAPAN_EMPEROR_DATA_LIST,
 } from '../../../src/cards/definitions/index.js';
 

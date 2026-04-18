@@ -318,15 +318,6 @@ export function executePlayCard(
         // Emperor data not registered — skip emperor switch
         // (should not happen in normal gameplay)
       } else {
-        const oldEmperorId = player.hero.heroSkill
-          ? card.id // fallback: use new card id if no prior emperor
-          : undefined;
-
-        // Derive old emperor id from the heroSkill that was set during init
-        // We store it on hero for tracking; if heroSkill exists, we can
-        // infer the old emperor from the boundCards (they were from previous emperor).
-        // For simplicity we emit the event with the new emperor id.
-
         // 1. Hero replacement
         const oldArmor = player.hero.armor;
         player.hero = {

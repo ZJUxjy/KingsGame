@@ -6,11 +6,11 @@ import { IdCounter } from '../../../src/engine/id-counter.js';
 
 let counter: IdCounter;
 import { registerEmperorData, clearEmperorRegistry } from '../../../src/engine/emperor-registry.js';
-import { QIN_SHIHUANG, HAN_WUDI } from '../../../src/cards/definitions/china-emperors.js';
+import { QIN_SHIHUANG } from '../../../src/cards/definitions/china-emperors.js';
 import { QIN_MINISTERS } from '../../../src/cards/definitions/china-ministers.js';
 import { HUOQUBING, WEIQING } from '../../../src/cards/definitions/china-generals.js';
 import { WUGUZHIHUO, FENSHU_KENGRU } from '../../../src/cards/definitions/china-sorceries.js';
-import type { Card, GameState, EmperorData, Minister } from '@king-card/shared';
+import type { Card, GameState, EmperorData } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 

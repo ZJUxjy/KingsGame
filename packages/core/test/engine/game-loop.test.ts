@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { executeTurnStart } from '../../../src/engine/game-loop.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { createCardInstance } from '../../../src/models/card-instance.js';
@@ -6,7 +6,7 @@ import { IdCounter } from '../../../src/engine/id-counter.js';
 
 let counter: IdCounter;
 import { DATANG_JINGRUI } from '../../../src/cards/definitions/china-minions.js';
-import type { Card, GameState, EmperorData, Minister } from '@king-card/shared';
+import type { Card, GameState } from '@king-card/shared';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -23,36 +23,6 @@ function makeMinionCard(id: string): Card {
     description: 'A test minion',
     keywords: [],
     effects: [],
-  };
-}
-
-function makeEmperorCard(): Card {
-  return {
-    id: 'emperor_1',
-    name: 'Test Emperor',
-    civilization: 'CHINA',
-    type: 'EMPEROR',
-    rarity: 'LEGENDARY',
-    cost: 0,
-    description: 'A test emperor',
-    keywords: [],
-    effects: [],
-    heroSkill: {
-      name: 'Test Skill',
-      description: '',
-      cost: 0,
-      cooldown: 0,
-      effect: { trigger: 'ON_PLAY', type: 'DAMAGE', params: {} },
-    },
-  };
-}
-
-function makeEmperorData(): EmperorData {
-  return {
-    emperorCard: makeEmperorCard(),
-    ministers: [] as Minister[],
-    boundGenerals: [],
-    boundSorceries: [],
   };
 }
 

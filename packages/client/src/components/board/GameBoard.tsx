@@ -1,5 +1,4 @@
 import {
-  useMemo,
   useEffect,
   useState,
   useCallback,
@@ -9,7 +8,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useDerivedActions } from '../../hooks/useDerivedActions.js';
 import { useTargeting } from '../../hooks/useTargeting.js';
-import type { HoveredTarget } from '../../hooks/useTargeting.js';
 import { useAnimations } from '../../hooks/useAnimations.js';
 import { audioService } from '../../services/audioService.js';
 import { HeroPanel } from './HeroPanel.js';

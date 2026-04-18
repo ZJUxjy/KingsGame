@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import type { Card, Minister, EmperorData } from '@king-card/shared';
 import {
   GERMANY_MINIONS,
   GERMANY_STRATAGEMS,

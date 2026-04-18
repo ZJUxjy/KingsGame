@@ -3,7 +3,7 @@ import type {
   Player,
 } from '@king-card/shared';
 import { getEffectiveCardCost } from '@king-card/shared';
-import type { SerializedGameState, SerializedPlayer, HiddenCard } from './types.js';
+import type { SerializedGameState, SerializedPlayer } from './types.js';
 
 function serializePlayer(player: Player, hideHand: boolean): SerializedPlayer {
   const visibleHand = hideHand
