@@ -133,7 +133,7 @@ function setup() {
 describe('Minister Operations', () => {
   it('should successfully use minister skill', () => {
     const { state, bus, rng } = setup();
-    state.players[0].deck.push({
+    state.players[0].deck.push(createCardInstance({
       id: 'draw_target',
       name: 'Draw Target',
       civilization: 'CHINA',
@@ -145,7 +145,7 @@ describe('Minister Operations', () => {
       description: 'A card to draw',
       keywords: [],
       effects: [],
-    });
+    }, 0, counter));
 
     // Active minister is LISI (index 0), cost 1
     const result = executeUseMinisterSkill(state, bus, rng, 0, counter);
@@ -241,8 +241,8 @@ describe('Minister Operations', () => {
 
   it('should expire temporary minister buffs at the next turn start before the next player acts', () => {
     const { state, bus, rng } = setup();
-    state.players[0].deck.push(makeMinionCard('p1_draw'));
-    state.players[1].deck.push(makeMinionCard('p2_draw'));
+    state.players[0].deck.push(createCardInstance(makeMinionCard('p1_draw'), 0, counter));
+    state.players[1].deck.push(createCardInstance(makeMinionCard('p2_draw'), 1, counter));
     state.players[0].activeMinisterIndex = 1;
 
     const targetCard: Card = {

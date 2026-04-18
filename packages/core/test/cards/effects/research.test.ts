@@ -6,6 +6,9 @@ import {
 import { registerResearch } from '../../../src/cards/effects/research.js';
 import type { EffectContext, CardInstance } from '@king-card/shared';
 import { IdCounter } from '../../../src/engine/id-counter.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+
+const fixtureCounter = new IdCounter();
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -173,7 +176,10 @@ describe('RESEARCH effect handler', () => {
     });
 
     const player = makePlayer({
-      deck: [sorcery1, sorcery2] as any,
+      deck: [
+        createCardInstance(sorcery1, 0, fixtureCounter),
+        createCardInstance(sorcery2, 0, fixtureCounter),
+      ] as any,
       hand: [] as any,
     });
 
@@ -220,7 +226,7 @@ describe('RESEARCH effect handler', () => {
     });
 
     const player = makePlayer({
-      deck: [minionCard] as any,
+      deck: [createCardInstance(minionCard as any, 0, fixtureCounter)] as any,
       hand: [] as any,
     });
 
@@ -246,7 +252,7 @@ describe('RESEARCH effect handler', () => {
     });
 
     const player = makePlayer({
-      deck: [sorcery] as any,
+      deck: [createCardInstance(sorcery, 0, fixtureCounter)] as any,
       hand: [] as any,
     });
 

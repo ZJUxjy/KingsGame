@@ -170,7 +170,10 @@ describe('StateMutator', () => {
   describe('drawCards', () => {
     it('should draw cards from deck to hand', () => {
       const { state, bus, mutator } = setup();
-      state.players[0].deck = [{ ...dummyCard, id: 'card_a' }, { ...dummyCard, id: 'card_b' }];
+      state.players[0].deck = [
+        createCardInstance({ ...dummyCard, id: 'card_a' }, 0, counter),
+        createCardInstance({ ...dummyCard, id: 'card_b' }, 0, counter),
+      ];
       const handler = vi.fn();
       bus.on('CARD_DRAWN', handler);
 
@@ -185,7 +188,10 @@ describe('StateMutator', () => {
       const { state, bus, mutator } = setup();
       state.players[0].handLimit = 2;
       state.players[0].hand = [{ ...dummyCard, id: 'h1' }, { ...dummyCard, id: 'h2' }];
-      state.players[0].deck = [{ ...dummyCard, id: 'card_a' }, { ...dummyCard, id: 'card_b' }];
+      state.players[0].deck = [
+        createCardInstance({ ...dummyCard, id: 'card_a' }, 0, counter),
+        createCardInstance({ ...dummyCard, id: 'card_b' }, 0, counter),
+      ];
       const discardHandler = vi.fn();
       bus.on('CARD_DISCARDED', discardHandler);
 
@@ -210,7 +216,7 @@ describe('StateMutator', () => {
     it('should skip drawing when cannotDrawNextTurn is true', () => {
       const { state, bus, mutator } = setup();
       state.players[0].cannotDrawNextTurn = true;
-      state.players[0].deck = [{ ...dummyCard, id: 'card_a' }];
+      state.players[0].deck = [createCardInstance({ ...dummyCard, id: 'card_a' }, 0, counter)];
       const lockHandler = vi.fn();
       bus.on('DRAW_LOCKED', lockHandler);
 

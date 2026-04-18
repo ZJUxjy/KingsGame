@@ -299,8 +299,8 @@ describe('ActionExecutor', () => {
       const { state, bus, rng } = setup();
       state.players[0].hand.push(BINGFA_SANSHILIUJI);
       state.players[0].deck.push(
-        makeMinionCard({ id: 'draw_1' }),
-        makeMinionCard({ id: 'draw_2' }),
+        createCardInstance(makeMinionCard({ id: 'draw_1' }), 0, counter),
+        createCardInstance(makeMinionCard({ id: 'draw_2' }), 0, counter),
       );
 
       const result = executePlayCard(state, bus, rng, 0, 0, counter);
@@ -572,8 +572,8 @@ describe('ActionExecutor', () => {
     it('should switch current player and start new turn', () => {
       const { state, bus, rng } = setup();
       // Give players some deck cards for draw
-      state.players[0].deck.push(makeMinionCard({ id: 'deck_0' }));
-      state.players[1].deck.push(makeMinionCard({ id: 'deck_1' }));
+      state.players[0].deck.push(createCardInstance(makeMinionCard({ id: 'deck_0' }), 0, counter));
+      state.players[1].deck.push(createCardInstance(makeMinionCard({ id: 'deck_1' }), 1, counter));
 
       expect(state.currentPlayerIndex).toBe(0);
 

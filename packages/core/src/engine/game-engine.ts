@@ -138,14 +138,7 @@ export class GameEngine {
     // 3. Create initial state
     const state = createGameState(deck1, deck2, emperor1, emperor2, counter);
 
-    // 4. Replace deck contents with original Card objects.
-    // createGameState internally wraps deck cards as CardInstance, but the game
-    // engine expects deck cards to be plain Card objects so that drawCards
-    // moves plain Card objects into hand (executePlayCard reads card.cost, card.type).
-    state.players[0].deck = [...deck1];
-    state.players[1].deck = [...deck2];
-
-    // 6. Shuffle decks
+    // 4. Shuffle decks (CardInstance[] arrays produced by createGameState)
     state.players[0].deck = actualRng.shuffle(state.players[0].deck);
     state.players[1].deck = actualRng.shuffle(state.players[1].deck);
 

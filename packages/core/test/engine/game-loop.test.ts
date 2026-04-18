@@ -61,7 +61,9 @@ function makeDeck(count: number): Card[] {
 }
 
 function makeGameState(deckSize = 30): GameState {
-  const deck = makeDeck(deckSize);
+  const fixtureCounter = new IdCounter();
+  const deck = makeDeck(deckSize).map((c) => createCardInstance(c, 0, fixtureCounter));
+  const deck2 = makeDeck(30).map((c) => createCardInstance(c, 1, fixtureCounter));
   return {
     players: [
       {
@@ -117,7 +119,7 @@ function makeGameState(deckSize = 30): GameState {
         civilization: 'JAPAN',
         hand: [],
         handLimit: 10,
-        deck: makeDeck(30),
+        deck: deck2,
         graveyard: [],
         battlefield: [],
         activeStratagems: [],

@@ -325,7 +325,7 @@ describe('executeCardEffects', () => {
   it('should draw from CONDITIONAL_BUFF effects that unlock on threshold', () => {
     const { state, bus, mutator } = setup();
     state.players[0].cardsPlayedThisTurn = 3;
-    state.players[0].deck.push(makeMinionCard({ id: 'draw_target' }));
+    state.players[0].deck.push(createCardInstance(makeMinionCard({ id: 'draw_target' }), 0, counter));
 
     const source = createCardInstance(
       makeMinionCard({

@@ -131,7 +131,8 @@ export function createStateMutator(
           return null;
         }
 
-        const card = player.deck.shift()!;
+        const drawn = player.deck.shift()!;
+        const card = drawn.card;
 
         if (player.hand.length >= player.handLimit) {
           // Hand full: discard the drawn card

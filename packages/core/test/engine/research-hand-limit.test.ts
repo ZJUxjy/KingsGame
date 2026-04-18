@@ -44,7 +44,12 @@ function buildScenario() {
     ALL_EMPEROR_DATA_LIST[0],
   );
   const state = engine.getGameState() as ReturnType<typeof engine.getGameState> & {
-    players: Array<{ deck: Card[]; hand: Card[]; graveyard: Card[]; handLimit: number }>;
+    players: Array<{
+      deck: ReturnType<typeof createCardInstance>[];
+      hand: Card[];
+      graveyard: Card[];
+      handLimit: number;
+    }>;
   };
   return { counter, state };
 }
@@ -52,7 +57,7 @@ function buildScenario() {
 describe('RESEARCH respects handLimit and emits events through mutator', () => {
   it('emits CARD_DRAWN and adds the card when hand has room', () => {
     const { counter, state } = buildScenario();
-    state.players[0].deck = [sorcery];
+    state.players[0].deck = [createCardInstance(sorcery, 0, counter)];
     state.players[0].hand = [];
     const handBefore = state.players[0].hand.length;
 
@@ -81,7 +86,7 @@ describe('RESEARCH respects handLimit and emits events through mutator', () => {
 
   it('does NOT exceed handLimit and emits CARD_DISCARDED instead', () => {
     const { counter, state } = buildScenario();
-    state.players[0].deck = [sorcery];
+    state.players[0].deck = [createCardInstance(sorcery, 0, counter)];
     state.players[0].hand = Array.from(
       { length: GAME_CONSTANTS.MAX_HAND_SIZE },
       () => ({ ...sorcery }),

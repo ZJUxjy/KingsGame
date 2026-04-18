@@ -20,16 +20,15 @@ const researchHandler: EffectHandler = {
     const civ = source.card.civilization;
     const player = state.players[playerIndex];
 
-    // Note: Player.deck is currently typed Card[] (Task 12 will refine);
-    // each element is a plain Card here per game-engine.create's deck overwrite.
     const spells = player.deck.filter(
-      (c) => c.civilization === civ && (c.type === 'SORCERY' || c.type === 'STRATAGEM'),
+      (inst) => inst.card.civilization === civ
+        && (inst.card.type === 'SORCERY' || inst.card.type === 'STRATAGEM'),
     );
 
     if (spells.length === 0) return [];
 
     const randomSpell = rng.pick(spells);
-    mutator.addCardToHand(playerIndex, randomSpell);
+    mutator.addCardToHand(playerIndex, randomSpell.card);
 
     return [];
   },

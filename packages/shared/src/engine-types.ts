@@ -176,7 +176,7 @@ export interface Player {
   civilization: Civilization;
   hand: Card[];
   handLimit: number;
-  deck: Card[];
+  deck: CardInstance[];
   graveyard: Card[];
   battlefield: CardInstance[];
   activeStratagems: ActiveStratagem[];

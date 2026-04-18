@@ -44,7 +44,7 @@ export function createPlayer(
     civilization,
     hand: [],
     handLimit: GAME_CONSTANTS.MAX_HAND_SIZE,
-    deck: deckInstances as unknown as Card[],
+    deck: deckInstances,
     graveyard: [],
     battlefield: [],
     activeStratagems: [],

@@ -205,7 +205,7 @@ describe('DEATHRATTLE effect handler', () => {
 
     const bus = new EventBus();
     const ctx = makeEffectContext({ source: makeCardInstance({ card: makeCard('placeholder') }) });
-    ctx.state.players[0].deck = [{ ...makeCard('draw_target') }];
+    ctx.state.players[0].deck = [createCardInstance({ ...makeCard('draw_target') }, 0, counter)];
     const mutator = createStateMutator(ctx.state, bus, undefined, counter);
     const source = createCardInstance(BINGMAYONG, 0, counter);
     ctx.state.players[0].battlefield.push(source);
