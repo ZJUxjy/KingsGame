@@ -1,7 +1,7 @@
 import type React from 'react';
 import type { Card, CardInstance } from '@king-card/shared';
 import type { SupportedLocale } from '../../utils/locale.js';
-import type { CardSize } from './cardSize.js';
+import { BANNER_HEIGHT, BANNER_Y, type CardSize } from './cardSize.js';
 
 const CIV_COLORS: Record<string, { primary: string; secondary: string; accent: string; emblem: string }> = {
   CHINA: { primary: '#8B0000', secondary: '#FFD700', accent: '#DC143C', emblem: '龙' },
@@ -173,9 +173,9 @@ export function CardArtwork({ card, instance, svgIdBase, size, locale }: CardArt
       <rect
         data-testid="card-bottom-banner"
         x="0"
-        y="148"
+        y={BANNER_Y}
         width="120"
-        height="24"
+        height={BANNER_HEIGHT}
         fill="rgba(0,0,0,0.45)"
       />
 

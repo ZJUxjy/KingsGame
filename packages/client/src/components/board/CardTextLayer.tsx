@@ -1,11 +1,7 @@
 import type { Card } from '@king-card/shared';
 import { getKeywordText } from '../../utils/cardText.js';
 import type { SupportedLocale } from '../../utils/locale.js';
-import type { CardSize } from './cardSize.js';
-
-// Geometry derived from CardArtwork.tsx layout: art ends at y=96/172 ≈ 56%; bottom banner is 24/172 ≈ 14%.
-const ART_PADDING_TOP_PCT = '56%';
-const BANNER_PADDING_BOTTOM_PCT = '14%';
+import { ART_PADDING_TOP_PCT, BANNER_PADDING_BOTTOM_PCT, type CardSize } from './cardSize.js';
 
 interface SizeStyle {
   namePx: number;
@@ -48,8 +44,8 @@ export function CardTextLayer({ card, size, locale }: CardTextLayerProps) {
       {hasKeywords && (
         <div
           data-testid="card-keywords"
-          className="text-center font-bold text-amber-300 leading-tight truncate"
-          style={{ fontSize: `${style.keywordPx}px`, marginTop: '2px' }}
+          className="mt-0.5 text-center font-bold text-amber-300 leading-tight truncate"
+          style={{ fontSize: `${style.keywordPx}px` }}
         >
           {getKeywordText(card.keywords, locale)}
         </div>
