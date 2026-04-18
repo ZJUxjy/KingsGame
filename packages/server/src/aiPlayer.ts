@@ -21,22 +21,29 @@ function isGameOver(engine: GameEngine): boolean {
 }
 
 export async function runAiTurn(engine: GameEngine, playerIndex: number): Promise<void> {
-  // 1. Play cards (highest cost first)
-  let actions = engine.getValidActions(playerIndex);
-  const playCardActions = actions
-    .filter((a): a is Extract<ValidAction, { type: 'PLAY_CARD' }> => a.type === 'PLAY_CARD')
-    .sort((a, b) => {
-      const state = engine.getGameState();
+  // 1. Play cards (highest cost first). Re-fetch valid actions between
+  // each play because handIndex shifts when a card leaves the hand;
+  // a stale snapshot would point at the wrong card or be out-of-bounds.
+  while (true) {
+    if (isGameOver(engine)) return;
+    const fresh = engine.getValidActions(playerIndex);
+    const playActions = fresh.filter(
+      (a): a is Extract<ValidAction, { type: 'PLAY_CARD' }> => a.type === 'PLAY_CARD',
+    );
+    if (playActions.length === 0) break;
+
+    const state = engine.getGameState();
+    const sorted = [...playActions].sort((a, b) => {
       const cardA = state.players[playerIndex].hand[a.handIndex];
       const cardB = state.players[playerIndex].hand[b.handIndex];
       return (cardB?.cost ?? 0) - (cardA?.cost ?? 0);
     });
 
-  for (const action of playCardActions) {
-    if (isGameOver(engine)) return;
-    engine.playCard(playerIndex, action.handIndex);
+    engine.playCard(playerIndex, sorted[0].handIndex);
     await delay(AI_ACTION_DELAY);
   }
+
+  let actions: ValidAction[];
 
   // 2. Attack with all minions that can attack.
   // Re-fetch valid actions between iterations: a previous attack may have

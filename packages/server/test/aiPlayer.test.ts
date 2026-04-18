@@ -100,23 +100,26 @@ describe('aiPlayer', () => {
     const gameState = makeGameState();
     const engine = createMockEngine(gameState);
 
-    // First call returns play card actions; subsequent calls return empty
-    const playActions: ValidAction[] = [
+    // Stateful mock: drain one play_card per engine.playCard call. The
+    // AI re-fetches valid actions every iteration, so the mock returns
+    // the current view of remaining playable cards each time.
+    const remaining: ValidAction[] = [
       { type: 'PLAY_CARD', handIndex: 0 }, // cost 3
       { type: 'PLAY_CARD', handIndex: 1 }, // cost 1
     ];
-    vi.mocked(engine.getValidActions)
-      .mockReturnValueOnce(playActions)
-      .mockReturnValue([]);
+    vi.mocked(engine.getValidActions).mockImplementation(() => [...remaining]);
+    vi.mocked(engine.playCard).mockImplementation(() => {
+      if (remaining.length > 0) remaining.shift();
+    });
 
     const promise = runAiTurn(engine, 1);
 
-    // Advance past the two delays (one for each card played)
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(2000);
 
     expect(engine.playCard).toHaveBeenCalledTimes(2);
-    // Highest cost first (handIndex 0 = cost 3)
+    // Highest cost first (handIndex 0 = cost 3) on first iteration.
     expect(engine.playCard).toHaveBeenNthCalledWith(1, 1, 0);
+    // Second iteration sees the remaining cost-1 card at handIndex 1.
     expect(engine.playCard).toHaveBeenNthCalledWith(2, 1, 1);
     expect(engine.endTurn).toHaveBeenCalledTimes(1);
 
@@ -234,6 +237,41 @@ describe('aiPlayer', () => {
     await vi.advanceTimersByTimeAsync(1500);
 
     expect(engine.attack).toHaveBeenCalledWith('m1', { type: 'MINION', instanceId: 'enemy-minion-42' });
+
+    await promise;
+  });
+
+  it('re-fetches valid actions between play_card invocations (handIndex shifts after each play)', async () => {
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    // After playing handIndex 0 (cost 3), the cost-1 card slides into
+    // handIndex 0. If the AI iterated over a stale snapshot, the second
+    // playCard would fire with handIndex 1 (out-of-bounds). With the fix
+    // it re-fetches and sees only handIndex 0 remaining, so the second
+    // playCard fires with handIndex 0.
+    let callCount = 0;
+    vi.mocked(engine.getValidActions).mockImplementation(() => {
+      callCount += 1;
+      if (callCount === 1) {
+        return [
+          { type: 'PLAY_CARD', handIndex: 0 },
+          { type: 'PLAY_CARD', handIndex: 1 },
+        ];
+      }
+      if (callCount === 2) {
+        return [{ type: 'PLAY_CARD', handIndex: 0 }];
+      }
+      return [];
+    });
+
+    const promise = runAiTurn(engine, 1);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(engine.playCard).toHaveBeenCalledTimes(2);
+    expect(engine.playCard).toHaveBeenNthCalledWith(1, 1, 0);
+    expect(engine.playCard).toHaveBeenNthCalledWith(2, 1, 0);
+    expect(engine.endTurn).toHaveBeenCalledTimes(1);
 
     await promise;
   });
