@@ -125,4 +125,20 @@ export class GameManager {
   getAllGames(): GameSession[] {
     return Array.from(this.games.values());
   }
+
+  /**
+   * Find all sessions where the given socketId is player 0 and the
+   * session is still waiting (no opponent yet). Used to clean up
+   * orphan waiting sessions when a player retries pvpJoin without
+   * cancelling the previous waiting room.
+   */
+  getWaitingSessionsForSocket(socketId: string): GameSession[] {
+    return Array.from(this.games.values()).filter(
+      (s) =>
+        s.mode === 'pvp' &&
+        s.state === 'waiting' &&
+        s.players[0] === socketId &&
+        !s.players[1],
+    );
+  }
 }

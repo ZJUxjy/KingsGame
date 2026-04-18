@@ -257,6 +257,20 @@ export function registerSocketHandlers(
           return;
         }
 
+        // Idempotency: if this socket already owns a waiting PvP session
+        // (e.g. the client retried pvpJoin without cancelling first), tear
+        // down the orphan(s) before proceeding. Otherwise the next call to
+        // findWaitingPvpGame would skip the caller's own session, and a
+        // second createPvpWaiting would overwrite socketMapping while
+        // leaving the first session reachable to other players' lookups
+        // but unreachable for action routing.
+        const orphans = gameManager.getWaitingSessionsForSocket(socket.id);
+        for (const orphan of orphans) {
+          gameManager.destroyGame(orphan.id);
+          cleanupSessionMappings(socketMapping, orphan.id);
+          socket.leave(orphan.id);
+        }
+
         // Try to find a waiting PvP game
         const waitingSession = gameManager.findWaitingPvpGame(socket.id);
 

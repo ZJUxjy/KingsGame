@@ -154,6 +154,15 @@ describe('PvP socket flow', () => {
       }),
       destroyGame: vi.fn(),
       getAllGames: vi.fn(() => Array.from(sessions.values())),
+      getWaitingSessionsForSocket: vi.fn((socketId: string) =>
+        Array.from(sessions.values()).filter(
+          (s) =>
+            s.mode === 'pvp' &&
+            s.state === 'waiting' &&
+            s.players[0] === socketId &&
+            !s.players[1],
+        ),
+      ),
     };
 
     io = {

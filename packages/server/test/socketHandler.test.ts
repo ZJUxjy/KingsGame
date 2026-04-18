@@ -182,3 +182,77 @@ describe('cleanupSessionMappings', () => {
     expect(mapping.has('s-C')).toBe(true);
   });
 });
+
+describe('game:pvpJoin idempotency cleans up orphan waiting sessions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('repeated pvpJoin from same socket destroys the previous waiting session', () => {
+    let nextId = 0;
+    const sessions = new Map<string, GameSession>();
+    const createPvpWaiting = vi.fn((emperorIndex: number) => {
+      const id = `waiting-${nextId++}`;
+      const session: GameSession = {
+        id,
+        engine: null,
+        players: [null, null],
+        state: 'waiting',
+        mode: 'pvp',
+        playerEmperorIndices: [emperorIndex, -1],
+        playerDeckDefinitions: [null, null],
+      };
+      sessions.set(id, session);
+      return session;
+    });
+
+    const findWaitingPvpGame = vi.fn(() => undefined);
+    const setPlayerSocket = vi.fn((gameId: string, playerIndex: 0 | 1, socketId: string) => {
+      const s = sessions.get(gameId);
+      if (s) s.players[playerIndex] = socketId;
+    });
+    const getGame = vi.fn((id: string) => sessions.get(id));
+    const destroyGame = vi.fn((id: string) => {
+      sessions.delete(id);
+    });
+    const getWaitingSessionsForSocket = vi.fn((socketId: string) =>
+      Array.from(sessions.values()).filter(
+        (s) => s.mode === 'pvp' && s.state === 'waiting' && s.players[0] === socketId && !s.players[1],
+      ),
+    );
+
+    const gameManager = {
+      createPvpWaiting,
+      findWaitingPvpGame,
+      setPlayerSocket,
+      getGame,
+      destroyGame,
+      getWaitingSessionsForSocket,
+      // Unused stubs to satisfy interface usage
+      createGame: vi.fn(),
+    };
+
+    let connectionHandler: ((socket: ReturnType<typeof createSocket>) => void) | undefined;
+    const io = {
+      on: vi.fn((event: string, handler: (s: ReturnType<typeof createSocket>) => void) => {
+        if (event === 'connection') connectionHandler = handler;
+      }),
+      to: vi.fn(() => ({ emit: vi.fn() })),
+    };
+
+    registerSocketHandlers(io as any, gameManager as any);
+    const socket = createSocket('socket-A');
+    socket.leave = vi.fn();
+    connectionHandler?.(socket as any);
+
+    socket.trigger('game:pvpJoin', { emperorIndex: 0 });
+    socket.trigger('game:pvpJoin', { emperorIndex: 0 });
+
+    // After the second call, only one waiting session for socket-A should remain.
+    const remaining = Array.from(sessions.values()).filter(
+      (s) => s.players[0] === 'socket-A',
+    );
+    expect(remaining).toHaveLength(1);
+    expect(destroyGame).toHaveBeenCalledTimes(1);
+  });
+});
