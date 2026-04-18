@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { GameEngine } from '../../src/engine/game-engine.js';
 import { ALL_EMPEROR_DATA_LIST } from '../../src/cards/definitions/index.js';
 import { createCardInstance } from '../../src/models/card-instance.js';
-import { IdCounter } from '../../src/engine/id-counter.js';
 import { resolveEffects } from '../../src/cards/effects/registry.js';
 import { createStateMutator } from '../../src/engine/state-mutator.js';
 import { DefaultRNG } from '../../src/engine/rng.js';
@@ -36,13 +35,13 @@ const researcher: Card = {
 };
 
 function buildScenario() {
-  const counter = new IdCounter();
   const engine = GameEngine.create(
     [researcher, sorcery, sorcery, sorcery],
     [researcher, sorcery, sorcery, sorcery],
     ALL_EMPEROR_DATA_LIST[0],
     ALL_EMPEROR_DATA_LIST[0],
   );
+  const counter = engine.getCounter();
   const state = engine.getGameState() as ReturnType<typeof engine.getGameState> & {
     players: Array<{
       deck: ReturnType<typeof createCardInstance>[];

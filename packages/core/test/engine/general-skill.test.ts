@@ -225,13 +225,14 @@ function makeDeck(count: number): Card[] {
 }
 
 function createTestEngine(rng?: SeededRNG): GameEngine {
-  counter = new IdCounter();
   clearEffectHandlers();
   const deck1 = makeDeck(30);
   const deck2 = makeDeck(30);
   const emp1 = makeEmperorData();
   const emp2 = makeEmperorData();
-  return GameEngine.create(deck1, deck2, emp1, emp2, rng);
+  const engine = GameEngine.create(deck1, deck2, emp1, emp2, rng);
+  counter = engine.getCounter();
+  return engine;
 }
 
 // ─── Tests ───────────────────────────────────────────────────────

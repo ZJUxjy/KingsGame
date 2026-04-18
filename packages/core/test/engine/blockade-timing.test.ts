@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { GameEngine } from '../../src/engine/game-engine.js';
 import { ALL_EMPEROR_DATA_LIST } from '../../src/cards/definitions/index.js';
 import { createCardInstance } from '../../src/models/card-instance.js';
-import { IdCounter } from '../../src/engine/id-counter.js';
 import type { Card, GameEvent } from '@king-card/shared';
 
 const blockader: Card = {
@@ -66,8 +65,7 @@ describe('BLOCKADE reduces opponent effective energy each turn', () => {
     const engine = GameEngine.create(deck, deck, emperor, emperor);
     const state = engine.getGameState();
 
-    const counter = new IdCounter();
-    const minion = createCardInstance(blockader, 0, counter);
+    const minion = createCardInstance(blockader, 0, engine.getCounter());
     state.players[0].battlefield.push(minion);
 
     advanceToPlayer1WithMaxEnergy(engine, 2);
@@ -83,7 +81,7 @@ describe('BLOCKADE reduces opponent effective energy each turn', () => {
     const engine = GameEngine.create(deck, deck, emperor, emperor);
     const state = engine.getGameState();
 
-    const counter = new IdCounter();
+    const counter = engine.getCounter();
     state.players[0].battlefield.push(createCardInstance(blockader, 0, counter));
     state.players[0].battlefield.push(createCardInstance(blockader, 0, counter));
 
@@ -104,8 +102,7 @@ describe('BLOCKADE reduces opponent effective energy each turn', () => {
     const engine = GameEngine.create(deck, deck, emperor, emperor);
     const state = engine.getGameState();
 
-    const counter = new IdCounter();
-    state.players[0].battlefield.push(createCardInstance(blockader, 0, counter));
+    state.players[0].battlefield.push(createCardInstance(blockader, 0, engine.getCounter()));
 
     const events: GameEvent[] = [];
     engine.onEvent('ENERGY_SPENT', (e) => events.push(e));
@@ -126,7 +123,7 @@ describe('BLOCKADE reduces opponent effective energy each turn', () => {
     const engine = GameEngine.create(deck, deck, emperor, emperor);
     const state = engine.getGameState();
 
-    const counter = new IdCounter();
+    const counter = engine.getCounter();
     for (let i = 0; i < 5; i++) {
       state.players[0].battlefield.push(createCardInstance(blockader, 0, counter));
     }

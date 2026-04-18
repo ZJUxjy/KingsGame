@@ -5,7 +5,6 @@ import {
   registerEffectHandler, clearEffectHandlers, getRegisteredHandlers,
 } from '../../src/cards/effects/registry.js';
 import { createCardInstance } from '../../src/models/card-instance.js';
-import { IdCounter } from '../../src/engine/id-counter.js';
 import type { EffectHandler, Card, EffectContext } from '@king-card/shared';
 
 const attackerCard: Card = {
@@ -39,8 +38,7 @@ describe('ON_ATTACK trigger', () => {
     const engine = GameEngine.create(deck, deck, emperor, emperor);
     const state = engine.getGameState();
 
-    const counter = new IdCounter();
-    const inst = createCardInstance(attackerCard, 0, counter);
+    const inst = createCardInstance(attackerCard, 0, engine.getCounter());
     inst.remainingAttacks = 1;
     inst.justPlayed = false;
     state.players[0].battlefield.push(inst);

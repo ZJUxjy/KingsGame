@@ -334,6 +334,15 @@ export class GameEngine {
     return this.state.players[this.state.currentPlayerIndex];
   }
 
+  /**
+   * Test-only accessor: lets tests inject CardInstance objects sharing
+   * the same id namespace as the engine's deck. Production code should
+   * never need to mint instance ids outside the engine's lifecycle.
+   */
+  getCounter(): IdCounter {
+    return this.counter;
+  }
+
   // ─── Action Interface ─────────────────────────────────────────────
 
   playCard(playerIndex: number, handIndex: number, targetBoardPosition?: number): EngineResult {

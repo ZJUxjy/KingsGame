@@ -7,7 +7,6 @@ import {
   getRegisteredHandlers,
 } from '../../src/cards/effects/registry.js';
 import { createCardInstance } from '../../src/models/card-instance.js';
-import { IdCounter } from '../../src/engine/id-counter.js';
 import type { EffectHandler, Card } from '@king-card/shared';
 
 const probeCard: Card = {
@@ -41,8 +40,7 @@ describe('ON_TURN_END trigger', () => {
     const engine = GameEngine.create(deck, deck, emperor, emperor);
     const state = engine.getGameState();
 
-    const counter = new IdCounter();
-    const minion = createCardInstance(probeCard, 0, counter);
+    const minion = createCardInstance(probeCard, 0, engine.getCounter());
     state.players[0].battlefield.push(minion);
 
     calls = 0;
