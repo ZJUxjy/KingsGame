@@ -16,6 +16,7 @@ export type GameEvent =
   // 能量
   | { type: 'ENERGY_GAINED'; playerIndex: number; amount: number; totalEnergy: number }
   | { type: 'ENERGY_SPENT'; playerIndex: number; amount: number; remainingEnergy: number }
+  | { type: 'ARMOR_CHANGED'; playerIndex: number; amount: number; totalArmor: number }
   // 抽牌
   | { type: 'CARD_DRAWN'; playerIndex: number; card: import('./engine-types.js').Card }
   | { type: 'DRAW_LOCKED'; playerIndex: number }

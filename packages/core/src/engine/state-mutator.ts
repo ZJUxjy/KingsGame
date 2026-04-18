@@ -327,13 +327,15 @@ export function createStateMutator(
     gainArmor(playerIndex: number, amount: number): EngineErrorCode | null {
       const player = state.players[playerIndex];
       if (!player) return 'INVALID_TARGET';
+      if (amount <= 0) return null;
 
       player.hero.armor += amount;
-
-      // Note: ARMOR_CHANGED is not a defined event in the shared events.ts.
-      // We emit HERO_DAMAGED-equivalent is not appropriate. No event matches.
-      // The spec says "emit ARMOR_CHANGED" but shared only has ENERGY_GAINED/SPENT, etc.
-      // For now we skip emitting an event since there's no matching event type.
+      emit(eventBus, {
+        type: 'ARMOR_CHANGED',
+        playerIndex,
+        amount,
+        totalArmor: player.hero.armor,
+      });
       return null;
     },
 

@@ -3,7 +3,7 @@ import { createStateMutator } from '../../../src/engine/state-mutator.js';
 import { createCardInstance } from '../../../src/models/card-instance.js';
 import { IdCounter } from '../../../src/engine/id-counter.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
-import type { Card, GameState, Buff } from '@king-card/shared';
+import type { Card, GameState, Buff, GameEvent } from '@king-card/shared';
 
 let counter: IdCounter;
 
@@ -401,6 +401,28 @@ describe('StateMutator', () => {
       mutator.gainArmor(0, 5);
 
       expect(state.players[0].hero.armor).toBe(5);
+    });
+
+    it('emits ARMOR_CHANGED with amount and totalArmor', () => {
+      const { bus, mutator } = setup();
+      const events: GameEvent[] = [];
+      bus.on('ARMOR_CHANGED', (e) => events.push(e));
+
+      mutator.gainArmor(0, 3);
+      mutator.gainArmor(0, 2);
+
+      expect(events).toContainEqual({
+        type: 'ARMOR_CHANGED',
+        playerIndex: 0,
+        amount: 3,
+        totalArmor: 3,
+      });
+      expect(events).toContainEqual({
+        type: 'ARMOR_CHANGED',
+        playerIndex: 0,
+        amount: 2,
+        totalArmor: 5,
+      });
     });
   });
 
