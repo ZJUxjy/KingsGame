@@ -138,7 +138,7 @@ describe('CardComponent – redesign structure', () => {
     expect(snippet.textContent).toContain('持续妙计');
   });
 
-  it('wraps mixed-language snippets by character count instead of isolating Chinese text as one word', () => {
+  it('preserves whitespace between English words in mixed-language snippets', () => {
     const { container } = render(
       <CardComponent
         card={makeCard({
@@ -150,9 +150,7 @@ describe('CardComponent – redesign structure', () => {
     );
 
     const snippet = within(container).getByTestId('card-description-snippet');
-    const firstLine = snippet.querySelector('tspan');
-
-    expect(firstLine?.textContent).toContain('突');
+    expect(snippet.textContent).toBe('Rush. 突袭突袭突袭突袭突袭');
   });
 
   it('shows a detailed description tooltip on hover', () => {
@@ -214,7 +212,7 @@ describe('CardComponent – redesign structure', () => {
     fireEvent.pointerLeave(root);
   });
 
-  it('allows stratagem cards to use a denser three-line summary in collection size', () => {
+  it('uses three-line clamp for stratagem cards in collection size', () => {
     const { container } = render(
       <CardComponent
         card={makeCard({
@@ -225,11 +223,14 @@ describe('CardComponent – redesign structure', () => {
       />,
     );
 
-    const lines = container.querySelectorAll('[data-testid="card-description-snippet"] tspan');
-    expect(lines.length).toBe(3);
+    const snippet = within(container).getByTestId('card-description-snippet') as HTMLElement;
+    expect(snippet.style.webkitLineClamp).toBe('3');
+    expect(snippet.textContent).toBe(
+      '持续妙计：令所有友方生物在本回合获得+2攻击力并抽一张牌，然后使一个敌方生物本回合无法攻击。',
+    );
   });
 
-  it('keeps punctuation attached to the previous wrapped line in collection summaries', () => {
+  it('renders punctuation in its original position without manual rewriting', () => {
     const { container } = render(
       <CardComponent
         card={makeCard({
@@ -240,12 +241,8 @@ describe('CardComponent – redesign structure', () => {
       />,
     );
 
-    const lines = Array.from(
-      container.querySelectorAll('[data-testid="card-description-snippet"] tspan'),
-    ).map((line) => line.textContent ?? '');
-
-    expect(lines[0]?.endsWith('。')).toBe(true);
-    expect(lines[1]?.startsWith('。')).toBe(false);
+    const snippet = within(container).getByTestId('card-description-snippet');
+    expect(snippet.textContent).toBe('一二三四五六七八九十。十二三四五六七八九十');
   });
 
   it('does not render a description snippet when description is empty', () => {
