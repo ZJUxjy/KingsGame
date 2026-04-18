@@ -222,12 +222,6 @@ export function executeTurnStart(
       reason: result.winReason!,
     });
   }
-
-  eventBus.emit({
-    type: 'TURN_END',
-    playerIndex: state.currentPlayerIndex,
-    turnNumber: state.turnNumber,
-  });
 }
 
 // ─── Turn End ───────────────────────────────────────────────────────

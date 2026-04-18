@@ -454,19 +454,14 @@ describe('GameLoop', () => {
       expect(state.phase).toBe('MAIN');
     });
 
-    it('should emit TURN_END event', () => {
+    it('should not emit TURN_END (executeTurnStart starts a turn; TURN_END is emitted by executeEndTurn before the player switch)', () => {
       const { state, bus } = setup();
       const events: unknown[] = [];
       bus.on('TURN_END', (e) => events.push(e));
 
       executeTurnStart(state, bus, counter);
 
-      expect(events).toHaveLength(1);
-      expect(events[0]).toMatchObject({
-        type: 'TURN_END',
-        playerIndex: 0,
-        turnNumber: 1,
-      });
+      expect(events).toHaveLength(0);
     });
 
     it('should emit PHASE_CHANGE events for each phase', () => {

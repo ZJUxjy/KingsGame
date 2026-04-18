@@ -558,6 +558,15 @@ export function executeEndTurn(
   // depend on this firing for the correct player's battlefield.
   executeTurnEnd(state, collectingBus, counter);
 
+  // Emit TURN_END for the player whose turn is actually ending.
+  // Must happen before the player switch + turnNumber increment in
+  // executeTurnStart so listeners receive the just-ended turn's metadata.
+  collectingBus.emit({
+    type: 'TURN_END',
+    playerIndex: state.currentPlayerIndex,
+    turnNumber: state.turnNumber,
+  });
+
   // Switch current player
   state.currentPlayerIndex = (1 - state.currentPlayerIndex) as 0 | 1;
 
