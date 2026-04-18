@@ -956,37 +956,42 @@ Expected: FAIL（手牌超过上限或 CARD_DRAWN 未发出）。
 
 - [ ] **Step 3: 在 StateMutator 接口新增 addCardToHand**
 
+> **实现修订（commit `bc4c0fc`）:** 实际签名是 `addCardToHand(playerIndex: number, card: Card): EngineErrorCode | null`，**不返回 `'HAND_FULL'`**——`EngineErrorCode` 联合类型里没有这个错误码，且与 `drawCards` 在手满时的处理对称（push 到 graveyard + emit `CARD_DISCARDED`）更合理。下方的 Step 4 实现已按修订版本编写。
+
 ```typescript
 // packages/shared/src/engine-types.ts —— 在 StateMutator 接口中追加：
 /**
- * Add a card copy to the given player's hand, respecting handLimit.
- * Returns 'HAND_FULL' if rejected, otherwise null. Emits CARD_DRAWN.
+ * Add a card copy to the given player's hand.
+ * - If hand has room: pushes the (shallow-copied) card and emits CARD_DRAWN.
+ * - If hand is full: pushes the copy to graveyard and emits CARD_DISCARDED
+ *   (mirrors drawCards' hand-full behavior).
  */
-addCardToHand(playerIndex: 0 | 1, card: Card): EngineErrorCode | null;
+addCardToHand(playerIndex: number, card: Card): EngineErrorCode | null;
 ```
 
-- [ ] **Step 4: 在 state-mutator.ts 实现 addCardToHand**
+- [ ] **Step 4: 在 state-mutator.ts 实现 addCardToHand（修订版）**
+
+参考 commit `bc4c0fc` 的实际实现，与 `drawCards` 满手分支对称：
 
 ```typescript
 // packages/core/src/engine/state-mutator.ts —— 在 createStateMutator 返回对象内追加：
-addCardToHand(playerIndex: 0 | 1, card: Card): EngineErrorCode | null {
+addCardToHand(playerIndex: number, card: Card): EngineErrorCode | null {
   const player = state.players[playerIndex];
-  if (player.hand.length >= player.handLimit) {
-    return 'HAND_FULL';
-  }
+  if (!player) return 'INVALID_TARGET';
+
   const copy: Card = { ...card };
-  player.hand.push(copy);
-  emit(eventBus, {
-    type: 'CARD_DRAWN',
-    playerIndex,
-    card: copy,
-    source: 'EFFECT',
-  });
+
+  if (player.hand.length >= player.handLimit) {
+    player.graveyard.push(copy);
+    emit(eventBus, { type: 'CARD_DISCARDED', playerIndex, card: copy });
+  } else {
+    player.hand.push(copy);
+    emit(eventBus, { type: 'CARD_DRAWN', playerIndex, card: copy });
+  }
+
   return null;
 },
 ```
-
-如果 `CARD_DRAWN` 事件没有 `source` 字段，去掉它，与现有形状对齐。
 
 - [ ] **Step 5: 修改 research.ts 使用 mutator**
 
