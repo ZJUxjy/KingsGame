@@ -1,6 +1,6 @@
 import type { Card } from '@king-card/shared';
-import { getCardDisplayText, getKeywordText } from '../../utils/cardText.js';
-import { useLocaleStore } from '../../stores/localeStore.js';
+import { getKeywordText } from '../../utils/cardText.js';
+import type { SupportedLocale } from '../../utils/locale.js';
 import type { CardSize } from './cardSize.js';
 
 // Geometry derived from CardArtwork.tsx layout: art ends at y=96/172 ≈ 56%; bottom banner is 24/172 ≈ 14%.
@@ -24,14 +24,13 @@ const SIZE_STYLE: Record<CardSize, SizeStyle> = {
 interface CardTextLayerProps {
   card: Card;
   size: CardSize;
+  locale: SupportedLocale;
 }
 
-export function CardTextLayer({ card, size }: CardTextLayerProps) {
-  const locale = useLocaleStore((state) => state.locale);
-  const displayCard = getCardDisplayText(card, locale);
+export function CardTextLayer({ card, size, locale }: CardTextLayerProps) {
   const style = SIZE_STYLE[size];
   const hasKeywords = card.keywords.length > 0;
-  const hasDescription = Boolean(displayCard.description);
+  const hasDescription = Boolean(card.description);
 
   return (
     <div
@@ -43,7 +42,7 @@ export function CardTextLayer({ card, size }: CardTextLayerProps) {
         className="text-center font-bold leading-tight overflow-hidden text-ellipsis whitespace-nowrap"
         style={{ fontSize: `${style.namePx}px` }}
       >
-        {displayCard.name}
+        {card.name}
       </div>
 
       {hasKeywords && (
@@ -69,7 +68,7 @@ export function CardTextLayer({ card, size }: CardTextLayerProps) {
             overflowWrap: 'anywhere',
           }}
         >
-          {displayCard.description}
+          {card.description}
         </div>
       )}
     </div>

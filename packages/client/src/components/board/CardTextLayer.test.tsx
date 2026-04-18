@@ -30,6 +30,7 @@ describe('CardTextLayer', () => {
       <CardTextLayer
         card={makeCard({ name: '一个非常非常非常非常长的卡名' })}
         size="battlefield"
+        locale="zh-CN"
       />,
     );
     const name = within(container).getByTestId('card-name');
@@ -44,6 +45,7 @@ describe('CardTextLayer', () => {
           description: 'Opponent discards a random card. You gain 1 mana.',
         })}
         size="collection"
+        locale="zh-CN"
       />,
     );
     const snippet = within(container).getByTestId('card-description-snippet');
@@ -53,14 +55,14 @@ describe('CardTextLayer', () => {
 
   it('omits the description block when description is empty', () => {
     const { container } = render(
-      <CardTextLayer card={makeCard({ description: '' })} size="battlefield" />,
+      <CardTextLayer card={makeCard({ description: '' })} size="battlefield" locale="zh-CN" />,
     );
     expect(container.querySelector('[data-testid="card-description-snippet"]')).toBeNull();
   });
 
   it('omits the keyword row when there are no keywords', () => {
     const { container } = render(
-      <CardTextLayer card={makeCard({ keywords: [] })} size="battlefield" />,
+      <CardTextLayer card={makeCard({ keywords: [] })} size="battlefield" locale="zh-CN" />,
     );
     expect(container.querySelector('[data-testid="card-keywords"]')).toBeNull();
   });
@@ -70,6 +72,7 @@ describe('CardTextLayer', () => {
       <CardTextLayer
         card={makeCard({ keywords: ['CHARGE'] })}
         size="battlefield"
+        locale="zh-CN"
       />,
     );
     const keywords = within(container).getByTestId('card-keywords');
@@ -81,6 +84,7 @@ describe('CardTextLayer', () => {
       <CardTextLayer
         card={makeCard({ description: '长描述' })}
         size="battlefield"
+        locale="zh-CN"
       />,
     );
     const handSnippet = within(hand).getByTestId('card-description-snippet');
@@ -90,6 +94,7 @@ describe('CardTextLayer', () => {
       <CardTextLayer
         card={makeCard({ description: '长描述' })}
         size="collection"
+        locale="zh-CN"
       />,
     );
     const collSnippet = within(coll).getByTestId('card-description-snippet');
@@ -98,7 +103,7 @@ describe('CardTextLayer', () => {
 
   it('uses pointer-events-none so the SVG layer keeps receiving clicks', () => {
     const { container } = render(
-      <CardTextLayer card={makeCard()} size="battlefield" />,
+      <CardTextLayer card={makeCard()} size="battlefield" locale="zh-CN" />,
     );
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain('pointer-events-none');

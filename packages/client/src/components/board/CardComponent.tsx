@@ -189,7 +189,7 @@ const CardComponentInner = function CardComponent({
           style={{ borderRadius: 'var(--card-border-radius)' }}
         >
           <CardArtwork card={displayCard} instance={instance} svgIdBase={svgIdBase} size={size} locale={locale} />
-          <CardTextLayer card={displayCard} size={size} />
+          <CardTextLayer card={displayCard} size={size} locale={locale} />
 
           {/* Garrison overlay */}
           {instance && instance.garrisonTurns > 0 && (
