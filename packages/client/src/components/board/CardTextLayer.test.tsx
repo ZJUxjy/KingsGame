@@ -108,4 +108,20 @@ describe('CardTextLayer', () => {
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain('pointer-events-none');
   });
+
+  it('positions the overlay with top/bottom percentages (height-relative), not padding-top/bottom (width-relative)', () => {
+    // CSS resolves padding-top/bottom percentages against the parent's WIDTH,
+    // not its height. Because cards are 120:172 (≠ 1:1), using padding-* would
+    // shift the text band ~30% upward and overlap the SVG art region. This
+    // regression guards against silently switching back.
+    const { container } = render(
+      <CardTextLayer card={makeCard()} size="battlefield" locale="zh-CN" />,
+    );
+    const root = container.firstElementChild as HTMLElement;
+
+    expect(root.style.top).toBe('55.81%');
+    expect(root.style.bottom).toBe('13.95%');
+    expect(root.style.paddingTop).toBe('');
+    expect(root.style.paddingBottom).toBe('');
+  });
 });

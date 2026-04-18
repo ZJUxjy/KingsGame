@@ -13,5 +13,8 @@ function pct(value: number): string {
   return `${((value / CARD_VIEWBOX.height) * 100).toFixed(2)}%`;
 }
 
-export const ART_PADDING_TOP_PCT = pct(ART_END_Y);
-export const BANNER_PADDING_BOTTOM_PCT = pct(BANNER_HEIGHT);
+// Used as CSS `top` / `bottom` (NOT padding-top/bottom) on the absolutely
+// positioned HTML text overlay so percentages resolve against the card height
+// and stay aligned with the SVG layout regardless of card aspect ratio.
+export const TEXT_PANEL_TOP_PCT = pct(ART_END_Y);
+export const TEXT_PANEL_BOTTOM_PCT = pct(BANNER_HEIGHT);

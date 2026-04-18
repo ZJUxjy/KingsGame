@@ -1,7 +1,7 @@
 import type { Card } from '@king-card/shared';
 import { getKeywordText } from '../../utils/cardText.js';
 import type { SupportedLocale } from '../../utils/locale.js';
-import { ART_PADDING_TOP_PCT, BANNER_PADDING_BOTTOM_PCT, type CardSize } from './cardSize.js';
+import { TEXT_PANEL_BOTTOM_PCT, TEXT_PANEL_TOP_PCT, type CardSize } from './cardSize.js';
 
 interface SizeStyle {
   namePx: number;
@@ -30,8 +30,18 @@ export function CardTextLayer({ card, size, locale }: CardTextLayerProps) {
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 flex flex-col items-stretch text-white"
-      style={{ paddingTop: ART_PADDING_TOP_PCT, paddingBottom: BANNER_PADDING_BOTTOM_PCT, paddingInline: '6%' }}
+      className="pointer-events-none absolute flex flex-col items-stretch text-white"
+      style={{
+        // CSS percentages on top/bottom are resolved against the parent's HEIGHT,
+        // unlike padding-top/bottom which resolve against WIDTH. Because the card
+        // aspect ratio is 120:172 (≠ 1:1), the latter shifts the text band ~30%
+        // upward and overlaps the SVG art region. top/bottom keep us aligned with
+        // the SVG layout contract (art ends at y=ART_END_Y, banner at y=BANNER_Y).
+        top: TEXT_PANEL_TOP_PCT,
+        bottom: TEXT_PANEL_BOTTOM_PCT,
+        left: '6%',
+        right: '6%',
+      }}
     >
       <div
         data-testid="card-name"
