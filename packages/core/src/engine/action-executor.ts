@@ -103,6 +103,38 @@ function createEffectContext(
   };
 }
 
+/**
+ * Build the EffectContext used by the attacker's ON_ATTACK / ON_KILL
+ * triggers (and the defender's counterattack ON_KILL trigger) inside
+ * `executeAttack`. All three call sites share the same shape and only
+ * differ in `source` / `target` (and therefore `playerIndex`, which is
+ * always derived from `source.ownerIndex`).
+ *
+ * Sharing one factory keeps the trigger contexts in lockstep — most
+ * notably it ensures every attack-time trigger receives the engine's
+ * real RNG, not a hardcoded deterministic stub.
+ */
+function buildAttackerEffectCtx(
+  state: GameState,
+  mutator: EffectContext['mutator'],
+  collectingBus: EventBus,
+  rng: EffectContext['rng'],
+  counter: EffectContext['counter'],
+  source: CardInstance,
+  target: CardInstance | undefined,
+): EffectContext {
+  return {
+    state,
+    mutator,
+    source,
+    target,
+    playerIndex: source.ownerIndex,
+    eventBus: createEffectEventBus(collectingBus),
+    rng,
+    counter,
+  };
+}
+
 function createSyntheticSource(
   card: Card,
   playerIndex: number,
@@ -444,16 +476,15 @@ export function executeAttack(
     target.type === 'MINION' ? findMinion(state, target.instanceId) : undefined;
 
   // Trigger ON_ATTACK handlers before damage is applied
-  const attackEffectCtx: EffectContext = {
+  const attackEffectCtx = buildAttackerEffectCtx(
     state,
     mutator,
-    source: attacker,
-    target: targetMinionBeforeDamage,
-    playerIndex: attacker.ownerIndex,
-    eventBus: createEffectEventBus(collectingBus),
-    rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
+    collectingBus,
+    _rng as EffectContext['rng'],
     counter,
-  };
+    attacker,
+    targetMinionBeforeDamage,
+  );
   resolveEffects('ON_ATTACK', attackEffectCtx);
 
   // Calculate and apply damage
@@ -465,16 +496,15 @@ export function executeAttack(
   if (target.type === 'MINION' && targetMinionBeforeDamage) {
     const targetStillAlive = findMinion(state, target.instanceId);
     if (!targetStillAlive) {
-      const effectCtx: EffectContext = {
+      const effectCtx = buildAttackerEffectCtx(
         state,
         mutator,
-        source: attacker,
-        target: targetMinionBeforeDamage,
-        playerIndex: attacker.ownerIndex,
-        eventBus: createEffectEventBus(collectingBus),
-        rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
+        collectingBus,
+        _rng as EffectContext['rng'],
         counter,
-      };
+        attacker,
+        targetMinionBeforeDamage,
+      );
       resolveEffects('ON_KILL', effectCtx);
     }
   }
@@ -493,16 +523,15 @@ export function executeAttack(
       // If counterattack killed the attacker, trigger ON_KILL for the defender
       const attackerAfterCounter = findMinion(state, attackerInstanceId);
       if (!attackerAfterCounter) {
-        const onKillEffectCtx: EffectContext = {
+        const onKillEffectCtx = buildAttackerEffectCtx(
           state,
           mutator,
-          source: targetMinion,
-          target: attacker,
-          playerIndex: targetMinion.ownerIndex,
-          eventBus: createEffectEventBus(collectingBus),
-          rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
+          collectingBus,
+          _rng as EffectContext['rng'],
           counter,
-        };
+          targetMinion,
+          attacker,
+        );
         resolveEffects('ON_KILL', onKillEffectCtx);
       }
     }
