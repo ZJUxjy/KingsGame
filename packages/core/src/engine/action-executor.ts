@@ -13,7 +13,7 @@ import type {
 import { GAME_CONSTANTS } from '@king-card/shared';
 import { createStateMutator } from './state-mutator.js';
 import { checkWinCondition } from './win-condition.js';
-import { executeTurnStart } from './game-loop.js';
+import { executeTurnStart, executeTurnEnd } from './game-loop.js';
 import { executeCardEffects, resolveEffects } from '../cards/effects/index.js';
 import { getEmperorData } from './emperor-registry.js';
 import { IdCounter } from './id-counter.js';
@@ -539,6 +539,11 @@ export function executeEndTurn(
   // ── Execution ───────────────────────────────────────────────────
   const events: GameEvent[] = [];
   const collectingBus = createCollectingEventBus(eventBus, events);
+
+  // Fire ON_TURN_END handlers for the player whose turn is ending,
+  // before switching control. COLONY and other end-of-turn keywords
+  // depend on this firing for the correct player's battlefield.
+  executeTurnEnd(state, collectingBus, counter);
 
   // Switch current player
   state.currentPlayerIndex = (1 - state.currentPlayerIndex) as 0 | 1;

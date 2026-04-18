@@ -229,3 +229,38 @@ export function executeTurnStart(
     turnNumber: state.turnNumber,
   });
 }
+
+// ─── Turn End ───────────────────────────────────────────────────────
+
+/**
+ * Fire ON_TURN_END effect handlers for every minion on the current
+ * player's battlefield. Called by executeEndTurn BEFORE the player
+ * switch so handlers like COLONY trigger for the player whose turn
+ * is actually ending.
+ *
+ * Snapshot the battlefield to be safe in case a handler removes a
+ * minion mid-iteration.
+ */
+export function executeTurnEnd(
+  state: GameState,
+  eventBus: { emit: (event: GameEvent) => void },
+  counter: IdCounter,
+): void {
+  const player = state.players[state.currentPlayerIndex];
+  const mutator = createStateMutator(state, eventBus, turnStartRng, counter);
+
+  for (const minion of [...player.battlefield]) {
+    const effectCtx: EffectContext = {
+      state,
+      mutator,
+      source: minion,
+      playerIndex: state.currentPlayerIndex,
+      eventBus: createEffectEventBus(eventBus),
+      rng: turnStartRng,
+      counter,
+    };
+
+    executeCardEffects('ON_TURN_END', effectCtx);
+    resolveEffects('ON_TURN_END', effectCtx);
+  }
+}
