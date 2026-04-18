@@ -102,6 +102,28 @@ export function executeTurnStart(
     totalEnergy: player.maxEnergy,
   });
 
+  // ── BLOCKADE penalty: opponent's BLOCKADE minions reduce our usable energy ──
+  // Applied here (after the energy refresh) rather than via an ON_TURN_START
+  // handler on the opponent's battlefield, because IRON_FIST / MOBILIZATION_ORDER
+  // / GARRISON handlers lack owner guards and would spuriously trigger.
+  const opponentIdx = (1 - state.currentPlayerIndex) as 0 | 1;
+  const blockadeCount = state.players[opponentIdx].battlefield.filter(
+    (m) => m.card.keywords.includes('BLOCKADE'),
+  ).length;
+
+  if (blockadeCount > 0) {
+    const reduction = Math.min(blockadeCount, player.energyCrystal);
+    player.energyCrystal -= reduction;
+    if (reduction > 0) {
+      eventBus.emit({
+        type: 'ENERGY_SPENT',
+        playerIndex: state.currentPlayerIndex,
+        amount: reduction,
+        remainingEnergy: player.energyCrystal,
+      });
+    }
+  }
+
   state.turnNumber += 1;
   eventBus.emit({
     type: 'TURN_START',

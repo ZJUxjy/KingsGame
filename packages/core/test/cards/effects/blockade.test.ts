@@ -135,7 +135,13 @@ describe('BLOCKADE effect handler', () => {
     registerBlockade();
   });
 
-  it('reduces opponent energy by 1 at owner turn start', () => {
+  // BLOCKADE's energy-reduction logic moved to game-loop.ts's ENERGY_GAIN
+  // phase to avoid running an extra ON_TURN_START pass over the opponent's
+  // battlefield (which would spuriously trigger IRON_FIST / MOBILIZATION_ORDER
+  // / GARRISON handlers that lack owner guards). End-to-end coverage lives
+  // in test/engine/blockade-timing.test.ts.
+
+  it('handler is a no-op on ON_TURN_START (logic moved to game-loop)', () => {
     const spendCalls: Array<{ playerIndex: number; amount: number }> = [];
 
     const blockadeMinion = makeCardInstance({
@@ -155,41 +161,12 @@ describe('BLOCKADE effect handler', () => {
       },
     });
 
-    // Opponent (index 1) has 5 energy
     (ctx.state as any).players[1].energyCrystal = 5;
 
     resolveEffects('ON_TURN_START', ctx);
 
-    expect(spendCalls).toHaveLength(1);
-    expect(spendCalls[0]).toEqual({ playerIndex: 1, amount: 1 });
-  });
-
-  it('does not reduce if opponent has 0 energy', () => {
-    const spendCalls: Array<{ playerIndex: number; amount: number }> = [];
-
-    const blockadeMinion = makeCardInstance({
-      instanceId: 'blockade_minion',
-      card: makeCard('blockade_card', ['BLOCKADE', 'TAUNT']),
-    });
-
-    const ctx = makeEffectContext({
-      source: blockadeMinion,
-      playerIndex: 0,
-      mutator: {
-        ...ctx_mutator_base(),
-        spendEnergy(pIdx: number, amount: number) {
-          spendCalls.push({ playerIndex: pIdx, amount });
-          return null;
-        },
-      },
-    });
-
-    // Opponent has 0 energy
-    (ctx.state as any).players[1].energyCrystal = 0;
-
-    resolveEffects('ON_TURN_START', ctx);
-
     expect(spendCalls).toHaveLength(0);
+    expect((ctx.state as any).players[1].energyCrystal).toBe(5);
   });
 
   it('non-BLOCKADE minion does nothing', () => {
