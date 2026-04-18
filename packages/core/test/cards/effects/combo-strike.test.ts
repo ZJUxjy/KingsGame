@@ -5,6 +5,7 @@ import {
 } from '../../../src/cards/effects/index.js';
 import { registerComboStrike } from '../../../src/cards/effects/combo-strike.js';
 import type { EffectContext, CardInstance } from '@king-card/shared';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -132,6 +133,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
       pick: (arr) => arr[0],
       shuffle: (a) => a,
     },
+    counter: new IdCounter(),
     ...overrides,
   };
 }

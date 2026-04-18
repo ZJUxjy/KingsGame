@@ -283,4 +283,17 @@ export interface EffectContext {
     pick: <T>(arr: T[]) => T;
     shuffle: <T>(arr: T[]) => T[];
   };
+  /**
+   * Per-engine ID generator (structural type to avoid `shared -> core` dep).
+   * Required: every EffectContext must carry the engine's IdCounter so that
+   * buff/stratagem/synthetic ids stay collision-free within a game and across
+   * concurrent games. Test fixtures that build EffectContext by hand should
+   * pass `counter: new IdCounter()` (or share one per test).
+   */
+  counter: {
+    nextBuffId(): string;
+    nextStratagemId(): string;
+    nextInstanceId(cardId: string): string;
+    nextSyntheticSourceId(prefix: string): string;
+  };
 }

@@ -1,8 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createStateMutator, resetStratagemCounter } from '../../../src/engine/state-mutator.js';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
+import { createStateMutator } from '../../../src/engine/state-mutator.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import type { Card, GameState, Buff } from '@king-card/shared';
+
+let counter: IdCounter;
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -84,11 +87,10 @@ function makeGameState(): GameState {
 }
 
 function setup() {
-  resetInstanceCounter();
-  resetStratagemCounter();
+  counter = new IdCounter();
   const bus = new EventBus();
   const state = makeGameState();
-  const mutator = createStateMutator(state, bus);
+  const mutator = createStateMutator(state, bus, undefined, counter);
   return { state, bus, mutator };
 }
 
@@ -122,8 +124,8 @@ describe('StateMutator', () => {
 
     it('should destroy minion when health drops to 0 or below', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.damage({ type: 'MINION', instanceId: instance.instanceId }, 5);
@@ -151,8 +153,8 @@ describe('StateMutator', () => {
 
     it('should heal minion up to currentMaxHealth', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       instance.currentHealth = 2;
       state.players[0].battlefield.push(instance);
 
@@ -260,9 +262,9 @@ describe('StateMutator', () => {
 
     it('should insert at specified position', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const inst1 = createCardInstance(dummyCard, 0);
-      const inst2 = createCardInstance(dummyCard, 0);
+
+      const inst1 = createCardInstance(dummyCard, 0, counter);
+      const inst2 = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield = [inst1, inst2];
 
       mutator.summonMinion({ ...dummyCard, id: 'new_card' }, 0, 1);
@@ -276,8 +278,8 @@ describe('StateMutator', () => {
   describe('destroyMinion', () => {
     it('should remove minion from battlefield and add to graveyard', () => {
       const { state, bus, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
       const handler = vi.fn();
       bus.on('MINION_DESTROYED', handler);
@@ -294,8 +296,8 @@ describe('StateMutator', () => {
   describe('modifyStat', () => {
     it('should modify attack of minion', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.modifyStat({ type: 'MINION', instanceId: instance.instanceId }, 'attack', 3);
@@ -305,8 +307,8 @@ describe('StateMutator', () => {
 
     it('should modify health and update currentMaxHealth when increased', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.modifyStat({ type: 'MINION', instanceId: instance.instanceId }, 'health', 3);
@@ -317,8 +319,8 @@ describe('StateMutator', () => {
 
     it('should reduce health without changing maxHealth', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.modifyStat({ type: 'MINION', instanceId: instance.instanceId }, 'health', -2);
@@ -332,8 +334,8 @@ describe('StateMutator', () => {
   describe('applyBuff', () => {
     it('should apply buff and update minion stats', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       const buff: Buff = {
@@ -358,8 +360,8 @@ describe('StateMutator', () => {
   describe('removeBuff', () => {
     it('should reverse buff effects', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       const buff: Buff = {
@@ -445,8 +447,8 @@ describe('StateMutator', () => {
   describe('grantExtraAttack', () => {
     it('should increment minion remainingAttacks', () => {
       const { state, mutator } = setup();
-      resetInstanceCounter();
-      const instance = createCardInstance(dummyCard, 0);
+
+      const instance = createCardInstance(dummyCard, 0, counter);
       state.players[0].battlefield.push(instance);
 
       mutator.grantExtraAttack(instance.instanceId);

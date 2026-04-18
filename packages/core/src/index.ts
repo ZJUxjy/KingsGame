@@ -1,7 +1,8 @@
 export { EventBus } from './engine/event-bus.js';
 export { DefaultRNG, SeededRNG } from './engine/rng.js';
-export { createStateMutator, resetStratagemCounter } from './engine/state-mutator.js';
-export { createCardInstance, resetInstanceCounter } from './models/card-instance.js';
+export { createStateMutator } from './engine/state-mutator.js';
+export { createCardInstance } from './models/card-instance.js';
+export { IdCounter } from './engine/id-counter.js';
 export { createPlayer } from './models/player.js';
 export { createGameState } from './models/game.js';
 export { checkWinCondition } from './engine/win-condition.js';

@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { executePlayCard } from '../../../src/engine/action-executor.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
-import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
+
+let counter: IdCounter;
 import { registerEmperorData, clearEmperorRegistry } from '../../../src/engine/emperor-registry.js';
 import { QIN_SHIHUANG, HAN_WUDI } from '../../../src/cards/definitions/china-emperors.js';
 import { QIN_MINISTERS } from '../../../src/cards/definitions/china-ministers.js';
@@ -110,8 +112,8 @@ function makeBaseGameState(): GameState {
 }
 
 function setup() {
-  resetStratagemCounter();
   clearEmperorRegistry();
+  counter = new IdCounter();
   const bus = new EventBus();
   const state = makeBaseGameState();
   const rng = new SeededRNG(42);
@@ -136,7 +138,6 @@ function setup() {
 
 describe('Emperor Switch', () => {
   beforeEach(() => {
-    resetStratagemCounter();
     clearEmperorRegistry();
   });
 
@@ -144,7 +145,7 @@ describe('Emperor Switch', () => {
     const { state, bus, rng } = setup();
     state.players[0].hand.push(QIN_SHIHUANG);
 
-    const result = executePlayCard(state, bus, rng, 0, 0);
+    const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
     expect(result.success).toBe(true);
     const hero = state.players[0].hero;
@@ -159,7 +160,7 @@ describe('Emperor Switch', () => {
     const { state, bus, rng } = setup();
     state.players[0].hand.push(QIN_SHIHUANG);
 
-    const result = executePlayCard(state, bus, rng, 0, 0);
+    const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
     expect(result.success).toBe(true);
     const player = state.players[0];
@@ -172,7 +173,7 @@ describe('Emperor Switch', () => {
     const { state, bus, rng } = setup();
     state.players[0].hand.push(QIN_SHIHUANG);
 
-    const result = executePlayCard(state, bus, rng, 0, 0);
+    const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
     expect(result.success).toBe(true);
     const player = state.players[0];
@@ -191,7 +192,7 @@ describe('Emperor Switch', () => {
     // Player starts with 2 old bound cards
     expect(state.players[0].boundCards).toHaveLength(2);
 
-    const result = executePlayCard(state, bus, rng, 0, 0);
+    const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
     expect(result.success).toBe(true);
     // Old bound cards should be gone, replaced by new ones
@@ -209,7 +210,7 @@ describe('Emperor Switch', () => {
     const minion = makeMinionCard({ id: 'normal_minion', cost: 1 });
     state.players[0].hand.push(minion);
 
-    const result = executePlayCard(state, bus, rng, 0, 0);
+    const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
     expect(result.success).toBe(true);
     // Hero should not have changed
@@ -222,7 +223,7 @@ describe('Emperor Switch', () => {
     const { state, bus, rng } = setup();
     state.players[0].hand.push(QIN_SHIHUANG);
 
-    const result = executePlayCard(state, bus, rng, 0, 0);
+    const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
     expect(result.success).toBe(true);
     const hero = state.players[0].hero;
@@ -236,7 +237,7 @@ describe('Emperor Switch', () => {
     const { state, bus, rng } = setup();
     state.players[0].hand.push(QIN_SHIHUANG);
 
-    const result = executePlayCard(state, bus, rng, 0, 0);
+    const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -253,7 +254,7 @@ describe('Emperor Switch', () => {
     const { state, bus, rng } = setup();
     state.players[0].hand.push(QIN_SHIHUANG);
 
-    const result = executePlayCard(state, bus, rng, 0, 0);
+    const result = executePlayCard(state, bus, rng, 0, 0, counter);
 
     expect(result.success).toBe(true);
     const player = state.players[0];

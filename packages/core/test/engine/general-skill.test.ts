@@ -3,9 +3,11 @@ import { executeUseGeneralSkill } from '../../../src/engine/action-executor.js';
 import { GameEngine } from '../../../src/engine/game-engine.js';
 import { EventBus } from '../../../src/engine/event-bus.js';
 import { SeededRNG } from '../../../src/engine/rng.js';
-import { createCardInstance, resetInstanceCounter } from '../../../src/models/card-instance.js';
-import { resetStratagemCounter } from '../../../src/engine/state-mutator.js';
+import { createCardInstance } from '../../../src/models/card-instance.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import { clearEffectHandlers } from '../../../src/cards/effects/index.js';
+
+let counter: IdCounter;
 import { HUOQUBING } from '../../../src/cards/definitions/china-generals.js';
 import type { Card, GameState, CardInstance, Minister, EmperorData } from '@king-card/shared';
 
@@ -146,13 +148,12 @@ function makeBaseGameState(): GameState {
 }
 
 function setup() {
-  resetInstanceCounter();
-  resetStratagemCounter();
+  counter = new IdCounter();
   clearEffectHandlers();
   const bus = new EventBus();
   const state = makeBaseGameState();
   const rng = new SeededRNG(42);
-  return { state, bus, rng };
+  return { state, bus, rng, counter };
 }
 
 function addGeneralToBattlefield(
@@ -161,7 +162,7 @@ function addGeneralToBattlefield(
   cardOverrides?: Partial<Card> & { id?: string },
 ): CardInstance {
   const card = makeGeneralCard({ id: 'test_general', ...cardOverrides });
-  const instance = createCardInstance(card, playerIndex as 0 | 1);
+  const instance = createCardInstance(card, playerIndex as 0 | 1, counter);
   instance.justPlayed = false;
   instance.remainingAttacks = 1;
   state.players[playerIndex].battlefield.push(instance);
@@ -222,8 +223,7 @@ function makeDeck(count: number): Card[] {
 }
 
 function createTestEngine(rng?: SeededRNG): GameEngine {
-  resetInstanceCounter();
-  resetStratagemCounter();
+  counter = new IdCounter();
   clearEffectHandlers();
   const deck1 = makeDeck(30);
   const deck2 = makeDeck(30);
@@ -236,8 +236,7 @@ function createTestEngine(rng?: SeededRNG): GameEngine {
 
 describe('General Skill (USE_GENERAL_SKILL)', () => {
   beforeEach(() => {
-    resetInstanceCounter();
-    resetStratagemCounter();
+    counter = new IdCounter();
     clearEffectHandlers();
   });
 
@@ -250,7 +249,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
 
       // Place a general on player 0's battlefield
       const generalCard = makeGeneralCard({ id: 'gen_valid', cost: 1 });
-      const instance = createCardInstance(generalCard, 0);
+      const instance = createCardInstance(generalCard, 0, counter);
       instance.justPlayed = false;
       state.players[0].battlefield.push(instance);
 
@@ -276,7 +275,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
       const state = engine.getGameState();
 
       const generalCard = makeGeneralCard({ id: 'gen_bitmask', cost: 1 });
-      const instance = createCardInstance(generalCard, 0);
+      const instance = createCardInstance(generalCard, 0, counter);
       instance.justPlayed = false;
       // Mark skill 0 as used (bit 0 set)
       instance.usedGeneralSkills = 1; // 0b001
@@ -314,7 +313,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
           },
         ],
       });
-      const instance = createCardInstance(generalCard, 0);
+      const instance = createCardInstance(generalCard, 0, counter);
       instance.justPlayed = false;
       state.players[0].battlefield.push(instance);
 
@@ -344,11 +343,11 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
           },
         ],
       });
-      const instance = createCardInstance(generalCard, 0);
+      const instance = createCardInstance(generalCard, 0, counter);
       instance.justPlayed = false;
       state.players[0].battlefield.push(instance);
-      const enemyA = createCardInstance(makeMinionCard('enemy_a'), 1);
-      const enemyB = createCardInstance(makeMinionCard('enemy_b'), 1);
+      const enemyA = createCardInstance(makeMinionCard("enemy_a"), 1, counter);
+      const enemyB = createCardInstance(makeMinionCard("enemy_b"), 1, counter);
       state.players[1].battlefield.push(enemyA, enemyB);
 
       const actions = engine.getValidActions(state.currentPlayerIndex);
@@ -399,6 +398,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 0,
         general.instanceId,
         0,
+        counter,
       );
 
       expect(result.success).toBe(true);
@@ -436,6 +436,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 0,
         general.instanceId,
         0,
+        counter,
       );
 
       expect(result.success).toBe(true);
@@ -453,6 +454,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 0,
         general.instanceId,
         0,
+        counter,
       );
 
       expect(result.success).toBe(false);
@@ -470,6 +472,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 0,
         general.instanceId,
         0,
+        counter,
       );
 
       expect(result.success).toBe(false);
@@ -487,6 +490,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 1,
         general.instanceId,
         0,
+        counter,
       );
 
       expect(result.success).toBe(false);
@@ -504,6 +508,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 0,
         general.instanceId,
         0,
+        counter,
       );
 
       expect(result.success).toBe(true);
@@ -515,6 +520,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 0,
         general.instanceId,
         1,
+        counter,
       );
 
       expect(result2.success).toBe(true);
@@ -547,6 +553,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 0,
         general.instanceId,
         0,
+        counter,
       );
 
       expect(result.success).toBe(true);
@@ -576,6 +583,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 0,
         general.instanceId,
         0,
+        counter,
       );
 
       expect(result.success).toBe(false);
@@ -586,12 +594,12 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
 
     it('should work with HUOQUBING damage skill (targeting enemy minion)', () => {
       const { state, bus, rng } = setup();
-      const general = createCardInstance(HUOQUBING, 0);
+      const general = createCardInstance(HUOQUBING, 0, counter);
       general.justPlayed = false;
       state.players[0].battlefield.push(general);
 
       // Add an enemy minion for targeting
-      const enemyMinion = createCardInstance(makeMinionCard('enemy_target'), 1);
+      const enemyMinion = createCardInstance(makeMinionCard("enemy_target"), 1, counter);
       enemyMinion.currentHealth = 10;
       state.players[1].battlefield.push(enemyMinion);
 
@@ -599,6 +607,7 @@ describe('General Skill (USE_GENERAL_SKILL)', () => {
         state, bus, rng, 0,
         general.instanceId,
         0, // Long-drive: DAMAGE 6 to ENEMY_MINION
+        counter,
         { type: 'MINION', instanceId: enemyMinion.instanceId },
       );
 

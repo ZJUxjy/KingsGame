@@ -5,6 +5,7 @@ import {
 } from '../../../src/cards/effects/index.js';
 import { registerAura } from '../../../src/cards/effects/aura.js';
 import type { EffectContext, CardInstance, Buff } from '@king-card/shared';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 
 // ─── Test Fixtures ───────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
       pick: (arr) => arr[0],
       shuffle: (a) => a,
     },
+    counter: new IdCounter(),
     ...overrides,
   };
 }

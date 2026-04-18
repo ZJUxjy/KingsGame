@@ -16,7 +16,7 @@ import { checkWinCondition } from './win-condition.js';
 import { executeTurnStart } from './game-loop.js';
 import { executeCardEffects, resolveEffects } from '../cards/effects/index.js';
 import { getEmperorData } from './emperor-registry.js';
-import { DefaultRNG } from './rng.js';
+import { IdCounter } from './id-counter.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -88,16 +88,18 @@ function createEffectContext(
   rng: RNG,
   playerIndex: number,
   source: CardInstance,
+  counter: IdCounter,
   target?: CardInstance,
 ): EffectContext {
   return {
     state,
-    mutator: createStateMutator(state, eventBus, rng as EffectContext['rng']),
+    mutator: createStateMutator(state, eventBus, rng as EffectContext['rng'], counter),
     source,
     target,
     playerIndex,
     eventBus: createEffectEventBus(eventBus),
     rng: rng as unknown as EffectContext['rng'],
+    counter,
   };
 }
 
@@ -204,6 +206,7 @@ export function executePlayCard(
   _rng: RNG,
   playerIndex: number,
   handIndex: number,
+  counter: IdCounter,
   targetBoardPosition?: number,
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
@@ -235,7 +238,7 @@ export function executePlayCard(
   // ── Execution ───────────────────────────────────────────────────
   const events: GameEvent[] = [];
   const collectingBus = createCollectingEventBus(eventBus, events);
-  const mutator = createStateMutator(state, collectingBus, _rng as EffectContext['rng']);
+  const mutator = createStateMutator(state, collectingBus, _rng as EffectContext['rng'], counter);
 
   // Remove card from hand
   player.hand.splice(handIndex, 1);
@@ -271,7 +274,7 @@ export function executePlayCard(
     });
 
     if (summonedMinion) {
-      const effectCtx = createEffectContext(state, collectingBus, _rng, playerIndex, summonedMinion);
+      const effectCtx = createEffectContext(state, collectingBus, _rng, playerIndex, summonedMinion, counter);
       executeCardEffects('ON_PLAY', effectCtx);
       resolveEffects('ON_PLAY', effectCtx);
     }
@@ -284,7 +287,8 @@ export function executePlayCard(
         collectingBus,
         _rng,
         playerIndex,
-        createSyntheticSource(card, playerIndex, `card_${card.id}_${Date.now()}`),
+        createSyntheticSource(card, playerIndex, counter.nextSyntheticSourceId(`card_${card.id}`)),
+        counter,
       );
       executeCardEffects('ON_PLAY', effectCtx);
     } else if (card.type === 'EMPEROR') {
@@ -350,7 +354,8 @@ export function executePlayCard(
           collectingBus,
           _rng,
           playerIndex,
-          createSyntheticSource(card, playerIndex, `emperor_${card.id}_${Date.now()}`),
+          createSyntheticSource(card, playerIndex, counter.nextSyntheticSourceId(`emperor_${card.id}`)),
+          counter,
         );
         executeCardEffects('ON_PLAY', effectCtx);
       }
@@ -367,7 +372,8 @@ export function executeAttack(
   eventBus: EventBus,
   attackerInstanceId: string,
   target: TargetRef,
-  _rng: RNG = new DefaultRNG(),
+  _rng: RNG,
+  counter: IdCounter,
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
   if (state.phase !== 'MAIN') {
@@ -434,7 +440,7 @@ export function executeAttack(
   // ── Execution ───────────────────────────────────────────────────
   const events: GameEvent[] = [];
   const collectingBus = createCollectingEventBus(eventBus, events);
-  const mutator = createStateMutator(state, collectingBus, _rng as EffectContext['rng']);
+  const mutator = createStateMutator(state, collectingBus, _rng as EffectContext['rng'], counter);
 
   // Decrement remaining attacks
   attacker.remainingAttacks -= 1;
@@ -465,6 +471,7 @@ export function executeAttack(
         playerIndex: attacker.ownerIndex,
         eventBus: createEffectEventBus(collectingBus),
         rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
+        counter,
       };
       resolveEffects('ON_KILL', effectCtx);
     }
@@ -492,6 +499,7 @@ export function executeAttack(
           playerIndex: targetMinion.ownerIndex,
           eventBus: createEffectEventBus(collectingBus),
           rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
+          counter,
         };
         resolveEffects('ON_KILL', onKillEffectCtx);
       }
@@ -520,6 +528,7 @@ export function executeAttack(
 export function executeEndTurn(
   state: GameState,
   eventBus: EventBus,
+  counter: IdCounter,
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
   const validPhases: GameState['phase'][] = ['MAIN', 'UPKEEP', 'DRAW', 'ENERGY_GAIN'];
@@ -535,7 +544,7 @@ export function executeEndTurn(
   state.currentPlayerIndex = (1 - state.currentPlayerIndex) as 0 | 1;
 
   // Start the new turn
-  executeTurnStart(state, collectingBus);
+  executeTurnStart(state, collectingBus, counter);
 
   return success(events);
 }
@@ -547,6 +556,7 @@ export function executeUseHeroSkill(
   eventBus: EventBus,
   _rng: RNG,
   playerIndex: number,
+  counter: IdCounter,
   target?: TargetRef,
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
@@ -640,8 +650,9 @@ export function executeUseHeroSkill(
     createSyntheticSource(
       syntheticSkillCard,
       playerIndex,
-      `hero_skill_${player.id}_${Date.now()}`,
+      counter.nextSyntheticSourceId(`hero_skill_${player.id}`),
     ),
+    counter,
     effectTarget,
   );
 
@@ -665,6 +676,7 @@ export function executeUseMinisterSkill(
   eventBus: EventBus,
   _rng: RNG,
   playerIndex: number,
+  counter: IdCounter,
   target?: TargetRef,
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
@@ -746,8 +758,9 @@ export function executeUseMinisterSkill(
     createSyntheticSource(
       syntheticSkillCard,
       playerIndex,
-      `minister_${minister.id}_${Date.now()}`,
+      counter.nextSyntheticSourceId(`minister_${minister.id}`),
     ),
+    counter,
     effectTarget,
   );
 
@@ -773,6 +786,7 @@ export function executeUseGeneralSkill(
   playerIndex: number,
   instanceId: string,
   skillIndex: number,
+  counter: IdCounter,
   target?: TargetRef,
 ): EngineResult {
   // ── Validation ──────────────────────────────────────────────────
@@ -887,6 +901,7 @@ export function executeUseGeneralSkill(
       playerIndex,
       minion.instanceId,
     ),
+    counter,
     effectTarget,
   );
 

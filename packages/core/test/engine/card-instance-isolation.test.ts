@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createCardInstance, resetInstanceCounter } from '../../src/models/card-instance.js';
+import { createCardInstance } from '../../src/models/card-instance.js';
+import { IdCounter } from '../../src/engine/id-counter.js';
 import type { Card, GameState } from '@king-card/shared';
-import { createStateMutator, resetStratagemCounter } from '../../src/engine/state-mutator.js';
+import { createStateMutator } from '../../src/engine/state-mutator.js';
+
+let counter: IdCounter;
 
 const BASE_CARD: Card = {
   id: 'test_minion', name: 'Test', civilization: 'CHINA',
@@ -35,21 +38,21 @@ function makeGameState(): GameState {
 }
 
 describe('Card instance isolation', () => {
-  beforeEach(() => { resetInstanceCounter(); resetStratagemCounter(); });
+  beforeEach(() => { counter = new IdCounter(); });
 
   it('two instances from the same Card share no mutable state', () => {
-    const a = createCardInstance(BASE_CARD, 0);
-    const b = createCardInstance(BASE_CARD, 0);
+    const a = createCardInstance(BASE_CARD, 0, counter);
+    const b = createCardInstance(BASE_CARD, 0, counter);
     expect(a.card).not.toBe(b.card);
     expect(a.card.keywords).not.toBe(b.card.keywords);
   });
 
   it('applyBuff does not mutate the original Card definition', () => {
     const state = makeGameState();
-    const instance = createCardInstance(BASE_CARD, 0);
+    const instance = createCardInstance(BASE_CARD, 0, counter);
     state.players[0].battlefield.push(instance);
     const bus = { emit: () => {} };
-    const mutator = createStateMutator(state, bus);
+    const mutator = createStateMutator(state, bus, undefined, counter);
 
     mutator.applyBuff(
       { type: 'MINION', instanceId: instance.instanceId },
@@ -65,11 +68,11 @@ describe('Card instance isolation', () => {
 
   it('applyBuff on one instance does not leak to another', () => {
     const state = makeGameState();
-    const a = createCardInstance(BASE_CARD, 0);
-    const b = createCardInstance(BASE_CARD, 0);
+    const a = createCardInstance(BASE_CARD, 0, counter);
+    const b = createCardInstance(BASE_CARD, 0, counter);
     state.players[0].battlefield.push(a, b);
     const bus = { emit: () => {} };
-    const mutator = createStateMutator(state, bus);
+    const mutator = createStateMutator(state, bus, undefined, counter);
 
     mutator.applyBuff(
       { type: 'MINION', instanceId: a.instanceId },
@@ -85,11 +88,11 @@ describe('Card instance isolation', () => {
 
   it('removeBuff reverses keywords without affecting other instances', () => {
     const state = makeGameState();
-    const a = createCardInstance(BASE_CARD, 0);
-    const b = createCardInstance(BASE_CARD, 0);
+    const a = createCardInstance(BASE_CARD, 0, counter);
+    const b = createCardInstance(BASE_CARD, 0, counter);
     state.players[0].battlefield.push(a, b);
     const bus = { emit: () => {} };
-    const mutator = createStateMutator(state, bus);
+    const mutator = createStateMutator(state, bus, undefined, counter);
 
     mutator.applyBuff(
       { type: 'MINION', instanceId: a.instanceId },

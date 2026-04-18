@@ -16,18 +16,9 @@ import type {
 import { createCardInstance } from '../models/card-instance.js';
 import { DefaultRNG } from './rng.js';
 import { resolveEffects } from '../cards/effects/index.js';
+import { IdCounter } from './id-counter.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────
-
-let stratagemCounter = 0;
-
-function generateStratagemId(): string {
-  return `stratagem_${++stratagemCounter}`;
-}
-
-export function resetStratagemCounter(): void {
-  stratagemCounter = 0;
-}
 
 function findMinion(state: GameState, instanceId: string): CardInstance | undefined {
   for (const player of state.players) {
@@ -47,6 +38,7 @@ export function createStateMutator(
   state: GameState,
   eventBus: { emit: (event: GameEvent) => void },
   rng: EffectContext['rng'] = new DefaultRNG(),
+  counter: IdCounter = new IdCounter(),
 ): StateMutator {
   return {
     // ── damage ────────────────────────────────────────────────────
@@ -84,7 +76,7 @@ export function createStateMutator(
 
       if (minion.currentHealth <= 0) {
         // destroyMinion is called internally via the mutator itself
-        const destroyResult = createStateMutator(state, eventBus, rng).destroyMinion(target.instanceId);
+        const destroyResult = createStateMutator(state, eventBus, rng, counter).destroyMinion(target.instanceId);
         return destroyResult;
       }
 
@@ -174,7 +166,7 @@ export function createStateMutator(
 
       if (player.battlefield.length >= GAME_CONSTANTS.MAX_BOARD_SIZE) return { instance: null, error: 'BOARD_FULL' };
 
-      const instance = createCardInstance(card, ownerIndex as 0 | 1);
+      const instance = createCardInstance(card, ownerIndex as 0 | 1, counter);
       instance.position = position ?? player.battlefield.length;
 
       if (position !== undefined) {
@@ -201,7 +193,7 @@ export function createStateMutator(
 
           const effectCtx: EffectContext = {
             state,
-            mutator: createStateMutator(state, eventBus, rng),
+            mutator: createStateMutator(state, eventBus, rng, counter),
             source: minion,
             playerIndex: minion.ownerIndex,
             eventBus: {
@@ -210,6 +202,7 @@ export function createStateMutator(
               removeAllListeners: () => {},
             },
             rng,
+            counter,
           };
 
           resolveEffects('ON_DEATH', effectCtx);
@@ -243,7 +236,7 @@ export function createStateMutator(
         }
         // If health dropped to 0 or below, destroy the minion
         if (minion.currentHealth <= 0) {
-          createStateMutator(state, eventBus, rng).destroyMinion(minion.instanceId);
+          createStateMutator(state, eventBus, rng, counter).destroyMinion(minion.instanceId);
         }
       }
 
@@ -305,7 +298,7 @@ export function createStateMutator(
       emit(eventBus, { type: 'BUFF_REMOVED', target: minion, buff: removed });
 
       if (minion.currentHealth <= 0) {
-        return createStateMutator(state, eventBus, rng).destroyMinion(target.instanceId);
+        return createStateMutator(state, eventBus, rng, counter).destroyMinion(target.instanceId);
       }
 
       return null;
@@ -348,7 +341,7 @@ export function createStateMutator(
 
       const stratagem: ActiveStratagem = {
         card,
-        instanceId: generateStratagemId(),
+        instanceId: counter.nextStratagemId(),
         ownerIndex,
         remainingTurns: 2, // Default: lasts 2 turns
         appliedEffects: [],

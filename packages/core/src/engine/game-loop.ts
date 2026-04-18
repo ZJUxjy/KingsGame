@@ -3,6 +3,7 @@ import { GAME_CONSTANTS } from '@king-card/shared';
 import { createStateMutator } from './state-mutator.js';
 import { checkWinCondition } from './win-condition.js';
 import { executeCardEffects, resolveEffects } from '../cards/effects/index.js';
+import { IdCounter } from './id-counter.js';
 
 const turnStartRng: EffectContext['rng'] = {
   nextInt(min: number): number {
@@ -38,8 +39,9 @@ function createEffectEventBus(
 function expireTemporaryBuffs(
   state: GameState,
   eventBus: { emit: (event: GameEvent) => void },
+  counter: IdCounter,
 ): void {
-  const mutator = createStateMutator(state, eventBus, turnStartRng);
+  const mutator = createStateMutator(state, eventBus, turnStartRng, counter);
 
   for (const player of state.players) {
     for (const minion of [...player.battlefield]) {
@@ -72,9 +74,13 @@ function expireTemporaryBuffs(
  * Execute the start of a turn for the current player.
  * Runs the five phases in order: ENERGY_GAIN -> DRAW -> UPKEEP -> MAIN -> END.
  */
-export function executeTurnStart(state: GameState, eventBus: { emit: (event: GameEvent) => void }): void {
+export function executeTurnStart(
+  state: GameState,
+  eventBus: { emit: (event: GameEvent) => void },
+  counter: IdCounter,
+): void {
   const player = state.players[state.currentPlayerIndex];
-  const mutator = createStateMutator(state, eventBus, turnStartRng);
+  const mutator = createStateMutator(state, eventBus, turnStartRng, counter);
   player.cardsPlayedThisTurn = 0;
 
   // ── Phase 1: ENERGY_GAIN ──────────────────────────────────────────
@@ -117,7 +123,7 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
   eventBus.emit({ type: 'PHASE_CHANGE', phase: 'UPKEEP', previousPhase: 'DRAW' });
 
   // 3a. Temporary buff countdown
-  expireTemporaryBuffs(state, eventBus);
+  expireTemporaryBuffs(state, eventBus, counter);
 
   // 3b. Stratagem countdown
   const expiredStratagems: typeof player.activeStratagems = [];
@@ -168,6 +174,7 @@ export function executeTurnStart(state: GameState, eventBus: { emit: (event: Gam
       playerIndex: state.currentPlayerIndex,
       eventBus: createEffectEventBus(eventBus),
       rng: turnStartRng,
+      counter,
     };
 
     executeCardEffects('ON_TURN_START', effectCtx);

@@ -9,12 +9,6 @@ import type {
 } from '@king-card/shared';
 import { ALL_CARDS } from '../definitions/index.js';
 
-let buffCounter = 0;
-
-export function resetBuffCounter(): void {
-  buffCounter = 0;
-}
-
 function findCardById(cardId: string): Card | undefined {
   return ALL_CARDS.find((card) => card.id === cardId);
 }
@@ -160,13 +154,13 @@ function resolveMinionEffectTargets(
   );
 }
 
-function createBuff(effect: CardEffect, source: CardInstance): Buff {
+function createBuff(effect: CardEffect, source: CardInstance, ctx: EffectContext): Buff {
   const attackBonus = getNumericParam(effect.params, 'attackBonus', getNumericParam(effect.params, 'attackDelta'));
   const healthBonus = getNumericParam(effect.params, 'healthBonus');
   const maxHealthBonus = getNumericParam(effect.params, 'maxHealthBonus', healthBonus);
 
   return {
-    id: `buff_${++buffCounter}`,
+    id: ctx.counter.nextBuffId(),
     sourceInstanceId: source.instanceId,
     sourceCardId: source.card.id,
     attackBonus,
@@ -184,9 +178,9 @@ function createBuff(effect: CardEffect, source: CardInstance): Buff {
   };
 }
 
-function createPersistentBuff(effect: CardEffect, source: CardInstance): Buff {
+function createPersistentBuff(effect: CardEffect, source: CardInstance, ctx: EffectContext): Buff {
   return {
-    ...createBuff(effect, source),
+    ...createBuff(effect, source, ctx),
     type: 'PERMANENT',
     remainingTurns: undefined,
   };
@@ -247,7 +241,7 @@ function applyModifyStatEffect(effect: CardEffect, ctx: EffectContext): void {
 
 function applyBuffEffect(effect: CardEffect, ctx: EffectContext): void {
   const targets = resolveMinionEffectTargets(ctx, effect.params);
-  const buff = createBuff(effect, ctx.source);
+  const buff = createBuff(effect, ctx.source, ctx);
 
   for (const target of targets) {
     ctx.mutator.applyBuff(target, buff);
@@ -385,7 +379,7 @@ function applyConditionalBuffEffect(effect: CardEffect, ctx: EffectContext): voi
     if (attackBonus !== 0 || healthBonus !== 0 || hasKeywords) {
       ctx.mutator.applyBuff(
         { type: 'MINION', instanceId: source.instanceId },
-        createPersistentBuff(effect, ctx.source),
+        createPersistentBuff(effect, ctx.source, ctx),
       );
     }
   }
