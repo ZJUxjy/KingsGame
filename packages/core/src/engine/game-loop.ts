@@ -36,6 +36,28 @@ function createEffectEventBus(
   };
 }
 
+/**
+ * Decrement `remainingTurns` on every TEMPORARY buff on every player's
+ * battlefield at the start of each turn (active *and* opponent).
+ *
+ * Important invariant:
+ *   A buff with `remainingTurns: N` lives through `N` turn-starts after
+ *   it is applied, regardless of which player owns the affected minion.
+ *
+ * Practical consequences:
+ *   - `remainingTurns: 1` = "lasts until the very next turn-start (which
+ *     could be the opponent's turn)". Suitable for buffs that are
+ *     re-applied at the start of each owner turn — e.g. MOBILIZATION_ORDER
+ *     gives +1/+1 for "this turn only" and re-emits the buff every turn,
+ *     so a single decrement is exactly the lifetime we want.
+ *   - For "lasts until the SAME player's next turn", use
+ *     `remainingTurns: 2` (one decrement on the opponent's turn-start,
+ *     one on the return to the owner). Verify each call site against
+ *     this two-decrement model when authoring such effects.
+ *
+ * Buffs of type other than TEMPORARY, or with no numeric `remainingTurns`,
+ * are left untouched.
+ */
 function expireTemporaryBuffs(
   state: GameState,
   eventBus: { emit: (event: GameEvent) => void },
