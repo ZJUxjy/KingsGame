@@ -3,7 +3,7 @@ import { GameEngine } from '../../src/engine/game-engine.js';
 import { ALL_EMPEROR_DATA_LIST } from '../../src/cards/definitions/index.js';
 import { createCardInstance } from '../../src/models/card-instance.js';
 import { IdCounter } from '../../src/engine/id-counter.js';
-import type { Card } from '@king-card/shared';
+import type { Card, GameEvent } from '@king-card/shared';
 
 const blockader: Card = {
   id: 'blockader',
@@ -96,6 +96,28 @@ describe('BLOCKADE reduces opponent effective energy each turn', () => {
     expect(state.currentPlayerIndex).toBe(1);
     expect(state.players[1].maxEnergy).toBeGreaterThanOrEqual(3);
     expect(state.players[1].energyCrystal).toBe(state.players[1].maxEnergy - 2);
+  });
+
+  it('emits ENERGY_SPENT with reason: BLOCKADE on the penalty', () => {
+    const deck = Array.from({ length: 30 }, () => filler);
+    const emperor = ALL_EMPEROR_DATA_LIST[0];
+    const engine = GameEngine.create(deck, deck, emperor, emperor);
+    const state = engine.getGameState();
+
+    const counter = new IdCounter();
+    state.players[0].battlefield.push(createCardInstance(blockader, 0, counter));
+
+    const events: GameEvent[] = [];
+    engine.onEvent('ENERGY_SPENT', (e) => events.push(e));
+
+    advanceToPlayer1WithMaxEnergy(engine, 2);
+
+    const blockadeSpend = events.find(
+      (e) => e.type === 'ENERGY_SPENT' && (e as { reason?: string }).reason === 'BLOCKADE',
+    );
+    expect(blockadeSpend).toBeDefined();
+    expect((blockadeSpend as { reason?: string }).reason).toBe('BLOCKADE');
+    expect((blockadeSpend as { playerIndex: number }).playerIndex).toBe(1);
   });
 
   it('clamps reduction at 0 when blockaders > maxEnergy', () => {

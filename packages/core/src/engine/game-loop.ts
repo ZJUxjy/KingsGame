@@ -142,6 +142,7 @@ export function executeTurnStart(
         playerIndex: state.currentPlayerIndex,
         amount: reduction,
         remainingEnergy: player.energyCrystal,
+        reason: 'BLOCKADE',
       });
     }
   }
