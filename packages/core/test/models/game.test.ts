@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createGameState } from '../../../src/models/game.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import type { Card, EmperorData } from '@king-card/shared';
 
 function makeMinionCard(id: string): Card {
@@ -70,6 +71,7 @@ describe('createGameState', () => {
       makeDeck(30, 'p2'),
       makeEmperorData('emp1', 'CHINA'),
       makeEmperorData('emp2', 'JAPAN'),
+      new IdCounter(),
     );
     expect(state.players).toHaveLength(2);
   });
@@ -80,6 +82,7 @@ describe('createGameState', () => {
       makeDeck(30, 'p2'),
       makeEmperorData('emp1', 'CHINA'),
       makeEmperorData('emp2', 'JAPAN'),
+      new IdCounter(),
     );
     expect(state.currentPlayerIndex).toBe(0);
   });
@@ -90,6 +93,7 @@ describe('createGameState', () => {
       makeDeck(30, 'p2'),
       makeEmperorData('emp1', 'CHINA'),
       makeEmperorData('emp2', 'JAPAN'),
+      new IdCounter(),
     );
     expect(state.turnNumber).toBe(0);
   });
@@ -100,6 +104,7 @@ describe('createGameState', () => {
       makeDeck(30, 'p2'),
       makeEmperorData('emp1', 'CHINA'),
       makeEmperorData('emp2', 'JAPAN'),
+      new IdCounter(),
     );
     expect(state.phase).toBe('ENERGY_GAIN');
   });
@@ -110,6 +115,7 @@ describe('createGameState', () => {
       makeDeck(30, 'p2'),
       makeEmperorData('emp1', 'CHINA'),
       makeEmperorData('emp2', 'JAPAN'),
+      new IdCounter(),
     );
     expect(state.isGameOver).toBe(false);
   });
@@ -120,6 +126,7 @@ describe('createGameState', () => {
       makeDeck(30, 'p2'),
       makeEmperorData('emp1', 'CHINA'),
       makeEmperorData('emp2', 'JAPAN'),
+      new IdCounter(),
     );
     expect(state.players[0].hero.health).toBe(30);
     expect(state.players[1].hero.health).toBe(30);
@@ -131,6 +138,7 @@ describe('createGameState', () => {
       makeDeck(30, 'p2'),
       makeEmperorData('emp1', 'CHINA'),
       makeEmperorData('emp2', 'JAPAN'),
+      new IdCounter(),
     );
     expect(state.players[0].deck).toHaveLength(30);
     expect(state.players[1].deck).toHaveLength(30);

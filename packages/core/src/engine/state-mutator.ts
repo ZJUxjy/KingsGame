@@ -14,9 +14,8 @@ import type {
   EffectContext,
 } from '@king-card/shared';
 import { createCardInstance } from '../models/card-instance.js';
-import { DefaultRNG } from './rng.js';
 import { resolveEffects } from '../cards/effects/index.js';
-import { IdCounter } from './id-counter.js';
+import type { IdCounter } from './id-counter.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -37,8 +36,8 @@ function emit(eventBus: { emit: (event: GameEvent) => void }, event: GameEvent):
 export function createStateMutator(
   state: GameState,
   eventBus: { emit: (event: GameEvent) => void },
-  rng: EffectContext['rng'] = new DefaultRNG(),
-  counter: IdCounter = new IdCounter(),
+  rng: EffectContext['rng'],
+  counter: IdCounter,
 ): StateMutator {
   return {
     // ── damage ────────────────────────────────────────────────────

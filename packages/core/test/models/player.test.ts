@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createPlayer } from '../../../src/models/player.js';
+import { IdCounter } from '../../../src/engine/id-counter.js';
 import type { Card, EmperorData, Civilization } from '@king-card/shared';
 
 function makeMinionCard(id: string, index: number): Card {
@@ -82,6 +83,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.hero.health).toBe(30);
   });
@@ -90,6 +92,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     // heroSkill is from the emperor card - verify the emperor card id is used
     expect(player.hero.heroSkill.name).toBe('Unify');
@@ -99,6 +102,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.deck).toHaveLength(30);
   });
@@ -107,6 +111,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.hand).toEqual([]);
   });
@@ -115,6 +120,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.energyCrystal).toBe(0);
     expect(player.maxEnergy).toBe(0);
@@ -124,6 +130,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.handLimit).toBe(10);
   });
@@ -132,6 +139,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.cannotDrawNextTurn).toBe(false);
   });
@@ -140,6 +148,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.ministerPool).toHaveLength(2);
     expect(player.ministerPool[0].name).toBe('Li Si');
@@ -151,6 +160,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.activeMinisterIndex).toBe(0);
   });
@@ -159,6 +169,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.boundCards).toEqual([]);
   });
@@ -167,6 +178,7 @@ describe('createPlayer', () => {
     const player = createPlayer(
       0, 'p1', 'Player 1', 'CHINA' as Civilization,
       makeDeck(30), makeEmperorData(),
+      new IdCounter(),
     );
     expect(player.civilization).toBe('CHINA');
   });
