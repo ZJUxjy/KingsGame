@@ -11,7 +11,7 @@ import type {
   RNG,
   EffectContext,
 } from '@king-card/shared';
-import { GAME_CONSTANTS } from '@king-card/shared';
+import { GAME_CONSTANTS, getEffectiveCardCost } from '@king-card/shared';
 import { createGameState } from '../models/game.js';
 import { createStateMutator } from './state-mutator.js';
 import { executeTurnStart } from './game-loop.js';
@@ -20,13 +20,6 @@ import { EventBusImpl } from './event-bus.js';
 import { DefaultRNG } from './rng.js';
 import { registerEmperorData } from './emperor-registry.js';
 import { IdCounter } from './id-counter.js';
-
-function getEffectiveCardCost(player: Player, card: Card): number {
-  return player.costModifiers.reduce(
-    (cost, modifier) => modifier.condition(card) ? modifier.modifier(cost) : cost,
-    card.cost,
-  );
-}
 
 function requiresFriendlyMinionTarget(card: Card): boolean {
   return card.effects.some(

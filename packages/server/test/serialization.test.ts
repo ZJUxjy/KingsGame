@@ -241,3 +241,50 @@ describe('serializeForPlayer', () => {
     expect(serializedCard.cost).toBe(Math.max(0, card.cost - 1));
   });
 });
+
+describe('serializeForPlayer applies costReduction', () => {
+  function buildState() {
+    const engine = createTestEngine();
+    const state = engine.getGameState();
+    return state;
+  }
+
+  it('shows hand card cost reduced by player.costReduction', () => {
+    const state = buildState();
+    const card = state.players[0].hand[0];
+    state.players[0].costReduction = 2;
+
+    const serialized = serializeForPlayer(state, 0);
+    const serializedCard = serialized.me.hand[0] as Card;
+
+    expect(serializedCard.id).toBe(card.id);
+    expect(serializedCard.cost).toBe(Math.max(0, card.cost - 2));
+  });
+
+  it('floors cost at 0 when costReduction exceeds card cost', () => {
+    const state = buildState();
+    const card = state.players[0].hand[0];
+    state.players[0].costReduction = card.cost + 10;
+
+    const serialized = serializeForPlayer(state, 0);
+    const serializedCard = serialized.me.hand[0] as Card;
+
+    expect(serializedCard.cost).toBe(0);
+  });
+
+  it('combines costModifiers and costReduction', () => {
+    const state = buildState();
+    const card = state.players[0].hand[0];
+    state.players[0].costModifiers.push({
+      sourceId: 'test_modifier',
+      modifier: (cost) => Math.max(0, cost - 1),
+      condition: () => true,
+    });
+    state.players[0].costReduction = 1;
+
+    const serialized = serializeForPlayer(state, 0);
+    const serializedCard = serialized.me.hand[0] as Card;
+
+    expect(serializedCard.cost).toBe(Math.max(0, card.cost - 1 - 1));
+  });
+});

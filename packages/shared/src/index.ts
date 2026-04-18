@@ -9,6 +9,7 @@ export {
   materializeDeckCards,
   validateDeckDefinition,
 } from './deck.js';
+export { getEffectiveCardCost } from './cost.js';
 export type {
   DeckDefinition,
   DeckValidationCode,

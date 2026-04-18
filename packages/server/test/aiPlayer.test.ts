@@ -45,6 +45,7 @@ function makeGameState(overrides: Partial<GameState> = {}): GameState {
     battlefield: [],
     activeStratagems: [],
     costModifiers: [],
+    costReduction: 0,
     energyCrystal: 10,
     maxEnergy: 10,
     cannotDrawNextTurn: false,

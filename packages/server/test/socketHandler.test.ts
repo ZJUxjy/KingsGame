@@ -29,6 +29,7 @@ function makePlayer(id: string, civilization: Player['civilization']): Player {
     battlefield: [],
     activeStratagems: [],
     costModifiers: [],
+    costReduction: 0,
     energyCrystal: 0,
     maxEnergy: 0,
     cannotDrawNextTurn: false,

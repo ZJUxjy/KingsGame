@@ -10,7 +10,7 @@ import type {
   RNG,
   EffectContext,
 } from '@king-card/shared';
-import { GAME_CONSTANTS } from '@king-card/shared';
+import { GAME_CONSTANTS, getEffectiveCardCost } from '@king-card/shared';
 import { createStateMutator } from './state-mutator.js';
 import { checkWinCondition } from './win-condition.js';
 import { executeTurnStart, executeTurnEnd } from './game-loop.js';
@@ -101,17 +101,6 @@ function createEffectContext(
     rng: rng as unknown as EffectContext['rng'],
     counter,
   };
-}
-
-function getEffectiveCardCost(player: GameState['players'][number], card: Card): number {
-  let cost = player.costModifiers.reduce(
-    (c, modifier) => modifier.condition(card) ? modifier.modifier(c) : c,
-    card.cost,
-  );
-  if (player.costReduction > 0) {
-    cost = Math.max(0, cost - player.costReduction);
-  }
-  return cost;
 }
 
 function createSyntheticSource(

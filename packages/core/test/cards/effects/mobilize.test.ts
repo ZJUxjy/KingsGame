@@ -69,6 +69,7 @@ function makePlayer(overrides: Partial<EffectContext['state']['players'][0]> = {
     battlefield: [],
     activeStratagems: [],
     costModifiers: [],
+    costReduction: 0,
     energyCrystal: 10,
     maxEnergy: 10,
     cannotDrawNextTurn: false,
