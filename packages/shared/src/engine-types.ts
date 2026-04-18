@@ -250,6 +250,12 @@ export interface StateMutator {
   damage(target: import('./types.js').TargetRef, amount: number): import('./types.js').EngineErrorCode | null;
   heal(target: import('./types.js').TargetRef, amount: number): import('./types.js').EngineErrorCode | null;
   drawCards(playerIndex: number, count: number): import('./types.js').EngineErrorCode | null;
+  /**
+   * Add a card copy to the given player's hand.
+   * - If hand has room: pushes the card and emits CARD_DRAWN.
+   * - If hand is full: pushes to graveyard and emits CARD_DISCARDED (mirrors drawCards behavior).
+   */
+  addCardToHand(playerIndex: number, card: Card): import('./types.js').EngineErrorCode | null;
   discardCard(playerIndex: number, handIndex: number): import('./types.js').EngineErrorCode | null;
   summonMinion(card: Card, ownerIndex: number, position?: number): SummonMinionResult;
   destroyMinion(instanceId: string): import('./types.js').EngineErrorCode | null;

@@ -124,11 +124,23 @@ function makeEffectContext(overrides: Partial<EffectContext> & { source: CardIns
   };
 }
 
-function ctx_mutator_base() {
+function ctx_mutator_base(state?: EffectContext['state']) {
   return {
     damage: () => null,
     heal: () => null,
     drawCards: () => null,
+    addCardToHand: (playerIndex: number, card: any) => {
+      // Mirror real mutator semantics so handler tests can assert on player.hand.
+      if (!state) return null;
+      const player = state.players[playerIndex] as any;
+      const copy = { ...card };
+      if (player.hand.length >= player.handLimit) {
+        player.graveyard.push(copy);
+      } else {
+        player.hand.push(copy);
+      }
+      return null;
+    },
     discardCard: () => null,
     summonMinion: () => null,
     destroyMinion: () => null,
@@ -167,7 +179,7 @@ describe('RESEARCH effect handler', () => {
 
     const ctx = makeEffectContext({
       source: researchMinion,
-      mutator: ctx_mutator_base() as any,
+      mutator: {} as any,
       rng: {
         nextInt: () => 0,
         next: () => 0,
@@ -177,6 +189,7 @@ describe('RESEARCH effect handler', () => {
     });
 
     (ctx.state as any).players[0] = player;
+    (ctx as any).mutator = ctx_mutator_base(ctx.state);
 
     resolveEffects('ON_PLAY', ctx);
 
@@ -213,10 +226,11 @@ describe('RESEARCH effect handler', () => {
 
     const ctx = makeEffectContext({
       source: researchMinion,
-      mutator: ctx_mutator_base() as any,
+      mutator: {} as any,
     });
 
     (ctx.state as any).players[0] = player;
+    (ctx as any).mutator = ctx_mutator_base(ctx.state);
 
     resolveEffects('ON_PLAY', ctx);
 
@@ -238,10 +252,11 @@ describe('RESEARCH effect handler', () => {
 
     const ctx = makeEffectContext({
       source: normalMinion,
-      mutator: ctx_mutator_base() as any,
+      mutator: {} as any,
     });
 
     (ctx.state as any).players[0] = player;
+    (ctx as any).mutator = ctx_mutator_base(ctx.state);
 
     resolveEffects('ON_PLAY', ctx);
 

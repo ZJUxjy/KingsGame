@@ -146,6 +146,24 @@ export function createStateMutator(
       return null;
     },
 
+    // ── addCardToHand ─────────────────────────────────────────────
+    addCardToHand(playerIndex: number, card: Card): EngineErrorCode | null {
+      const player = state.players[playerIndex];
+      if (!player) return 'INVALID_TARGET';
+
+      const copy: Card = { ...card };
+
+      if (player.hand.length >= player.handLimit) {
+        player.graveyard.push(copy);
+        emit(eventBus, { type: 'CARD_DISCARDED', playerIndex, card: copy });
+      } else {
+        player.hand.push(copy);
+        emit(eventBus, { type: 'CARD_DRAWN', playerIndex, card: copy });
+      }
+
+      return null;
+    },
+
     // ── discardCard ───────────────────────────────────────────────
     discardCard(playerIndex: number, handIndex: number): EngineErrorCode | null {
       const player = state.players[playerIndex];
