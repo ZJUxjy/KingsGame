@@ -135,6 +135,59 @@ describe('StateMutator', () => {
       expect(state.players[0].battlefield).toHaveLength(0);
       expect(state.players[0].graveyard).toHaveLength(1);
     });
+
+    it('emits ARMOR_CHANGED with negative amount when armor absorbs partial damage', () => {
+      const { state, bus, mutator } = setup();
+      state.players[0].hero.armor = 5;
+      const events: GameEvent[] = [];
+      bus.on('ARMOR_CHANGED', (e) => events.push(e));
+      const heroDamaged = vi.fn();
+      bus.on('HERO_DAMAGED', heroDamaged);
+
+      mutator.damage({ type: 'HERO', playerIndex: 0 }, 3);
+
+      expect(state.players[0].hero.armor).toBe(2);
+      expect(state.players[0].hero.health).toBe(30);
+      expect(events).toContainEqual({
+        type: 'ARMOR_CHANGED',
+        playerIndex: 0,
+        amount: -3,
+        totalArmor: 2,
+      });
+      expect(heroDamaged).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'HERO_DAMAGED', playerIndex: 0, amount: 3 }),
+      );
+    });
+
+    it('emits ARMOR_CHANGED to 0 when armor is fully absorbed by damage', () => {
+      const { state, bus, mutator } = setup();
+      state.players[0].hero.armor = 3;
+      const events: GameEvent[] = [];
+      bus.on('ARMOR_CHANGED', (e) => events.push(e));
+
+      mutator.damage({ type: 'HERO', playerIndex: 0 }, 5);
+
+      expect(state.players[0].hero.armor).toBe(0);
+      expect(state.players[0].hero.health).toBe(28);
+      expect(events).toContainEqual({
+        type: 'ARMOR_CHANGED',
+        playerIndex: 0,
+        amount: -3,
+        totalArmor: 0,
+      });
+    });
+
+    it('does NOT emit ARMOR_CHANGED when hero has 0 armor', () => {
+      const { state, bus, mutator } = setup();
+      state.players[0].hero.armor = 0;
+      const handler = vi.fn();
+      bus.on('ARMOR_CHANGED', handler);
+
+      mutator.damage({ type: 'HERO', playerIndex: 0 }, 3);
+
+      expect(state.players[0].hero.health).toBe(27);
+      expect(handler).not.toHaveBeenCalled();
+    });
   });
 
   // ── heal ───────────────────────────────────────────────────────

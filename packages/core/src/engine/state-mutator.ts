@@ -48,12 +48,22 @@ export function createStateMutator(
 
         // Armor absorbs damage first
         if (player.hero.armor > 0) {
+          const armorBefore = player.hero.armor;
           if (player.hero.armor >= remaining) {
             player.hero.armor -= remaining;
             remaining = 0;
           } else {
             remaining -= player.hero.armor;
             player.hero.armor = 0;
+          }
+          const armorDelta = player.hero.armor - armorBefore;
+          if (armorDelta !== 0) {
+            emit(eventBus, {
+              type: 'ARMOR_CHANGED',
+              playerIndex: target.playerIndex,
+              amount: armorDelta,
+              totalArmor: player.hero.armor,
+            });
           }
         }
 
