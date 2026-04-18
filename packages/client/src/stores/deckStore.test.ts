@@ -269,6 +269,44 @@ describe('deckStore', () => {
     getItemSpy.mockRestore();
   });
 
+  it('ensureDefaultDecks creates starter decks for missing emperors without overwriting saved ones', () => {
+    const customQinDeck = {
+      id: 'custom-qin',
+      name: '秦始皇 自定义套牌',
+      civilization: EMPEROR_QIN.emperorCard.civilization,
+      emperorCardId: EMPEROR_QIN.emperorCard.id,
+      mainCardIds: ['kept-by-user'],
+    };
+
+    useDeckStore.setState({
+      decksByEmperorId: {
+        [EMPEROR_QIN.emperorCard.id]: customQinDeck,
+      },
+      editingEmperorCardId: null,
+    });
+
+    useDeckStore.getState().ensureDefaultDecks(ALL_EMPEROR_DATA_LIST);
+
+    const decksByEmperorId = useDeckStore.getState().decksByEmperorId;
+    expect(decksByEmperorId[EMPEROR_QIN.emperorCard.id]).toEqual(customQinDeck);
+
+    for (const emperorData of ALL_EMPEROR_DATA_LIST) {
+      const deck = decksByEmperorId[emperorData.emperorCard.id];
+      expect(deck, emperorData.emperorCard.id).toBeDefined();
+
+      if (emperorData.emperorCard.id !== EMPEROR_QIN.emperorCard.id) {
+        const validation = validateDeckDefinition(deck!, ALL_CARDS, emperorData);
+        expect(validation, emperorData.emperorCard.id).toEqual({ ok: true, issues: [] });
+      }
+    }
+
+    const stored = JSON.parse(window.localStorage.getItem(DECK_STORAGE_KEY) ?? '{}');
+    expect(stored[EMPEROR_QIN.emperorCard.id]).toEqual(customQinDeck);
+    for (const emperorData of ALL_EMPEROR_DATA_LIST) {
+      expect(stored[emperorData.emperorCard.id], emperorData.emperorCard.id).toBeDefined();
+    }
+  });
+
   it('persists replaced main-card ids and returns the updated deck', () => {
     const starterDeck = useDeckStore.getState().getOrCreateDeck(EMPEROR_QIN);
     const replacementMainCardIds = [...starterDeck.mainCardIds].reverse();

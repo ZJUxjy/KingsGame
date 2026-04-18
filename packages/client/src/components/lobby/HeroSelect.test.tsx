@@ -104,7 +104,7 @@ describe('HeroSelect', () => {
     expect(joinGame).not.toHaveBeenCalled();
   });
 
-  it('disables start when the selected emperor deck is missing or invalid', () => {
+  it('auto-creates a default deck for every emperor on mount so start is immediately ready', () => {
     useDeckStore.setState({
       ...initialDeckState,
       decksByEmperorId: {},
@@ -113,17 +113,25 @@ describe('HeroSelect', () => {
 
     render(<HeroSelect />);
 
+    expect(qinIndex).toBeGreaterThanOrEqual(0);
+
+    const decksAfterMount = useDeckStore.getState().decksByEmperorId;
+    for (const emperorData of ALL_EMPEROR_DATA_LIST) {
+      expect(decksAfterMount[emperorData.emperorCard.id], emperorData.emperorCard.id).toBeDefined();
+    }
+
     fireEvent.click(screen.getByRole('button', { name: /华夏/ }));
     fireEvent.click(screen.getByRole('button', { name: /秦始皇/ }));
 
-    expect(qinIndex).toBeGreaterThanOrEqual(0);
-    expect(screen.getByText('尚未准备合法套牌')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '开始对战' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByText('套牌已就绪')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '开始对战' }).hasAttribute('disabled')).toBe(false);
 
     fireEvent.click(screen.getByRole('button', { name: '开始对战' }));
 
-    expect(joinGame).not.toHaveBeenCalled();
-    expect(joinPvp).not.toHaveBeenCalled();
+    expect(joinGame).toHaveBeenCalledWith(
+      qinIndex,
+      expect.objectContaining({ emperorCardId: 'china_qin_shihuang' }),
+    );
   });
 
   it('keeps start disabled when the selected emperor has a saved but illegal deck', () => {

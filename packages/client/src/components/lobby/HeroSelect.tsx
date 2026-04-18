@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ALL_CARDS, ALL_EMPEROR_DATA_LIST } from '@king-card/core';
 import {
   getCivilizationMeta,
@@ -27,8 +27,13 @@ export default function HeroSelect() {
   const reset = useGameStore((s) => s._reset);
   const setUiPhase = useGameStore((s) => s.setUiPhase);
   const getDeck = useDeckStore((state) => state.getDeck);
+  const ensureDefaultDecks = useDeckStore((state) => state.ensureDefaultDecks);
   const setEditingEmperorCardId = useDeckStore((state) => state.setEditingEmperorCardId);
   const locale = useLocaleStore((state) => state.locale);
+
+  useEffect(() => {
+    ensureDefaultDecks(ALL_EMPEROR_DATA_LIST);
+  }, [ensureDefaultDecks]);
   const [selectedCivilization, setSelectedCivilization] = useState<Civilization | null>(null);
   const [selectedEmperorIndex, setSelectedEmperorIndex] = useState<number | null>(null);
 

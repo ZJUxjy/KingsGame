@@ -19,6 +19,7 @@ interface DeckState {
   editingEmperorCardId: string | null;
   getDeck: (emperorCardId: string) => DeckDefinition | undefined;
   getOrCreateDeck: (emperorData: EmperorData) => DeckDefinition;
+  ensureDefaultDecks: (emperorDataList: readonly EmperorData[]) => void;
   replaceMainCardIds: (emperorCardId: string, mainCardIds: string[]) => void;
   renameDeck: (emperorCardId: string, name: string) => void;
   setEditingEmperorCardId: (emperorCardId: string | null) => void;
@@ -240,6 +241,41 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     persistDecks(nextDecks);
     set({ decksByEmperorId: nextDecks });
     return starterDeck;
+  },
+  ensureDefaultDecks: (emperorDataList) => {
+    const currentDecks = get().decksByEmperorId;
+    const storedDecks = readStoredDecks();
+    let nextDecks: Record<string, DeckDefinition> = { ...currentDecks };
+    let changed = false;
+
+    for (const emperorData of emperorDataList) {
+      const emperorCardId = emperorData.emperorCard.id;
+      if (nextDecks[emperorCardId]) {
+        continue;
+      }
+
+      const hydratedDeck = storedDecks[emperorCardId];
+      if (hydratedDeck) {
+        nextDecks[emperorCardId] = hydratedDeck;
+        changed = true;
+        continue;
+      }
+
+      try {
+        nextDecks[emperorCardId] = createStarterDeck(emperorData);
+        changed = true;
+      } catch {
+        // Skip emperors whose card pool cannot satisfy the starter-deck rules
+        // instead of breaking the whole hero-select flow.
+      }
+    }
+
+    if (!changed) {
+      return;
+    }
+
+    persistDecks(nextDecks);
+    set({ decksByEmperorId: nextDecks });
   },
   replaceMainCardIds: (emperorCardId, mainCardIds) => {
     set((state) => {
