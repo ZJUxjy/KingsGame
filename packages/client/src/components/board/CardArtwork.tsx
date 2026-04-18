@@ -1,6 +1,7 @@
 import type React from 'react';
 import type { Card, CardInstance } from '@king-card/shared';
 import type { SupportedLocale } from '../../utils/locale.js';
+import type { CardSize } from './cardSize.js';
 
 const CIV_COLORS: Record<string, { primary: string; secondary: string; accent: string; emblem: string }> = {
   CHINA: { primary: '#8B0000', secondary: '#FFD700', accent: '#DC143C', emblem: '龙' },
@@ -64,8 +65,6 @@ const TYPE_BADGE_ICON: Record<SupportedLocale, Record<string, string>> = {
 function typeBadgeLabel(type: string, locale: SupportedLocale): string {
   return TYPE_BADGE_ICON[locale][type] ?? TYPE_BADGE_ICON['zh-CN'][type] ?? type;
 }
-
-type CardSize = 'hand' | 'battlefield' | 'detail' | 'collection';
 
 interface CardArtworkProps {
   card: Card;

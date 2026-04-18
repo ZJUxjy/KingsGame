@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { Card, CardInstance, Rarity } from '@king-card/shared';
 import { CardArtwork, CardBackArtwork } from './CardArtwork.js';
 import { CardTextLayer } from './CardTextLayer.js';
+import type { CardSize } from './cardSize.js';
 import { getCardDisplayText } from '../../utils/cardText.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
 
@@ -12,8 +13,6 @@ const RARITY_BORDER_VAR: Record<Rarity, string> = {
   EPIC: 'var(--rarity-epic)',
   LEGENDARY: 'var(--rarity-legendary)',
 };
-
-type CardSize = 'hand' | 'battlefield' | 'detail' | 'collection';
 
 type TooltipSize = 'regular' | 'wide' | 'large';
 type TooltipPlacement = 'above' | 'below';
