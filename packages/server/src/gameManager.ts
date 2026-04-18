@@ -71,9 +71,15 @@ export class GameManager {
   /**
    * Find a PvP game that is waiting for a second player.
    */
-  findWaitingPvpGame(): GameSession | undefined {
+  findWaitingPvpGame(callerSocketId?: string): GameSession | undefined {
     for (const session of this.games.values()) {
-      if (session.mode === 'pvp' && session.state === 'waiting' && session.players[0] && !session.players[1]) {
+      if (
+        session.mode === 'pvp' &&
+        session.state === 'waiting' &&
+        session.players[0] &&
+        !session.players[1] &&
+        session.players[0] !== callerSocketId
+      ) {
         return session;
       }
     }

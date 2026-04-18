@@ -247,7 +247,7 @@ export function registerSocketHandlers(
         }
 
         // Try to find a waiting PvP game
-        const waitingSession = gameManager.findWaitingPvpGame();
+        const waitingSession = gameManager.findWaitingPvpGame(socket.id);
 
         if (waitingSession) {
           // Join as player 1

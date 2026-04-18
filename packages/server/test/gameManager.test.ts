@@ -270,6 +270,14 @@ describe('GameManager', () => {
     );
   });
 
+  it('findWaitingPvpGame excludes session whose player[0] socket equals caller', () => {
+    const session = manager.createPvpWaiting(0);
+    manager.setPlayerSocket(session.id, 0, 'socket-A');
+
+    expect(manager.findWaitingPvpGame('socket-A')).toBeUndefined();
+    expect(manager.findWaitingPvpGame('socket-B')?.id).toBe(session.id);
+  });
+
   it('initializePvpEngine materializes stored custom decks for both PvP players', () => {
     const createSpy = vi.spyOn(GameEngine, 'create');
     const player0Deck = makeCustomDeckDefinition(ALL_EMPEROR_DATA_LIST[3]);
