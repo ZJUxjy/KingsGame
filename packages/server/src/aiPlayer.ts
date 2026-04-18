@@ -38,16 +38,21 @@ export async function runAiTurn(engine: GameEngine, playerIndex: number): Promis
     await delay(AI_ACTION_DELAY);
   }
 
-  // 2. Attack with all minions that can attack
-  actions = engine.getValidActions(playerIndex);
-  const attackActions = actions.filter(
-    (a): a is Extract<ValidAction, { type: 'ATTACK' }> => a.type === 'ATTACK',
-  );
-
-  for (const action of attackActions) {
+  // 2. Attack with all minions that can attack.
+  // Re-fetch valid actions between iterations: a previous attack may have
+  // killed the target (or the attacker), invalidating later entries in a
+  // stale snapshot. Without this, the engine would silently reject the
+  // follow-up attacks with INVALID_TARGET.
+  while (true) {
     if (isGameOver(engine)) return;
-    const target = convertTargetInstanceId(action.targetInstanceId, playerIndex);
-    engine.attack(action.attackerInstanceId, target);
+    const fresh = engine.getValidActions(playerIndex);
+    const next = fresh.find(
+      (a): a is Extract<ValidAction, { type: 'ATTACK' }> => a.type === 'ATTACK',
+    );
+    if (!next) break;
+
+    const target = convertTargetInstanceId(next.targetInstanceId, playerIndex);
+    engine.attack(next.attackerInstanceId, target);
     await delay(AI_ACTION_DELAY);
   }
 

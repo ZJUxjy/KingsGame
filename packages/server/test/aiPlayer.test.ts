@@ -126,17 +126,21 @@ describe('aiPlayer', () => {
     const gameState = makeGameState();
     const engine = createMockEngine(gameState);
 
-    const attackActions: ValidAction[] = [
+    // Stateful mock: drain one attack per engine.attack call. The card-phase
+    // prefetch sees the same list but filters out non-PLAY_CARD entries.
+    // Each attack-loop iteration sees the remaining list; when empty, the
+    // loop breaks.
+    const remaining: ValidAction[] = [
       { type: 'ATTACK', attackerInstanceId: 'minion-1', targetInstanceId: 'minion-2' },
       { type: 'ATTACK', attackerInstanceId: 'minion-3', targetInstanceId: 'HERO' },
     ];
-    vi.mocked(engine.getValidActions)
-      .mockReturnValueOnce([])        // no cards to play
-      .mockReturnValueOnce(attackActions) // attack actions
-      .mockReturnValue([]);           // hero skill check
+    vi.mocked(engine.getValidActions).mockImplementation(() => [...remaining]);
+    vi.mocked(engine.attack).mockImplementation(() => {
+      remaining.shift();
+    });
 
     const promise = runAiTurn(engine, 1);
-    await vi.advanceTimersByTimeAsync(1500);
+    await vi.advanceTimersByTimeAsync(2000);
 
     expect(engine.attack).toHaveBeenCalledTimes(2);
     expect(engine.attack).toHaveBeenNthCalledWith(1, 'minion-1', { type: 'MINION', instanceId: 'minion-2' });
@@ -229,6 +233,36 @@ describe('aiPlayer', () => {
     await vi.advanceTimersByTimeAsync(1500);
 
     expect(engine.attack).toHaveBeenCalledWith('m1', { type: 'MINION', instanceId: 'enemy-minion-42' });
+
+    await promise;
+  });
+
+  it('re-fetches valid actions between attacks (avoids stale INVALID_TARGET)', async () => {
+    const gameState = makeGameState();
+    const engine = createMockEngine(gameState);
+
+    // Sequence:
+    //   1) cards phase prefetch: []
+    //   2) attack loop iter 1: two attacks both targeting enemy-1
+    //   3) attack loop iter 2 (after m1 killed enemy-1): []
+    //   4+) hero/minister/general phase prefetches: []
+    vi.mocked(engine.getValidActions)
+      .mockReturnValueOnce([])
+      .mockReturnValueOnce([
+        { type: 'ATTACK', attackerInstanceId: 'm1', targetInstanceId: 'enemy-1' },
+        { type: 'ATTACK', attackerInstanceId: 'm2', targetInstanceId: 'enemy-1' },
+      ])
+      .mockReturnValueOnce([])
+      .mockReturnValue([]);
+
+    const promise = runAiTurn(engine, 1);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    // Only the first attack fires; the AI must re-evaluate and discover that
+    // enemy-1 is no longer a valid target for m2.
+    expect(engine.attack).toHaveBeenCalledTimes(1);
+    expect(engine.attack).toHaveBeenCalledWith('m1', { type: 'MINION', instanceId: 'enemy-1' });
+    expect(engine.endTurn).toHaveBeenCalledTimes(1);
 
     await promise;
   });
