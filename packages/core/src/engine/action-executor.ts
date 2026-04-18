@@ -448,14 +448,27 @@ export function executeAttack(
   // Emit ATTACK_DECLARED
   collectingBus.emit({ type: 'ATTACK_DECLARED', attacker, defender: target });
 
+  // Capture the target minion before any mutation so that both
+  // ON_ATTACK and ON_KILL receive a stable reference even after damage
+  // resolution (which may remove the minion from the battlefield).
+  const targetMinionBeforeDamage =
+    target.type === 'MINION' ? findMinion(state, target.instanceId) : undefined;
+
+  // Trigger ON_ATTACK handlers before damage is applied
+  const attackEffectCtx: EffectContext = {
+    state,
+    mutator,
+    source: attacker,
+    target: targetMinionBeforeDamage,
+    playerIndex: attacker.ownerIndex,
+    eventBus: createEffectEventBus(collectingBus),
+    rng: { nextInt: () => 0, next: () => 0, pick: (arr) => arr[0], shuffle: (a) => a },
+    counter,
+  };
+  resolveEffects('ON_ATTACK', attackEffectCtx);
+
   // Calculate and apply damage
   const damage = Math.max(0, attacker.currentAttack);
-
-  // Track target minion before damage for ON_KILL trigger
-  let targetMinionBeforeDamage: CardInstance | undefined;
-  if (target.type === 'MINION') {
-    targetMinionBeforeDamage = findMinion(state, target.instanceId);
-  }
 
   mutator.damage(target, damage);
 
