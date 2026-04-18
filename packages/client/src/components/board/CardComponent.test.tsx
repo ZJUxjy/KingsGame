@@ -602,3 +602,17 @@ describe('CardComponent – bottom banner', () => {
     expect(banner?.getAttribute('height')).toBe('24');
   });
 });
+
+describe('CardComponent – HTML text layer', () => {
+  it('renders the description in an HTML overlay layer (not as SVG <text>)', () => {
+    const { container } = render(
+      <CardComponent
+        card={makeCard({ type: 'STRATAGEM', description: 'Hello world description' })}
+        size="collection"
+      />,
+    );
+    const snippet = within(container).getByTestId('card-description-snippet');
+    expect(snippet.tagName).toBe('DIV');
+    expect(snippet.textContent).toBe('Hello world description');
+  });
+});

@@ -2,6 +2,7 @@ import { useId, useRef, useState, useEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import type { Card, CardInstance, Rarity } from '@king-card/shared';
 import { CardArtwork, CardBackArtwork } from './CardArtwork.js';
+import { CardTextLayer } from './CardTextLayer.js';
 import { getCardDisplayText } from '../../utils/cardText.js';
 import { useLocaleStore } from '../../stores/localeStore.js';
 
@@ -189,6 +190,7 @@ const CardComponentInner = function CardComponent({
           style={{ borderRadius: 'var(--card-border-radius)' }}
         >
           <CardArtwork card={displayCard} instance={instance} svgIdBase={svgIdBase} size={size} locale={locale} />
+          <CardTextLayer card={displayCard} size={size} />
 
           {/* Garrison overlay */}
           {instance && instance.garrisonTurns > 0 && (
