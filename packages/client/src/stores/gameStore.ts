@@ -284,7 +284,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    // Reset gameplay state but keep the socket connection and last-args.
+    // Reset gameplay state and immediately leave the game-over UI so the
+    // user does not see a stale "Defeat / Hero defeated" screen during the
+    // round-trip to the server. We land on 'lobby' (not a transient state)
+    // so even a slow or failed server response leaves the user somewhere
+    // usable; the server's game:joined response will move us to 'playing'.
     set({
       gameId: null,
       playerIndex: null,
@@ -293,6 +297,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       selectedAttacker: null,
       pendingSkillAction: null,
       error: null,
+      uiPhase: 'lobby',
     });
 
     try {
