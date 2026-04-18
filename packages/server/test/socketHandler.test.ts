@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { registerSocketHandlers } from '../src/socketHandler.js';
+import { cleanupSessionMappings, registerSocketHandlers } from '../src/socketHandler.js';
 import type { GameSession } from '../src/gameManager.js';
 import type { GameState, Player } from '@king-card/shared';
 
@@ -164,5 +164,20 @@ describe('registerSocketHandlers', () => {
       code: 'NOT_YOUR_TURN',
       message: 'It is not your turn',
     });
+  });
+});
+
+describe('cleanupSessionMappings', () => {
+  it('removes both players socketIds from the mapping for a session', () => {
+    const mapping = new Map<string, { gameId: string; playerIndex: 0 | 1 }>();
+    mapping.set('s-A', { gameId: 'game-1', playerIndex: 0 });
+    mapping.set('s-B', { gameId: 'game-1', playerIndex: 1 });
+    mapping.set('s-C', { gameId: 'game-2', playerIndex: 0 });
+
+    cleanupSessionMappings(mapping, 'game-1');
+
+    expect(mapping.has('s-A')).toBe(false);
+    expect(mapping.has('s-B')).toBe(false);
+    expect(mapping.has('s-C')).toBe(true);
   });
 });

@@ -12,6 +12,17 @@ interface PlayerMapping {
   playerIndex: 0 | 1;
 }
 
+export function cleanupSessionMappings(
+  mapping: Map<string, PlayerMapping>,
+  gameId: string,
+): void {
+  for (const [socketId, m] of mapping) {
+    if (m.gameId === gameId) {
+      mapping.delete(socketId);
+    }
+  }
+}
+
 interface JoinPayload {
   emperorIndex: number;
   deck?: unknown;
@@ -577,6 +588,7 @@ export function registerSocketHandlers(
       }
 
       gameManager.destroyGame(session.id);
+      cleanupSessionMappings(socketMapping, session.id);
     });
 
     // ── disconnect ───────────────────────────────────────────────
@@ -597,7 +609,7 @@ export function registerSocketHandlers(
           }
           gameManager.destroyGame(mapping.gameId);
         }
-        socketMapping.delete(socket.id);
+        cleanupSessionMappings(socketMapping, mapping.gameId);
       }
       console.log(`Socket disconnected: ${socket.id}`);
     });
