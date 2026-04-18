@@ -263,4 +263,70 @@ describe('Emperor Switch', () => {
     // First minister should have cooldown set (can't use this turn)
     expect(player.ministerPool[0].cooldown).toBeGreaterThanOrEqual(1);
   });
+
+  // Followup #3: bound cards must be added via mutator.addCardToHand
+  // so that each addition emits CARD_DRAWN (or CARD_DISCARDED on
+  // hand-full fallback), matching the Task 5 mutator contract. The
+  // previous direct push silently bypassed event emission.
+  it('emits CARD_DRAWN for each bound card added on emperor switch', () => {
+    const { state, bus, rng } = setup();
+    state.players[0].hand.push(QIN_SHIHUANG);
+
+    const result = executePlayCard(state, bus, rng, 0, 0, counter);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const drawnEvents = result.events.filter(
+      (e): e is Extract<typeof e, { type: 'CARD_DRAWN' }> => e.type === 'CARD_DRAWN',
+    );
+    const drawnIds = drawnEvents.map((e) => e.card.id);
+    expect(drawnIds).toContain('china_huoqubing');
+    expect(drawnIds).toContain('china_weiqing');
+    expect(drawnIds).toContain('china_wuguzhihuo');
+    expect(drawnIds).toContain('china_fenshu_kengru');
+    for (const e of drawnEvents) {
+      if (
+        e.card.id === 'china_huoqubing'
+        || e.card.id === 'china_weiqing'
+        || e.card.id === 'china_wuguzhihuo'
+        || e.card.id === 'china_fenshu_kengru'
+      ) {
+        expect(e.playerIndex).toBe(0);
+      }
+    }
+  });
+
+  it('falls back to graveyard via CARD_DISCARDED when hand fills during emperor switch', () => {
+    const { state, bus, rng } = setup();
+    // Fill the hand to its limit, including QIN_SHIHUANG itself. After
+    // playing the emperor (hand splices down by 1), there is exactly
+    // 1 free slot for the 4 incoming bound cards, so 1 lands in hand
+    // (CARD_DRAWN) and the other 3 fall through to CARD_DISCARDED.
+    const filler = makeMinionCard({ id: 'filler' });
+    state.players[0].hand = Array.from({ length: state.players[0].handLimit - 1 }, () => filler);
+    state.players[0].hand.push(QIN_SHIHUANG);
+    expect(state.players[0].hand).toHaveLength(state.players[0].handLimit);
+    const handIndex = state.players[0].hand.length - 1;
+
+    const boundIds = new Set([
+      'china_huoqubing', 'china_weiqing', 'china_wuguzhihuo', 'china_fenshu_kengru',
+    ]);
+
+    const result = executePlayCard(state, bus, rng, 0, handIndex, counter);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    const drawnBound = result.events.filter(
+      (e): e is Extract<typeof e, { type: 'CARD_DRAWN' }> =>
+        e.type === 'CARD_DRAWN' && boundIds.has(e.card.id),
+    );
+    const discardedBound = result.events.filter(
+      (e): e is Extract<typeof e, { type: 'CARD_DISCARDED' }> =>
+        e.type === 'CARD_DISCARDED' && boundIds.has(e.card.id),
+    );
+    // Every bound card must be accounted for via exactly one of the
+    // mutator-emitted events; total = 4 with at least one discard.
+    expect(drawnBound.length + discardedBound.length).toBe(4);
+    expect(discardedBound.length).toBeGreaterThan(0);
+  });
 });

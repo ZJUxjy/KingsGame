@@ -353,13 +353,14 @@ export function executePlayCard(
         // 3. Remove old bound cards (no graveyard, no deathrattle)
         player.boundCards = [];
 
-        // 4. Add new bound cards to hand
+        // 4. Add new bound cards to hand via the mutator so each addition
+        //    emits CARD_DRAWN (or CARD_DISCARDED on a hand-full fallback)
+        //    per the Task 5 mutator contract. The previous direct push
+        //    silently bypassed event emission and forced the lost-card
+        //    semantics regardless of hand state.
         const newBoundCards = [...emperorData.boundGenerals, ...emperorData.boundSorceries];
         for (const boundCard of newBoundCards) {
-          if (player.hand.length < player.handLimit) {
-            player.hand.push(boundCard);
-          }
-          // If hand is full, bound card is lost (not discarded to graveyard)
+          mutator.addCardToHand(playerIndex, boundCard);
         }
         player.boundCards = newBoundCards;
 
