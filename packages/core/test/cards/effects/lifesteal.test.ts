@@ -262,3 +262,146 @@ describe('LIFESTEAL keyword', () => {
     expect(state.players[0].hero.health).toBe(24);
   });
 });
+
+describe('LIFESTEAL watch list (spec-mandated)', () => {
+  it('a 5/4 lifesteal+windfury, even with +2 attack buff, does not exceed maxHealth healing in one turn', () => {
+    const attacker = makeMinionCard({
+      id: 'lifesteal_wf_buffed',
+      attack: 5,
+      health: 4,
+      keywords: ['LIFESTEAL', 'WINDFURY'],
+    });
+    // Two pillow defenders with 0 attack so the attacker takes no counter
+    // damage and survives both swings; ample HP so each absorbs a 7-damage hit.
+    const defender1 = makeMinionCard({
+      id: 'wf_pillow_a',
+      attack: 0,
+      health: 10,
+    });
+    const defender2 = makeMinionCard({
+      id: 'wf_pillow_b',
+      attack: 0,
+      health: 10,
+    });
+
+    const { engine, state, attackerInst, defenderInsts } = setupDuel({
+      attacker,
+      defenders: [defender1, defender2],
+    });
+    // Simulate post-turn-start: WINDFURY grants 2 attacks.
+    attackerInst.remainingAttacks = 2;
+    attackerInst.justPlayed = false;
+
+    // Apply a +2 attack buff via mutator.applyBuff (same pattern as the
+    // single-turn lifesteal+buff test above). 5 + 2 = 7 attack per swing.
+    const sideBus = new EventBus();
+    const sideMutator = createStateMutator(
+      state,
+      sideBus,
+      undefined,
+      engine.getCounter(),
+    );
+    const buff: Buff = {
+      id: 'watchlist-attack-buff',
+      attackBonus: 2,
+      healthBonus: 0,
+      maxHealthBonus: 0,
+      type: 'TEMPORARY',
+      keywordsGranted: [],
+    };
+    sideMutator.applyBuff(
+      { type: 'MINION', instanceId: attackerInst.instanceId },
+      buff,
+    );
+    expect(attackerInst.currentAttack).toBe(7);
+
+    // Hero is already at full HP so any heal would attempt to overflow.
+    const maxHp = state.players[0].hero.maxHealth;
+    expect(state.players[0].hero.health).toBe(maxHp);
+
+    const r1 = engine.attack(attackerInst.instanceId, {
+      type: 'MINION',
+      instanceId: defenderInsts[0].instanceId,
+    });
+    expect(r1.success).toBe(true);
+
+    const r2 = engine.attack(attackerInst.instanceId, {
+      type: 'MINION',
+      instanceId: defenderInsts[1].instanceId,
+    });
+    expect(r2.success).toBe(true);
+
+    // Watch-list assertion: 14 raw heal attempts (7 + 7) MUST clamp to maxHealth,
+    // so the hero never sits above 30 even with WINDFURY × buff stacking.
+    expect(state.players[0].hero.health).toBe(maxHp);
+    expect(state.players[0].hero.health).toBeLessThanOrEqual(maxHp);
+  });
+
+  it('over 3 turns, a 3/3 lifesteal cannot keep hero topped if opponent deals ≥6 damage per turn', () => {
+    const attacker = makeMinionCard({
+      id: 'lifesteal_3_3',
+      attack: 3,
+      health: 3,
+      keywords: ['LIFESTEAL'],
+    });
+    // Opponent's "face-hitter": 6 attack, fat HP so it survives no-counter swings
+    // (it will only attack our hero, never trade, so HP just needs to be > 0).
+    const opponentBruiser = makeMinionCard({
+      id: 'opp_bruiser_6',
+      attack: 6,
+      health: 20,
+    });
+    // Opponent pillow: 0 attack, fat HP so our 3-attack lifesteal can chip it
+    // for 3 damage every turn for 3 turns without killing it (and without
+    // taking any counter damage that would kill our 3/3).
+    const opponentPillow = makeMinionCard({
+      id: 'opp_pillow',
+      attack: 0,
+      health: 100,
+    });
+
+    const { engine, state, attackerInst, defenderInsts } = setupDuel({
+      attacker,
+      defenders: [opponentBruiser, opponentPillow],
+    });
+    const [bruiserInst, pillowInst] = defenderInsts;
+
+    // Sanity: hero starts at full.
+    const startHp = state.players[0].hero.health;
+    expect(startHp).toBe(state.players[0].hero.maxHealth);
+    expect(startHp).toBe(30);
+
+    // Drive 3 full turn cycles. Each cycle:
+    //   P0: our 3/3 lifesteal hits the pillow → deals 3, heals 3 (capped).
+    //   endTurn → P1: opponent's 6-atk hits our hero face → -6.
+    //   endTurn → back to P0 with remainingAttacks reset.
+    for (let turn = 0; turn < 3; turn++) {
+      // Our swing: pillow has 0 attack so no counter damage to our 3/3.
+      const ourAttack = engine.attack(attackerInst.instanceId, {
+        type: 'MINION',
+        instanceId: pillowInst.instanceId,
+      });
+      expect(ourAttack.success).toBe(true);
+
+      // Hand the turn to the opponent.
+      expect(engine.endTurn().success).toBe(true);
+
+      // Opponent's bruiser was placed with justPlayed=false; the turn-start
+      // reset (Phase 4a) restores its 1 attack. Slam our hero for 6.
+      const oppAttack = engine.attack(bruiserInst.instanceId, {
+        type: 'HERO',
+        playerIndex: 0,
+      });
+      expect(oppAttack.success).toBe(true);
+
+      // Hand the turn back to us so our lifesteal refreshes for next cycle.
+      expect(engine.endTurn().success).toBe(true);
+    }
+
+    // Watch-list assertion: lifesteal is NOT unbounded sustain. Three rounds of
+    // a 6-for-3 trade must leave the hero strictly below 22 (we modeled net
+    // -3/turn after the first wasted-cap heal, so hero ≤ 21 by spec).
+    expect(state.players[0].hero.health).toBeLessThanOrEqual(21);
+    expect(state.players[0].hero.health).toBeLessThan(startHp);
+  });
+});
