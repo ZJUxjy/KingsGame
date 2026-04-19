@@ -542,6 +542,37 @@ export function executeAttack(
     ) {
       mutator.destroyMinion(attacker.instanceId);
     }
+
+    // LIFESTEAL: attacker heals own hero by the actual damage dealt.
+    // DIVINE_SHIELD-absorbed hits do not heal — we mirror the POISONOUS
+    // HP-snapshot detection rather than trusting `damage > 0`, which only
+    // reflects the swing's intended damage. Resolved AFTER POISONOUS so the
+    // destroy ordering stays "venom first, then bookkeeping"; the heal value
+    // is unaffected because we read the pre-damage HP snapshot.
+    if (hasKeyword(attacker, 'LIFESTEAL')) {
+      let healAmount = 0;
+
+      if (target.type === 'HERO') {
+        // Heroes don't have DIVINE_SHIELD; lifesteal heals for the full intended
+        // damage value (matches Hearthstone: armor is treated as a damage buffer,
+        // not a damage negator, so lifesteal credit includes armor-absorbed damage).
+        healAmount = damage;
+      } else if (
+        targetMinionBeforeDamage !== undefined &&
+        targetMinionHealthBeforeDamage !== undefined
+      ) {
+        // Re-find: POISONOUS above may have destroyed targetMinion; do not reuse it.
+        const targetMinionAfter = findMinion(state, target.instanceId);
+        const currentHp = targetMinionAfter?.currentHealth ?? 0;
+        const hpDelta = targetMinionHealthBeforeDamage - currentHp;
+        // Cap at the snapshot HP so overkill doesn't over-heal.
+        healAmount = Math.max(0, Math.min(hpDelta, targetMinionHealthBeforeDamage));
+      }
+
+      if (healAmount > 0) {
+        mutator.heal({ type: 'HERO', playerIndex: attacker.ownerIndex }, healAmount);
+      }
+    }
   }
 
   // Trigger ON_KILL if the target minion was destroyed
