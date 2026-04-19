@@ -28,3 +28,4 @@ import './divine-shield.js';
 import './poisonous.js';
 import './windfury.js';
 import './lifesteal.js';
+import './reborn.js';
