@@ -1,4 +1,4 @@
-import type { GameState, GameEvent, EffectContext } from '@king-card/shared';
+import type { GameState, GameEvent, EffectContext, CardInstance } from '@king-card/shared';
 import { GAME_CONSTANTS } from '@king-card/shared';
 import { createStateMutator } from './state-mutator.js';
 import { checkWinCondition } from './win-condition.js';
@@ -91,6 +91,18 @@ function expireTemporaryBuffs(
 }
 
 // ─── Turn Start ─────────────────────────────────────────────────────
+
+/**
+ * Per-turn attack budget for a minion that is "ready to attack" (i.e., not
+ * sleeping / not freshly summoned without CHARGE/RUSH/ASSASSIN). Single source
+ * of truth for both the sleep-wake reset (Phase 3d) and the turn-start
+ * battlefield reset (Phase 4a) — keep these two paths in sync via this helper
+ * so future keyword additions (or reordering of 3d/4a) don't silently
+ * regress WINDFURY back to a single swing.
+ */
+function resetMinionAttacksPerTurn(minion: CardInstance): number {
+  return minion.card.keywords.includes('WINDFURY') ? 2 : 1;
+}
 
 /**
  * Execute the start of a turn for the current player.
@@ -199,7 +211,7 @@ export function executeTurnStart(
     if (minion.sleepTurns > 0) {
       minion.sleepTurns -= 1;
       if (minion.sleepTurns === 0) {
-        minion.remainingAttacks = 1;
+        minion.remainingAttacks = resetMinionAttacksPerTurn(minion);
       }
     }
   }
@@ -240,10 +252,11 @@ export function executeTurnStart(
     minion.justPlayed = false;
     minion.usedGeneralSkills = 0;
     // Only reset remainingAttacks for non-sleeping minions.
-    // WINDFURY grants a second swing per turn (matched in card-instance.ts
-    // for the fresh-played CHARGE/RUSH/ASSASSIN+WINDFURY arrival case).
+    // resetMinionAttacksPerTurn is the single source of truth (also called
+    // from Phase 3d sleep-wake) so WINDFURY's "2 swings per turn" stays
+    // consistent across both paths.
     if (minion.sleepTurns === 0) {
-      minion.remainingAttacks = minion.card.keywords.includes('WINDFURY') ? 2 : 1;
+      minion.remainingAttacks = resetMinionAttacksPerTurn(minion);
     }
   }
 

@@ -201,4 +201,48 @@ describe('WINDFURY keyword', () => {
     // The frozen check fires before any attack is consumed.
     expect(attackerInst.remainingAttacks).toBe(2);
   });
+
+  it('WINDFURY attacker hits a DIVINE_SHIELD defender twice: first breaks shield, second deals damage', () => {
+    const attacker = makeMinionCard({
+      id: 'wf_vs_shield',
+      attack: 3,
+      health: 10,
+      keywords: ['WINDFURY'],
+    });
+    const defender = makeMinionCard({
+      id: 'shielded_defender',
+      attack: 0,
+      health: 5,
+      keywords: ['DIVINE_SHIELD'],
+    });
+
+    const { engine, attackerInst, defenderInst } = setupDuel({
+      attacker,
+      defender,
+    });
+
+    // Simulate post turn-start reset: WINDFURY attacker has 2 swings ready.
+    attackerInst.remainingAttacks = 2;
+    attackerInst.justPlayed = false;
+
+    const target = { type: 'MINION' as const, instanceId: defenderInst!.instanceId };
+
+    // Sanity: defender starts with shield up and full HP.
+    expect(defenderInst!.card.keywords).toContain('DIVINE_SHIELD');
+    expect(defenderInst!.currentHealth).toBe(5);
+
+    // First swing: shield absorbs the hit, HP unchanged, keyword removed.
+    const r1 = engine.attack(attackerInst.instanceId, target);
+    expect(r1.success).toBe(true);
+    expect(defenderInst!.card.keywords).not.toContain('DIVINE_SHIELD');
+    expect(defenderInst!.currentHealth).toBe(5);
+
+    // Second swing: real damage now lands (5 - 3 = 2).
+    const r2 = engine.attack(attackerInst.instanceId, target);
+    expect(r2.success).toBe(true);
+    expect(defenderInst!.currentHealth).toBe(2);
+
+    // Attacker has spent both swings.
+    expect(attackerInst.remainingAttacks).toBe(0);
+  });
 });
