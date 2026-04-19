@@ -11,8 +11,8 @@ describe('Keyword enum (Phase 1 flavor keywords)', () => {
       'REBORN',
     ];
 
-    // Compile-time check: if any string is not in the union, this fails to type-check.
-    // Runtime guard: ensure they're all string literals so JSON serialization works.
+    // Runtime registry check: ensures the literals exist as string values.
+    // Type-membership in the Keyword union is enforced separately by tsc --noEmit.
     for (const kw of requiredKeywords) {
       expect(typeof kw).toBe('string');
       expect(kw).toMatch(/^[A-Z_]+$/);

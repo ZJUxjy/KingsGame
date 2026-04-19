@@ -40,6 +40,8 @@ export type GameEvent =
   // Buff
   | { type: 'BUFF_APPLIED'; target: CardInstance; buff: Buff }
   | { type: 'BUFF_REMOVED'; target: CardInstance; buff: Buff }
+  // 关键字
+  | { type: 'DIVINE_SHIELD_BROKEN'; target: CardInstance }
   // 技能
   | { type: 'HERO_SKILL_USED'; playerIndex: number; hero: HeroState }
   | { type: 'MINISTER_SKILL_USED'; playerIndex: number; ministerId: string }

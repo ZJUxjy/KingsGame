@@ -79,6 +79,14 @@ export function createStateMutator(
       const minion = findMinion(state, target.instanceId);
       if (!minion) return 'INVALID_TARGET';
 
+      // DIVINE_SHIELD: absorb any positive damage and break the shield.
+      if (amount > 0 && minion.card.keywords.includes('DIVINE_SHIELD')) {
+        minion.card.keywords = minion.card.keywords.filter((k) => k !== 'DIVINE_SHIELD');
+        emit(eventBus, { type: 'DIVINE_SHIELD_BROKEN', target: minion });
+        emit(eventBus, { type: 'DAMAGE_DEALT', target, amount: 0 });
+        return null;
+      }
+
       minion.currentHealth -= amount;
 
       emit(eventBus, { type: 'DAMAGE_DEALT', target, amount });

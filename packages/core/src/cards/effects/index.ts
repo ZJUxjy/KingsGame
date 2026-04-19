@@ -24,3 +24,4 @@ import './research.js';
 import './mobilization-order.js';
 import './iron-fist.js';
 import './blitz.js';
+import './divine-shield.js';
