@@ -43,6 +43,8 @@ export function createCardInstance(
   const hasRush = instanceCard.keywords.includes('RUSH');
   const hasCharge = instanceCard.keywords.includes('CHARGE');
   const hasAssassin = instanceCard.keywords.includes('ASSASSIN');
+  const hasWindfury = instanceCard.keywords.includes('WINDFURY');
+  const canAttackOnArrival = hasRush || hasCharge || hasAssassin;
 
   return {
     card: instanceCard,
@@ -52,7 +54,7 @@ export function createCardInstance(
     currentAttack: card.attack ?? 0,
     currentHealth: card.health ?? 0,
     currentMaxHealth: card.health ?? 0,
-    remainingAttacks: (hasRush || hasCharge || hasAssassin) ? 1 : 0,
+    remainingAttacks: canAttackOnArrival ? (hasWindfury ? 2 : 1) : 0,
     justPlayed: true,
     sleepTurns: instanceCard.keywords.includes('RESEARCH') ? 1 : 0,
     garrisonTurns: 0,

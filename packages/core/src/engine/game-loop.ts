@@ -239,9 +239,11 @@ export function executeTurnStart(
   for (const minion of player.battlefield) {
     minion.justPlayed = false;
     minion.usedGeneralSkills = 0;
-    // Only reset remainingAttacks for non-sleeping minions
+    // Only reset remainingAttacks for non-sleeping minions.
+    // WINDFURY grants a second swing per turn (matched in card-instance.ts
+    // for the fresh-played CHARGE/RUSH/ASSASSIN+WINDFURY arrival case).
     if (minion.sleepTurns === 0) {
-      minion.remainingAttacks = 1;
+      minion.remainingAttacks = minion.card.keywords.includes('WINDFURY') ? 2 : 1;
     }
   }
 
