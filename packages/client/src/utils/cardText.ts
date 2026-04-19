@@ -27,6 +27,11 @@ export const KEYWORD_LABELS: Record<SupportedLocale, Record<string, string>> = {
     COLONY: '殖民',
     BLITZ: '闪击',
     MOBILIZATION_ORDER: '动员令',
+    DIVINE_SHIELD: '圣盾',
+    POISONOUS: '剧毒',
+    WINDFURY: '风怒',
+    LIFESTEAL: '吸血',
+    REBORN: '重生',
   },
   'en-US': {
     BATTLECRY: 'Battlecry',
@@ -46,6 +51,11 @@ export const KEYWORD_LABELS: Record<SupportedLocale, Record<string, string>> = {
     COLONY: 'Colony',
     BLITZ: 'Blitz',
     MOBILIZATION_ORDER: 'Mobilization Order',
+    DIVINE_SHIELD: 'Divine Shield',
+    POISONOUS: 'Poisonous',
+    WINDFURY: 'Windfury',
+    LIFESTEAL: 'Lifesteal',
+    REBORN: 'Reborn',
   },
 };
 

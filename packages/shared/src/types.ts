@@ -7,7 +7,8 @@ export type Keyword =
   | 'BATTLECRY' | 'DEATHRATTLE' | 'AURA' | 'TAUNT' | 'RUSH' | 'CHARGE'
   | 'ASSASSIN' | 'COMBO_STRIKE' | 'STEALTH_KILL' | 'IRON_FIST'
   | 'MOBILIZE' | 'GARRISON' | 'RESEARCH' | 'BLOCKADE' | 'COLONY'
-  | 'BLITZ' | 'MOBILIZATION_ORDER';
+  | 'BLITZ' | 'MOBILIZATION_ORDER'
+  | 'DIVINE_SHIELD' | 'POISONOUS' | 'WINDFURY' | 'LIFESTEAL' | 'REBORN';
 export type EffectTrigger =
   | 'ON_PLAY' | 'ON_DEATH' | 'ON_KILL' | 'ON_TURN_START' | 'ON_TURN_END' | 'ON_ATTACK' | 'AURA';
 export type EffectType =
