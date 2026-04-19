@@ -482,7 +482,67 @@ export function executeAttack(
   // Calculate and apply damage
   const damage = Math.max(0, attacker.currentAttack);
 
+  // Snapshot defender state BEFORE the damage call so we can later detect
+  // whether the attacker actually landed HP damage (DIVINE_SHIELD absorbs the
+  // hit without reducing HP — in that case POISONOUS must NOT trigger).
+  // We also snapshot the defender's POISONOUS keyword: ON_DEATH deathrattles
+  // (M3+) may strip keywords during destroy, so reading hasKeyword on a live
+  // reference after mutator.damage would be racy. Snapshot mirrors the HP
+  // snapshot pattern for symmetry.
+  const targetMinionHealthBeforeDamage = targetMinionBeforeDamage?.currentHealth;
+  const defenderWasPoisonous = targetMinionBeforeDamage
+    ? hasKeyword(targetMinionBeforeDamage, 'POISONOUS')
+    : false;
+
   mutator.damage(target, damage);
+
+  // POISONOUS: a minion that deals positive damage to another minion destroys
+  // it regardless of remaining HP. Resolution lives here (not in state-mutator)
+  // because state-mutator's damage helper does not know "which minion dealt
+  // this damage". Also applies symmetrically when the defender (rather than
+  // attacker) carries POISONOUS — the attacker dies if the defender's
+  // counter-strike would deal positive damage, even if the defender was
+  // overkilled and the counter never resolves.
+  if (damage > 0) {
+    const targetMinion = target.type === 'MINION'
+      ? findMinion(state, target.instanceId)
+      : undefined;
+
+    // Did the attacker's hit actually land HP damage on the defender?
+    // - destroyed (gone from battlefield) → yes (overkill counts)
+    // - HP dropped versus snapshot → yes
+    // - HP unchanged (e.g. DIVINE_SHIELD absorbed) → no
+    const attackerLandedHpDamage =
+      targetMinionBeforeDamage !== undefined &&
+      targetMinionHealthBeforeDamage !== undefined &&
+      (!targetMinion || targetMinion.currentHealth < targetMinionHealthBeforeDamage);
+
+    if (
+      attackerLandedHpDamage &&
+      targetMinion &&
+      hasKeyword(attacker, 'POISONOUS') &&
+      targetMinion.currentHealth > 0
+    ) {
+      mutator.destroyMinion(targetMinion.instanceId);
+    }
+
+    // Symmetric: defender carries POISONOUS and would deal positive
+    // counter-damage to the attacker. We use the pre-damage snapshot because
+    // an overkilled defender skips the counter block but its venom still
+    // reaches the attacker. The attacker.currentHealth > 0 guard prevents a
+    // double-destroy if the attacker has already fallen.
+    const defenderHadCounterDamage =
+      targetMinionBeforeDamage !== undefined &&
+      targetMinionBeforeDamage.currentAttack > 0;
+    if (
+      targetMinionBeforeDamage &&
+      defenderWasPoisonous &&
+      defenderHadCounterDamage &&
+      attacker.currentHealth > 0
+    ) {
+      mutator.destroyMinion(attacker.instanceId);
+    }
+  }
 
   // Trigger ON_KILL if the target minion was destroyed
   if (target.type === 'MINION' && targetMinionBeforeDamage) {

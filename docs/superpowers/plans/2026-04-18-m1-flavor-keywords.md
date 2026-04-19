@@ -448,6 +448,59 @@ Expected: FAIL。
   }
 ```
 
+> **Plan correction (post-implementation)**: 实际实现发现 plan 给的判定有两处缺陷：
+> 1. `damage > 0`（即 `attacker.currentAttack > 0`）独立于 DIVINE_SHIELD 是否吸收，不能可靠表达"实际造成生命值伤害"。需用 HP snapshot 判断。
+> 2. 防御方分支用 `targetMinion.currentAttack`（damage 后引用）会在过量击杀场景下短路为 false（targetMinion 已被 destroy），导致剧毒守方场景失效。需用 `targetMinionBeforeDamage.currentAttack`。
+>
+> 实际落地版本（commit `3ade3e9` 后续 amend）：
+>
+> ```ts
+> // Snapshot defender state BEFORE the damage call so we can later detect
+> // whether actual HP damage was landed (DIVINE_SHIELD absorbs without HP loss).
+> const targetMinionHealthBeforeDamage = targetMinionBeforeDamage?.currentHealth;
+> const defenderWasPoisonous = targetMinionBeforeDamage
+>   ? hasKeyword(targetMinionBeforeDamage, 'POISONOUS')
+>   : false;
+>
+> mutator.damage(target, damage);
+>
+> if (damage > 0) {
+>   const targetMinion = target.type === 'MINION'
+>     ? findMinion(state, target.instanceId)
+>     : undefined;
+>
+>   // attacker landed HP damage iff defender is gone (overkill) or HP dropped
+>   const attackerLandedHpDamage =
+>     targetMinionBeforeDamage !== undefined &&
+>     targetMinionHealthBeforeDamage !== undefined &&
+>     (!targetMinion || targetMinion.currentHealth < targetMinionHealthBeforeDamage);
+>
+>   if (
+>     attackerLandedHpDamage &&
+>     targetMinion &&
+>     hasKeyword(attacker, 'POISONOUS') &&
+>     targetMinion.currentHealth > 0
+>   ) {
+>     mutator.destroyMinion(targetMinion.instanceId);
+>   }
+>
+>   // Defender-side: use snapshotted defender attack power, not live target ref,
+>   // so overkilled poisonous defenders still take the attacker down.
+>   const defenderHadCounterDamage =
+>     (targetMinionBeforeDamage?.currentAttack ?? 0) > 0;
+>   if (
+>     targetMinionBeforeDamage &&
+>     defenderWasPoisonous &&
+>     defenderHadCounterDamage &&
+>     attacker.currentHealth > 0
+>   ) {
+>     mutator.destroyMinion(attacker.instanceId);
+>   }
+> }
+> ```
+>
+> Task 4 LIFESTEAL 也应当用 HP snapshot 判定"实际造成的伤害"，参考此版本。
+
 - [ ] **Step 4: 创建 handler 占位文件**
 
 新建 `packages/core/src/cards/effects/poisonous.ts`：
