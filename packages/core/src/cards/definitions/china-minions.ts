@@ -102,6 +102,19 @@ export const JINJUN_TONGLING = china.minion({
   ],
 });
 
+// ─── M1 sample card (POISONOUS secondary) ───────────────────────────
+
+export const GU_SORCERER = china.minion({
+  slug: 'gu_sorcerer',
+  name: '蛊师',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 2,
+  health: 3,
+  description: '剧毒。',
+  keywords: ['POISONOUS'],
+});
+
 export const CHINA_MINIONS: Card[] = [
   BINGMAYONG,
   QINJUN_BUBING,
@@ -111,4 +124,5 @@ export const CHINA_MINIONS: Card[] = [
   QINJUN_NUSHOU,
   GUANZHONG_SHUBING,
   JINJUN_TONGLING,
+  GU_SORCERER,
 ];

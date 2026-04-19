@@ -547,6 +547,36 @@ const TEXT_RESOURCE_TABLE: Record<string, Partial<Record<SupportedLocale, string
   'Deathrattle: Restore 3 health to your hero.': { 'zh-CN': '亡语：为你的英雄恢复3点生命。' },
   Volkssturm: { 'zh-CN': '国民突击队' },
   'Deathrattle: Give all friendly minions +1 attack.': { 'zh-CN': '亡语：所有友方随从获得+1攻击力。' },
+
+  // ─── M1 sample card translations (17 cards across 5 civs) ─────────
+  '伊贺刺客': { 'en-US': 'Iga Assassin' },
+  '鸩毒武者': { 'en-US': 'Venom Bushi' },
+  '雾隐忍者': { 'en-US': 'Mist Ninja' },
+  '不死武士': { 'en-US': 'Undying Samurai' },
+  '武士道圣骑': { 'en-US': 'Bushido Paladin' },
+  '转生僧': { 'en-US': 'Reborn Monk' },
+  '双刀武士': { 'en-US': 'Twin Blade Samurai' },
+  '宫廷卫兵': { 'en-US': 'Palace Guard' },
+  '龙骑兵': { 'en-US': 'Dragoon' },
+  '皇家近卫': { 'en-US': 'Imperial Guard' },
+  '皇家军医': { 'en-US': 'Royal Medic' },
+  '闪电步兵': { 'en-US': 'Blitz Trooper' },
+  '双刃骠骑': { 'en-US': 'Twin-Saber Hussar' },
+  '装甲恢复车': { 'en-US': 'Recovery Tank' },
+  '战地工程师': { 'en-US': 'Field Engineer' },
+  '民兵盾兵': { 'en-US': 'Militia Shieldman' },
+  '蛊师': { 'en-US': 'Gu Sorcerer' },
+  '剧毒。': { 'en-US': 'Poisonous.' },
+  '剧毒。突袭。': { 'en-US': 'Poisonous. Rush.' },
+  '重生。': { 'en-US': 'Reborn.' },
+  '重生。战吼：使你的英雄恢复2点生命。': {
+    'en-US': 'Reborn. Battlecry: Restore 2 Health to your hero.',
+  },
+  '风怒。': { 'en-US': 'Windfury.' },
+  '圣盾。': { 'en-US': 'Divine Shield.' },
+  '圣盾。嘲讽。': { 'en-US': 'Divine Shield. Taunt.' },
+  '吸血。': { 'en-US': 'Lifesteal.' },
+  '吸血。嘲讽。': { 'en-US': 'Lifesteal. Taunt.' },
 };
 
 function localizeText(text: string, locale: SupportedLocale = DEFAULT_LOCALE): string {

@@ -48,6 +48,7 @@ export {
   QINJUN_NUSHOU,
   GUANZHONG_SHUBING,
   JINJUN_TONGLING,
+  GU_SORCERER,
 } from './china-minions.js';
 
 export {
@@ -95,6 +96,13 @@ export {
   SOUHEI,
   TEPPO,
   MUSHA,
+  IGA_ASSASSIN,
+  VENOM_BUSHI,
+  MIST_NINJA,
+  UNDYING_SAMURAI,
+  BUSHIDO_PALADIN,
+  REBORN_MONK,
+  TWIN_BLADE_SAMURAI,
 } from './japan-minions.js';
 
 export {
@@ -153,6 +161,7 @@ export {
   RESEARCH_SCIENTIST,
   MANHATTAN_ENGINEER,
   DRILL_SERGEANT,
+  MILITIA_SHIELDMAN,
 } from './usa-minions.js';
 
 export {
@@ -208,6 +217,10 @@ export {
   ROYAL_GUARD,
   PRIVATEER,
   MAN_OF_WAR,
+  PALACE_GUARD,
+  DRAGOON,
+  IMPERIAL_GUARD,
+  ROYAL_MEDIC,
 } from './uk-minions.js';
 
 export {
@@ -263,6 +276,10 @@ export {
   PANZER,
   TEUTONIC_KNIGHT,
   STORMTROOPER,
+  BLITZ_TROOPER,
+  TWIN_SABER_HUSSAR,
+  RECOVERY_TANK,
+  FIELD_ENGINEER,
 } from './germany-minions.js';
 
 export {

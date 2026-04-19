@@ -115,6 +115,52 @@ export const VOLKSSTURM = germany.minion({
   effects: [onDeath.modifyStat({ targetFilter: 'ALL_FRIENDLY_MINIONS', attackDelta: 1 })],
 });
 
+// ─── M1 sample cards (WINDFURY / LIFESTEAL) ─────────────────────────
+
+export const BLITZ_TROOPER = germany.minion({
+  slug: 'blitz_trooper',
+  name: '闪电步兵',
+  rarity: 'RARE',
+  cost: 4,
+  attack: 3,
+  health: 3,
+  description: '风怒。',
+  keywords: ['WINDFURY'],
+});
+
+export const TWIN_SABER_HUSSAR = germany.minion({
+  slug: 'twin_saber_hussar',
+  name: '双刃骠骑',
+  rarity: 'EPIC',
+  cost: 5,
+  attack: 4,
+  health: 4,
+  description: '风怒。',
+  keywords: ['WINDFURY'],
+});
+
+export const RECOVERY_TANK = germany.minion({
+  slug: 'recovery_tank',
+  name: '装甲恢复车',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 2,
+  health: 3,
+  description: '吸血。',
+  keywords: ['LIFESTEAL'],
+});
+
+export const FIELD_ENGINEER = germany.minion({
+  slug: 'field_engineer',
+  name: '战地工程师',
+  rarity: 'RARE',
+  cost: 4,
+  attack: 3,
+  health: 4,
+  description: '吸血。嘲讽。',
+  keywords: ['LIFESTEAL', 'TAUNT'],
+});
+
 export const GERMANY_MINIONS: Card[] = [
   LANDSKNECHT,
   HUSSAR,
@@ -126,4 +172,8 @@ export const GERMANY_MINIONS: Card[] = [
   BERSERKER_GUARD,
   BLITZ_PANZER,
   VOLKSSTURM,
+  BLITZ_TROOPER,
+  TWIN_SABER_HUSSAR,
+  RECOVERY_TANK,
+  FIELD_ENGINEER,
 ];

@@ -132,6 +132,86 @@ export const KAMIKAZE_SPIRIT = japan.minion({
   effects: [onDeath.damage('RANDOM_ENEMY_MINION', 3)],
 });
 
+// ─── M1 sample cards (POISONOUS / REBORN / WINDFURY) ────────────────
+
+export const IGA_ASSASSIN = japan.minion({
+  slug: 'iga_assassin',
+  name: '伊贺刺客',
+  rarity: 'COMMON',
+  cost: 2,
+  attack: 1,
+  health: 2,
+  description: '剧毒。',
+  keywords: ['POISONOUS'],
+});
+
+export const VENOM_BUSHI = japan.minion({
+  slug: 'venom_bushi',
+  name: '鸩毒武者',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 2,
+  health: 3,
+  description: '剧毒。',
+  keywords: ['POISONOUS'],
+});
+
+export const MIST_NINJA = japan.minion({
+  slug: 'mist_ninja',
+  name: '雾隐忍者',
+  rarity: 'EPIC',
+  cost: 4,
+  attack: 3,
+  health: 2,
+  description: '剧毒。突袭。',
+  keywords: ['POISONOUS', 'RUSH'],
+});
+
+export const UNDYING_SAMURAI = japan.minion({
+  slug: 'undying_samurai',
+  name: '不死武士',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 2,
+  health: 3,
+  description: '重生。',
+  keywords: ['REBORN'],
+});
+
+export const BUSHIDO_PALADIN = japan.minion({
+  slug: 'bushido_paladin',
+  name: '武士道圣骑',
+  rarity: 'RARE',
+  cost: 4,
+  attack: 3,
+  health: 4,
+  description: '重生。',
+  keywords: ['REBORN'],
+});
+
+export const REBORN_MONK = japan.minion({
+  slug: 'reborn_monk',
+  name: '转生僧',
+  rarity: 'EPIC',
+  cost: 5,
+  attack: 3,
+  health: 5,
+  description: '重生。战吼：使你的英雄恢复2点生命。',
+  keywords: ['REBORN', 'BATTLECRY'],
+  effects: [onPlay.heal('HERO', 2)],
+});
+
+export const TWIN_BLADE_SAMURAI = japan.minion({
+  slug: 'twin_blade_samurai',
+  name: '双刀武士',
+  rarity: 'RARE',
+  cost: 5,
+  attack: 3,
+  health: 4,
+  description: '风怒。',
+  keywords: ['WINDFURY'],
+});
+
 export const JAPAN_MINIONS: Card[] = [
   ASHIGARU,
   NINJA,
@@ -144,4 +224,11 @@ export const JAPAN_MINIONS: Card[] = [
   KENSEI,
   RONIN_BLADE,
   KAMIKAZE_SPIRIT,
+  IGA_ASSASSIN,
+  VENOM_BUSHI,
+  MIST_NINJA,
+  UNDYING_SAMURAI,
+  BUSHIDO_PALADIN,
+  REBORN_MONK,
+  TWIN_BLADE_SAMURAI,
 ];

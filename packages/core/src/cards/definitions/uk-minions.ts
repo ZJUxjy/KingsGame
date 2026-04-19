@@ -104,6 +104,52 @@ export const ROYAL_MARTYR = uk.minion({
   effects: [onDeath.heal('HERO', 3)],
 });
 
+// ─── M1 sample cards (DIVINE_SHIELD / LIFESTEAL) ────────────────────
+
+export const PALACE_GUARD = uk.minion({
+  slug: 'palace_guard',
+  name: '宫廷卫兵',
+  rarity: 'COMMON',
+  cost: 1,
+  attack: 1,
+  health: 2,
+  description: '圣盾。',
+  keywords: ['DIVINE_SHIELD'],
+});
+
+export const DRAGOON = uk.minion({
+  slug: 'dragoon',
+  name: '龙骑兵',
+  rarity: 'COMMON',
+  cost: 2,
+  attack: 2,
+  health: 2,
+  description: '圣盾。',
+  keywords: ['DIVINE_SHIELD'],
+});
+
+export const IMPERIAL_GUARD = uk.minion({
+  slug: 'imperial_guard',
+  name: '皇家近卫',
+  rarity: 'RARE',
+  cost: 4,
+  attack: 3,
+  health: 4,
+  description: '圣盾。嘲讽。',
+  keywords: ['DIVINE_SHIELD', 'TAUNT'],
+});
+
+export const ROYAL_MEDIC = uk.minion({
+  slug: 'royal_medic',
+  name: '皇家军医',
+  rarity: 'RARE',
+  cost: 3,
+  attack: 2,
+  health: 3,
+  description: '吸血。',
+  keywords: ['LIFESTEAL'],
+});
+
 export const UK_MINIONS: Card[] = [
   REDCOAT,
   LONGBOWMAN,
@@ -114,4 +160,8 @@ export const UK_MINIONS: Card[] = [
   NAVAL_BLOCKADER,
   COLONIAL_GOVERNOR,
   ROYAL_MARTYR,
+  PALACE_GUARD,
+  DRAGOON,
+  IMPERIAL_GUARD,
+  ROYAL_MEDIC,
 ];

@@ -116,6 +116,19 @@ export const SUPPLY_TRUCK = usa.minion({
   effects: [onDeath.draw(1)],
 });
 
+// ─── M1 sample cards (DIVINE_SHIELD secondary) ──────────────────────
+
+export const MILITIA_SHIELDMAN = usa.minion({
+  slug: 'militia_shieldman',
+  name: '民兵盾兵',
+  rarity: 'COMMON',
+  cost: 2,
+  attack: 2,
+  health: 2,
+  description: '圣盾。',
+  keywords: ['DIVINE_SHIELD'],
+});
+
 export const USA_MINIONS: Card[] = [
   GI,
   MARINE,
@@ -127,4 +140,5 @@ export const USA_MINIONS: Card[] = [
   MANHATTAN_ENGINEER,
   DRILL_SERGEANT,
   SUPPLY_TRUCK,
+  MILITIA_SHIELDMAN,
 ];

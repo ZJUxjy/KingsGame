@@ -26,23 +26,23 @@ function getQinLegalEditableCopyTotal(): number {
 }
 
 describe('China Card Definitions', () => {
-  // ─── Total count: 3 emperors + 9 ministers + 2 generals + 8 minions + 4 stratagems + 2 sorceries = 28 ───
+  // ─── Total count: 3 emperors + 9 ministers + 2 generals + 9 minions + 4 stratagems + 2 sorceries = 29 ───
 
-  it('should have exactly 28 entities (19 Card + 9 Minister)', () => {
-    // Card objects: 8 minions + 4 stratagems + 2 sorceries + 3 emperors + 2 generals = 19
+  it('should have exactly 29 entities (20 Card + 9 Minister)', () => {
+    // Card objects: 9 minions + 4 stratagems + 2 sorceries + 3 emperors + 2 generals = 20
     // Minister objects: 9 (3 per emperor, separate from Card)
-    // Total "cards" in the card sense: 19 Card instances + 9 Minister = 28 game entities
+    // Total "cards" in the card sense: 20 Card instances + 9 Minister = 29 game entities
     const cardCount = CHINA_MINIONS.length
       + CHINA_STRATAGEMS.length
       + CHINA_SORCERIES.length
       + CHINA_EMPERORS.length
       + CHINA_GENERALS.length
       + CHINA_MINISTERS.length;
-    expect(cardCount).toBe(28);
+    expect(cardCount).toBe(29);
   });
 
-  it('CHINA_ALL_CARDS should contain all 19 Card objects', () => {
-    expect(CHINA_ALL_CARDS).toHaveLength(19);
+  it('CHINA_ALL_CARDS should contain all 20 Card objects', () => {
+    expect(CHINA_ALL_CARDS).toHaveLength(20);
   });
 
   it('Qin should have at least 27 legal editable copies after excluding bound cards', () => {
@@ -82,11 +82,11 @@ describe('China Card Definitions', () => {
     }
   });
 
-  // ─── Minion Cards (8) ─────────────────────────────────────────────
+  // ─── Minion Cards (9) ─────────────────────────────────────────────
 
   describe('Minions', () => {
-    it('should have exactly 8 minion cards', () => {
-      expect(CHINA_MINIONS).toHaveLength(8);
+    it('should have exactly 9 minion cards', () => {
+      expect(CHINA_MINIONS).toHaveLength(9);
     });
 
     it('all minions should be type MINION', () => {
